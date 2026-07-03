@@ -28,14 +28,6 @@ class Guru extends Model
     }
 
     /**
-     * Get the jurusans that the guru teaches.
-     */
-    public function jurusans(): BelongsToMany
-    {
-        return $this->belongsToMany(Jurusan::class, 'guru_jurusan');
-    }
-
-    /**
      * Get the kelas that the guru teaches.
      */
     public function kelas(): BelongsToMany

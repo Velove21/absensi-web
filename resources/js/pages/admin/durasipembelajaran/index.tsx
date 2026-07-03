@@ -1,28 +1,19 @@
 import { useState } from 'react';
-import { Head, useForm, router } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 import adminDurasiPembelajaran from '@/routes/admin/durasi-pembelajaran';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Edit2, Trash2, X, Plus, Save, Clock } from 'lucide-react';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { Edit2, X, Plus, Save, Clock } from 'lucide-react';
 import Pagination from '@/components/pagination';
 
 interface DurasiPembelajaran {
     id: number;
     hari: string;
     jam_ke: number;
+    nama: string | null;
     waktu_mulai: string;
     waktu_selesai: string;
 }
@@ -42,11 +33,11 @@ export default function DurasiPembelajaranIndex({
     durasiPembelajaran: PaginatedData<DurasiPembelajaran>;
 }) {
     const [editingDurasi, setEditingDurasi] = useState<DurasiPembelajaran | null>(null);
-    const [deletingDurasiId, setDeletingDurasiId] = useState<number | null>(null);
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         hari: 'Senin',
         jam_ke: 1,
+        nama: '',
         waktu_mulai: '07:00',
         waktu_selesai: '07:45',
     });
@@ -88,6 +79,7 @@ export default function DurasiPembelajaranIndex({
         setData({ 
             hari: durasi.hari,
             jam_ke: durasi.jam_ke,
+            nama: durasi.nama ?? '',
             waktu_mulai: formatTime(durasi.waktu_mulai),
             waktu_selesai: formatTime(durasi.waktu_selesai),
         });
@@ -97,18 +89,6 @@ export default function DurasiPembelajaranIndex({
         setEditingDurasi(null);
         reset();
         clearErrors();
-    };
-
-    const executeDelete = () => {
-        if (!deletingDurasiId) return;
-        router.delete(adminDurasiPembelajaran.destroy.url({ durasi_pembelajaran: deletingDurasiId }), {
-            preserveScroll: true,
-            onSuccess: () => {
-                toast.success('Durasi pembelajaran berhasil dihapus');
-                setDeletingDurasiId(null);
-            },
-            onError: () => setDeletingDurasiId(null),
-        });
     };
 
     return (
@@ -181,16 +161,37 @@ export default function DurasiPembelajaranIndex({
                                     <Input
                                         id="jam_ke"
                                         type="number"
-                                        min="1"
+                                        min="0"
                                         value={data.jam_ke}
                                         onChange={(e) =>
-                                            setData('jam_ke', parseInt(e.target.value) || 1)
+                                            setData('jam_ke', parseInt(e.target.value) || 0)
                                         }
                                         className="bg-muted/30"
                                     />
                                     {errors.jam_ke && (
                                         <p className="text-xs text-destructive">
                                             {errors.jam_ke}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="nama">Nama (Opsional)</Label>
+                                    <Input
+                                        id="nama"
+                                        value={data.nama}
+                                        onChange={(e) =>
+                                            setData('nama', e.target.value)
+                                        }
+                                        placeholder="Contoh: Upacara"
+                                        className="bg-muted/30"
+                                    />
+                                    <p className="text-[11px] text-muted-foreground">
+                                        Kosongkan untuk jam pelajaran biasa. Isi "Upacara" untuk jam khusus.
+                                    </p>
+                                    {errors.nama && (
+                                        <p className="text-xs text-destructive">
+                                            {errors.nama}
                                         </p>
                                     )}
                                 </div>
@@ -275,6 +276,9 @@ export default function DurasiPembelajaranIndex({
                                                 Jam Ke-
                                             </th>
                                             <th scope="col" className="px-6 py-4">
+                                                Nama
+                                            </th>
+                                            <th scope="col" className="px-6 py-4">
                                                 Waktu Mulai
                                             </th>
                                             <th scope="col" className="px-6 py-4">
@@ -298,7 +302,16 @@ export default function DurasiPembelajaranIndex({
                                                     {durasi.hari}
                                                 </td>
                                                 <td className="px-6 py-4 text-muted-foreground">
-                                                    Jam ke-{durasi.jam_ke}
+                                                    {durasi.jam_ke === 0 ? '-' : `Jam ke-${durasi.jam_ke}`}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    {durasi.nama ? (
+                                                        <span className="inline-flex items-center rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-500/20">
+                                                            {durasi.nama}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-muted-foreground opacity-60">-</span>
+                                                    )}
                                                 </td>
                                                 <td className="px-6 py-4 text-muted-foreground">
                                                     {formatTime(durasi.waktu_mulai)}
@@ -307,31 +320,21 @@ export default function DurasiPembelajaranIndex({
                                                     {formatTime(durasi.waktu_selesai)}
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
-                                                    <div className="flex justify-end gap-2">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() => handleEdit(durasi)}
-                                                            className="h-8 w-8 text-muted-foreground hover:text-primary"
-                                                        >
-                                                            <Edit2 className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() => setDeletingDurasiId(durasi.id)}
-                                                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => handleEdit(durasi)}
+                                                        className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                                    >
+                                                        <Edit2 className="h-4 w-4" />
+                                                    </Button>
                                                 </td>
                                             </tr>
                                         ))}
                                         {durasiPembelajaran.data.length === 0 && (
                                             <tr>
                                                 <td
-                                                    colSpan={5}
+                                                    colSpan={6}
                                                     className="px-6 py-12 text-center text-muted-foreground"
                                                 >
                                                     <div className="flex flex-col items-center gap-2">
@@ -350,20 +353,6 @@ export default function DurasiPembelajaranIndex({
                 </div>
             </div>
 
-            <AlertDialog open={deletingDurasiId !== null} onOpenChange={(open) => !open && setDeletingDurasiId(null)}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Konfirmasi Hapus</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Apakah Anda yakin ingin menghapus jadwal durasi ini?
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Batal</AlertDialogCancel>
-                        <AlertDialogAction onClick={executeDelete}>Hapus</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
         </>
     );
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
 import adminGuru from '@/routes/admin/guru';
 import { dashboard as adminDashboard } from '@/routes/admin';
@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Edit2, Trash2, X, Plus, Save, Users, GraduationCap, BookOpen, KeyRound } from 'lucide-react';
+import { Edit2, Trash2, X, Plus, Save, Users, BookOpen, KeyRound, Search } from 'lucide-react';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -18,12 +18,6 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import Pagination from '@/components/pagination';
-
-interface Jurusan {
-    id: number;
-    nama_jurusan: string;
-    singkatan: string;
-}
 
 interface Kelas {
     id: number;
@@ -48,7 +42,6 @@ interface Guru {
         email: string;
         password_default: boolean;
     };
-    jurusans?: Jurusan[];
     kelas?: Kelas[];
     mataPelajarans?: MataPelajaran[];
 }
@@ -64,12 +57,10 @@ interface PaginatedData<T> {
 
 export default function GuruIndex({ 
     gurus,
-    jurusans,
     kelas,
     mataPelajarans
 }: { 
     gurus: PaginatedData<Guru>;
-    jurusans: Jurusan[];
     kelas: Kelas[];
     mataPelajarans: MataPelajaran[];
 }) {
@@ -77,14 +68,33 @@ export default function GuruIndex({
     const [deletingGuruId, setDeletingGuruId] = useState<number | null>(null);
     const [resettingPasswordGuruId, setResettingPasswordGuruId] = useState<number | null>(null);
 
+    const [search, setSearch] = useState('');
+    const searchTimeout = useRef<ReturnType<typeof setTimeout>>();
+
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         nip: '',
         nama: '',
         password: '',
-        jurusan_ids: [] as number[],
         kelas_ids: [] as number[],
         mata_pelajaran_ids: [] as number[],
     });
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        setSearch(params.get('search') || '');
+    }, []);
+
+    const handleSearch = (value: string) => {
+        setSearch(value);
+        clearTimeout(searchTimeout.current);
+        searchTimeout.current = setTimeout(() => {
+            router.get(adminGuru.index.url(), { search: value || undefined }, {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+            });
+        }, 400);
+    };
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -121,8 +131,7 @@ export default function GuruIndex({
         setData({
             nip: guru.nip,
             nama: guru.nama,
-            password: '', // Keep empty unless changing
-            jurusan_ids: guru.jurusans ? guru.jurusans.map(j => j.id) : [],
+            password: '',
             kelas_ids: guru.kelas ? guru.kelas.map(k => k.id) : [],
             mata_pelajaran_ids: guru.mataPelajarans ? guru.mataPelajarans.map(m => m.id) : [],
         });
@@ -132,15 +141,6 @@ export default function GuruIndex({
         setEditingGuru(null);
         reset();
         clearErrors();
-    };
-
-    const handleJurusanToggle = (jurusanId: number) => {
-        const isSelected = data.jurusan_ids.includes(jurusanId);
-        if (isSelected) {
-            setData('jurusan_ids', data.jurusan_ids.filter(id => id !== jurusanId));
-        } else {
-            setData('jurusan_ids', [...data.jurusan_ids, jurusanId]);
-        }
     };
 
     const handleKelasToggle = (kelasId: number) => {
@@ -195,7 +195,7 @@ export default function GuruIndex({
                             Manajemen Guru
                         </h1>
                         <p className="text-muted-foreground">
-                            Kelola data, NIP, akun, dan penempatan jurusan guru.
+                            Kelola data, NIP, akun, dan penempatan guru.
                         </p>
                     </div>
                 </div>
@@ -329,26 +329,28 @@ export default function GuruIndex({
                                     )}
                                 </div>
 
-                                <div className="space-y-2 pt-2 border-t border-sidebar-border mt-4">
-                                    <Label htmlFor="password">
-                                        {editingGuru ? 'Password Baru (Opsional)' : 'Password Default'}
-                                    </Label>
-                                    <Input
-                                        id="password"
-                                        type="password"
-                                        value={data.password}
-                                        onChange={(e) =>
-                                            setData('password', e.target.value)
-                                        }
-                                        placeholder={editingGuru ? "Minimal 8 karakter" : "Password akun guru"}
-                                        className="bg-muted/30"
-                                    />
-                                    {errors.password && (
-                                        <p className="text-xs text-destructive">
-                                            {errors.password}
-                                        </p>
-                                    )}
-                                </div>
+                                {editingGuru && (
+                                    <div className="space-y-2 pt-2 border-t border-sidebar-border mt-4">
+                                        <Label htmlFor="password">
+                                            Password Baru (Opsional)
+                                        </Label>
+                                        <Input
+                                            id="password"
+                                            type="password"
+                                            value={data.password}
+                                            onChange={(e) =>
+                                                setData('password', e.target.value)
+                                            }
+                                            placeholder="Minimal 8 karakter, kosongkan jika tidak diubah"
+                                            className="bg-muted/30"
+                                        />
+                                        {errors.password && (
+                                            <p className="text-xs text-destructive">
+                                                {errors.password}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
 
                                 <div className="flex gap-2 pt-4">
                                     {editingGuru && (
@@ -381,6 +383,15 @@ export default function GuruIndex({
 
                     {/* Data Table */}
                     <div className="col-span-1 lg:col-span-2 space-y-4">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Cari nama, NIP, kelas, atau mata pelajaran..."
+                                value={search}
+                                onChange={(e) => handleSearch(e.target.value)}
+                                className="pl-9 bg-muted/30"
+                            />
+                        </div>
                         <div className="overflow-hidden rounded-xl border border-sidebar-border/70 bg-card shadow-sm dark:border-sidebar-border">
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-sm">
@@ -391,9 +402,6 @@ export default function GuruIndex({
                                             </th>
                                             <th scope="col" className="px-6 py-4">
                                                 Nama Guru
-                                            </th>
-                                            <th scope="col" className="px-6 py-4">
-                                                Jurusan Diampu
                                             </th>
                                             <th scope="col" className="px-6 py-4">
                                                 Kelas Diampu
@@ -423,19 +431,6 @@ export default function GuruIndex({
                                                 </td>
                                                 <td className="px-6 py-4 font-medium text-foreground">
                                                     {guru.nama}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex flex-wrap gap-1">
-                                                        {guru.jurusans && guru.jurusans.length > 0 ? (
-                                                            guru.jurusans.map(j => (
-                                                                <span key={j.id} className="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary ring-1 ring-inset ring-primary/20">
-                                                                    {j.singkatan}
-                                                                </span>
-                                                            ))
-                                                        ) : (
-                                                            <span className="text-xs text-muted-foreground italic">-</span>
-                                                        )}
-                                                    </div>
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex flex-wrap gap-1">
@@ -508,7 +503,7 @@ export default function GuruIndex({
                                         {gurus.data.length === 0 && (
                                             <tr>
                                                 <td
-                                                    colSpan={7}
+                                                    colSpan={6}
                                                     className="px-6 py-12 text-center text-muted-foreground"
                                                 >
                                                     <div className="flex flex-col items-center gap-2">

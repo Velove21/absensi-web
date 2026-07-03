@@ -24,9 +24,10 @@ class DurasiPembelajaranController extends Controller
             'jam_ke' => [
                 'required',
                 'integer',
-                'min:1',
+                'min:0',
                 Rule::unique('durasi_pembelajarans')->where(fn ($query) => $query->where('hari', $request->hari)),
             ],
+            'nama' => 'nullable|string|max:50',
             'waktu_mulai' => 'required|date_format:H:i',
             'waktu_selesai' => 'required|date_format:H:i|after:waktu_mulai',
         ], [
@@ -48,11 +49,12 @@ class DurasiPembelajaranController extends Controller
             'jam_ke' => [
                 'required',
                 'integer',
-                'min:1',
+                'min:0',
                 Rule::unique('durasi_pembelajarans')
                     ->where(fn ($query) => $query->where('hari', $request->hari))
                     ->ignore($durasi->id),
             ],
+            'nama' => 'nullable|string|max:50',
             'waktu_mulai' => 'required|date_format:H:i',
             'waktu_selesai' => 'required|date_format:H:i|after:waktu_mulai',
         ], [
@@ -67,8 +69,6 @@ class DurasiPembelajaranController extends Controller
 
     public function destroy(string $id)
     {
-        DurasiPembelajaran::findOrFail($id)->delete();
-
-        return redirect()->back();
+        abort(403, 'Penghapusan durasi pembelajaran tidak diizinkan.');
     }
 }

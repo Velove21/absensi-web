@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Guru;
-use App\Models\Jurusan;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
 use App\Models\User;
@@ -16,11 +15,23 @@ use Inertia\Inertia;
 
 class GuruController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $search = $request->input('search');
+
+        $gurus = Guru::with(['user', 'kelas', 'mataPelajarans'])
+            ->when($search, function ($query, $search) {
+                $query->where('nama', 'like', "%{$search}%")
+                    ->orWhere('nip', 'like', "%{$search}%")
+                    ->orWhereHas('kelas', fn ($q) => $q->where('nama_kelas', 'like', "%{$search}%"))
+                    ->orWhereHas('mataPelajarans', fn ($q) => $q->where('nama_mapel', 'like', "%{$search}%"));
+            })
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
         return Inertia::render('admin/guru/index', [
-            'gurus' => Guru::with(['user', 'jurusans', 'kelas', 'mataPelajarans'])->latest()->paginate(10),
-            'jurusans' => Jurusan::all(),
+            'gurus' => $gurus,
             'kelas' => Kelas::with(['jurusan', 'jenjangKelas'])->get(),
             'mataPelajarans' => MataPelajaran::all(),
         ]);
@@ -31,9 +42,6 @@ class GuruController extends Controller
         $validated = $request->validate([
             'nip' => 'required|string|size:18|unique:gurus,nip',
             'nama' => 'required|string|max:255',
-            'password' => 'required|string|min:8',
-            'jurusan_ids' => 'nullable|array',
-            'jurusan_ids.*' => 'exists:jurusans,id',
             'kelas_ids' => 'nullable|array',
             'kelas_ids.*' => 'exists:kelas,id',
             'mata_pelajaran_ids' => 'nullable|array',
@@ -44,7 +52,7 @@ class GuruController extends Controller
             $user = User::create([
                 'name' => $validated['nama'],
                 'username' => $validated['nip'],
-                'password' => Hash::make($validated['password']),
+                'password' => Hash::make('password123'),
                 'role' => 'guru',
             ]);
 
@@ -53,10 +61,6 @@ class GuruController extends Controller
                 'nip' => $validated['nip'],
                 'nama' => $validated['nama'],
             ]);
-
-            if (! empty($validated['jurusan_ids'])) {
-                $guru->jurusans()->sync($validated['jurusan_ids']);
-            }
 
             if (! empty($validated['kelas_ids'])) {
                 $guru->kelas()->sync($validated['kelas_ids']);
@@ -78,8 +82,6 @@ class GuruController extends Controller
             'nip' => ['required', 'string', 'size:18', Rule::unique('gurus')->ignore($guru->id)],
             'nama' => 'required|string|max:255',
             'password' => 'nullable|string|min:8',
-            'jurusan_ids' => 'nullable|array',
-            'jurusan_ids.*' => 'exists:jurusans,id',
             'kelas_ids' => 'nullable|array',
             'kelas_ids.*' => 'exists:kelas,id',
             'mata_pelajaran_ids' => 'nullable|array',
@@ -104,7 +106,6 @@ class GuruController extends Controller
             $guru->user->update($userUpdate);
 
             // Sync will detach missing and attach new
-            $guru->jurusans()->sync($validated['jurusan_ids'] ?? []);
             $guru->kelas()->sync($validated['kelas_ids'] ?? []);
             $guru->mataPelajarans()->sync($validated['mata_pelajaran_ids'] ?? []);
         });

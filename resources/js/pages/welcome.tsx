@@ -21,6 +21,7 @@ export default function Welcome() {
     const [activeRole, setActiveRole] = useState<Role>('admin');
 
     const isSiswa = activeRole === 'siswa';
+    const isAdmin = activeRole === 'admin';
 
     return (
         <>
@@ -89,7 +90,7 @@ export default function Welcome() {
                                         htmlFor="login"
                                         className="text-sm text-blue-100/90 font-medium"
                                     >
-                                        {isSiswa ? 'Nomor Induk Siswa (NIS)' : 'Username / NIP'}
+                                        {isSiswa ? 'Nomor Induk Siswa (NIS)' : isAdmin ? 'Username' : 'Username / NIP'}
                                     </Label>
                                     <Input
                                         id="login"
@@ -99,9 +100,14 @@ export default function Welcome() {
                                         autoFocus
                                         tabIndex={1}
                                         autoComplete="username"
-                                        placeholder={isSiswa ? 'Masukkan NIS Anda' : 'Masukkan Username / NIP'}
+                                        placeholder={isSiswa ? 'Masukkan NIS Anda' : isAdmin ? 'Masukkan Username' : 'Masukkan Username / NIP'}
                                         className="h-11 border-white/20 bg-white/10 text-white placeholder:text-blue-200/40 focus:border-[#0ea5e9] focus:ring-[#0ea5e9]/20"
                                     />
+                                    {!isSiswa && (
+                                        <p className="text-[11px] text-blue-200/50 mt-0.5">
+                                            {isAdmin ? 'Gunakan 19 digit kode akses Admin' : 'Gunakan NIP 18 digit'}
+                                        </p>
+                                    )}
                                     <InputError message={errors.login} />
                                 </div>
 

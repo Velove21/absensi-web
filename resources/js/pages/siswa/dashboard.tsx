@@ -24,14 +24,23 @@ import {
     Calendar,
     Award,
     BookOpen,
+    ImageUp,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 
 interface Absensi {
     id: number;
     tanggal: string;
     status: 'hadir' | 'sakit' | 'izin' | 'alpha' | 'dispensasi';
     keterangan: string | null;
+    bukti: string | null;
     jam_ke: string | null;
     waktu_mulai: string | null;
     waktu_selesai: string | null;
@@ -71,6 +80,7 @@ interface Props {
 
 export default function SiswaDashboard({ siswa, stats, groupedHistory }: Props) {
     const [activeTab, setActiveTab] = useState<'Senin' | 'Selasa' | 'Rabu' | 'Kamis' | 'Jumat'>('Senin');
+    const [previewBukti, setPreviewBukti] = useState<string | null>(null);
     const getStatusBadge = (status: string) => {
         switch (status) {
             case 'hadir':
@@ -245,13 +255,16 @@ export default function SiswaDashboard({ siswa, stats, groupedHistory }: Props) 
                                             Status
                                         </TableHead>
                                         <TableHead>Keterangan</TableHead>
+                                        <TableHead className="w-[80px]">
+                                            Bukti
+                                        </TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {groupedHistory[activeTab].length === 0 ? (
                                         <TableRow>
                                             <TableCell
-                                                colSpan={5}
+                                                colSpan={6}
                                                 className="h-24 text-center"
                                             >
                                                 Belum ada data riwayat absensi untuk hari {activeTab}.
@@ -291,6 +304,18 @@ export default function SiswaDashboard({ siswa, stats, groupedHistory }: Props) 
                                                 <TableCell className="text-muted-foreground">
                                                     {record.keterangan || '-'}
                                                 </TableCell>
+                                                <TableCell>
+                                                    {record.bukti ? (
+                                                        <button
+                                                            onClick={() => setPreviewBukti(`/storage/${record.bukti}`)}
+                                                            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 underline underline-offset-2"
+                                                        >
+                                                            <ImageUp className="h-3 w-3" /> Lihat
+                                                        </button>
+                                                    ) : (
+                                                        <span className="text-xs text-muted-foreground">-</span>
+                                                    )}
+                                                </TableCell>
                                             </TableRow>
                                         ))
                                     )}
@@ -300,6 +325,26 @@ export default function SiswaDashboard({ siswa, stats, groupedHistory }: Props) 
                     </CardContent>
                 </Card>
             </div>
+
+            <Dialog open={previewBukti !== null} onOpenChange={(open) => { if (!open) setPreviewBukti(null); }}>
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Bukti Absensi</DialogTitle>
+                        <DialogDescription>
+                            Foto bukti yang diunggah saat pencatatan absensi.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {previewBukti && (
+                        <div className="flex justify-center">
+                            <img
+                                src={previewBukti}
+                                alt="Bukti absensi"
+                                className="max-w-full max-h-[60vh] rounded-lg object-contain"
+                            />
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

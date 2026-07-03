@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import absensiData from '@/routes/guru/data-absensi';
 import {
@@ -10,6 +10,13 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { BookOpen, Calendar, Users, TableProperties, CheckCircle, Clock, FileWarning, XCircle, Award, ImageUp } from 'lucide-react';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 
 interface Jurusan {
     id: number;
@@ -29,7 +36,6 @@ interface MataPelajaran {
     id: number;
     nama_mapel: string;
     kategori: 'MPU' | 'KK';
-    jurusan_id: number | null;
 }
 
 interface AbsensiRecord {
@@ -67,6 +73,7 @@ export default function GuruDataAbsensi({
     filters,
     absensis = [],
 }: Props) {
+    const [previewBukti, setPreviewBukti] = useState<string | null>(null);
     const handleFilterChange = (key: keyof Props['filters'], value: string) => {
         const newFilters = { ...filters, [key]: value };
         
@@ -280,14 +287,12 @@ export default function GuruDataAbsensi({
                                                         </td>
                                                         <td className="px-6 py-4">
                                                             {record.bukti ? (
-                                                                <a
-                                                                    href={`/storage/${record.bukti}`}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
+                                                                <button
+                                                                    onClick={() => setPreviewBukti(`/storage/${record.bukti}`)}
                                                                     className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 underline underline-offset-2"
                                                                 >
                                                                     <ImageUp className="h-3 w-3" /> Lihat
-                                                                </a>
+                                                                </button>
                                                             ) : (
                                                                 <span className="text-xs text-muted-foreground">-</span>
                                                             )}
@@ -311,6 +316,26 @@ export default function GuruDataAbsensi({
                     </div>
                 </div>
             </div>
+
+            <Dialog open={previewBukti !== null} onOpenChange={(open) => { if (!open) setPreviewBukti(null); }}>
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Bukti Absensi</DialogTitle>
+                        <DialogDescription>
+                            Foto bukti yang diunggah saat pencatatan absensi.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {previewBukti && (
+                        <div className="flex justify-center">
+                            <img
+                                src={previewBukti}
+                                alt="Bukti absensi"
+                                className="max-w-full max-h-[60vh] rounded-lg object-contain"
+                            />
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

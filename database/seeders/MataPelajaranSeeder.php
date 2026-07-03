@@ -35,7 +35,6 @@ class MataPelajaranSeeder extends Seeder
             MataPelajaran::firstOrCreate([
                 'nama_mapel' => $subject,
                 'kategori_pembelajaran_id' => $kategori->id,
-                'jurusan_id' => null,
             ]);
         }
     }

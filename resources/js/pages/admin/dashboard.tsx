@@ -1,5 +1,6 @@
 import { Head, router } from '@inertiajs/react';
-import { Shield, Users, BookOpen, GraduationCap, Activity, PieChart as PieChartIcon, CheckCircle, Clock, FileWarning, XCircle, Award, TableProperties } from 'lucide-react';
+import { useState } from 'react';
+import { Shield, Users, BookOpen, GraduationCap, Activity, PieChart as PieChartIcon, CheckCircle, Clock, FileWarning, XCircle, Award, TableProperties, ImageUp } from 'lucide-react';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
@@ -7,6 +8,13 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 
 interface Stats {
     total_jurusan: number;
@@ -29,6 +37,7 @@ interface DetailedAttendance {
     jam_ke: string;
     status: string;
     keterangan: string | null;
+    bukti: string | null;
     siswa: {
         nis: string;
         nama: string;
@@ -80,6 +89,7 @@ export default function AdminDashboard({
     detailedAttendance,
     kelasList
 }: AdminDashboardProps) {
+    const [previewBukti, setPreviewBukti] = useState<string | null>(null);
     const attendanceData = [
         { status: 'hadir', count: attendanceToday.hadir, fill: 'var(--color-hadir)' },
         { status: 'sakit', count: attendanceToday.sakit, fill: 'var(--color-sakit)' },
@@ -339,6 +349,7 @@ export default function AdminDashboard({
                                                     <th className="px-4 py-3">Kelas</th>
                                                     <th className="px-4 py-3">Jam / Mapel</th>
                                                     <th className="px-4 py-3">Status</th>
+                                                    <th className="px-4 py-3">Bukti</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-sidebar-border/70 dark:divide-sidebar-border">
@@ -362,6 +373,18 @@ export default function AdminDashboard({
                                                                     </span>
                                                                 )}
                                                             </div>
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            {record.bukti ? (
+                                                                <button
+                                                                    onClick={() => setPreviewBukti(`/storage/${record.bukti}`)}
+                                                                    className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 underline underline-offset-2"
+                                                                >
+                                                                    <ImageUp className="h-3 w-3" /> Lihat
+                                                                </button>
+                                                            ) : (
+                                                                <span className="text-xs text-muted-foreground">-</span>
+                                                            )}
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -410,6 +433,26 @@ export default function AdminDashboard({
                     )}
                 </div>
             </div>
+
+            <Dialog open={previewBukti !== null} onOpenChange={(open) => { if (!open) setPreviewBukti(null); }}>
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Bukti Absensi</DialogTitle>
+                        <DialogDescription>
+                            Foto bukti yang diunggah saat pencatatan absensi.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {previewBukti && (
+                        <div className="flex justify-center">
+                            <img
+                                src={previewBukti}
+                                alt="Bukti absensi"
+                                className="max-w-full max-h-[60vh] rounded-lg object-contain"
+                            />
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

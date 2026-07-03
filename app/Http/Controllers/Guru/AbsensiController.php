@@ -29,7 +29,6 @@ class AbsensiController extends Controller
         if ($selectedKelasId) {
             $selectedKelas = Kelas::findOrFail($selectedKelasId);
             $guru = $request->user()->guru;
-            $guruJurusans = $guru ? $guru->jurusans->pluck('id')->toArray() : [];
 
             // Fetch subjects explicitly assigned to the guru in the admin section
             $mataPelajarans = $guru ? $guru->mataPelajarans()->with('kategoriPembelajaran')->get() : collect([]);

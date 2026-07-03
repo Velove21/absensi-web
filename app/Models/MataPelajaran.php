@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['nama_mapel', 'kategori_pembelajaran_id', 'jurusan_id'])]
+#[Fillable(['nama_mapel', 'kategori_pembelajaran_id'])]
 class MataPelajaran extends Model
 {
     /**
@@ -16,14 +16,6 @@ class MataPelajaran extends Model
     public function kategoriPembelajaran(): BelongsTo
     {
         return $this->belongsTo(KategoriPembelajaran::class);
-    }
-
-    /**
-     * Get the jurusan that owns the mata pelajaran (only relevant for KK category).
-     */
-    public function jurusan(): BelongsTo
-    {
-        return $this->belongsTo(Jurusan::class);
     }
 
     /**

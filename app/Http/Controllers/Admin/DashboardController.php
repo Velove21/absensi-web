@@ -68,6 +68,7 @@ class DashboardController extends Controller
                     'jam_ke' => $absensi->jam_ke,
                     'status' => $absensi->status,
                     'keterangan' => $absensi->keterangan,
+                    'bukti' => $absensi->bukti,
                     'siswa' => [
                         'nis' => $absensi->siswa->nis,
                         'nama' => $absensi->siswa->nama,

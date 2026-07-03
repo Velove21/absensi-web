@@ -32,7 +32,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::resource('jurusan', JurusanController::class);
             Route::resource('jenjang-kelas', JenjangKelasController::class);
             Route::resource('kategori-pembelajaran', KategoriPembelajaranController::class);
-            Route::resource('durasi-pembelajaran', DurasiPembelajaranController::class);
+            Route::resource('durasi-pembelajaran', DurasiPembelajaranController::class)->except(['destroy']);
             Route::resource('kelas', KelasController::class);
             Route::resource('matapelajaran', MataPelajaranController::class);
             Route::resource('guru', GuruController::class);
@@ -40,6 +40,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             // Password reset by admin
             Route::post('guru/{guru}/reset-password', [ResetPasswordController::class, 'resetGuru'])->name('guru.reset-password');
             Route::post('siswa/{siswa}/reset-password', [ResetPasswordController::class, 'resetSiswa'])->name('siswa.reset-password');
+            // Admin change password
+            Route::get('ubah-sandi', [PasswordResetController::class, 'showChange'])->name('ubah-sandi.show');
+            Route::post('ubah-sandi', [PasswordResetController::class, 'updateChange'])->name('ubah-sandi.update');
         });
 
         // Guru Routes

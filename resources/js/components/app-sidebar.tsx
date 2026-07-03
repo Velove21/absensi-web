@@ -73,6 +73,11 @@ export function AppSidebar() {
                 href: admin.siswa.index.url(),
                 icon: UserCircle,
             },
+            {
+                title: 'Ubah Sandi',
+                href: '/admin/ubah-sandi',
+                icon: KeyRound,
+            },
         ];
     } else if (userRole === 'guru') {
         mainNavItems = [

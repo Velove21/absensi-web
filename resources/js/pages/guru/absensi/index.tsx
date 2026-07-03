@@ -49,7 +49,6 @@ interface MataPelajaran {
     id: number;
     nama_mapel: string;
     kategori: 'MPU' | 'KK';
-    jurusan_id: number | null;
 }
 
 interface Siswa {
@@ -70,6 +69,7 @@ interface DurasiPembelajaran {
     id: number;
     hari: string;
     jam_ke: number;
+    nama: string | null;
     waktu_mulai: string;
     waktu_selesai: string;
 }
@@ -135,9 +135,6 @@ export default function GuruAbsensiIndex({
     useEffect(() => {
         if (!jamKeInput || !filters.tanggal || !durasis.length) return;
         
-        // Only auto-fill if the user hasn't explicitly set them in the filters yet
-        // OR if they are actively typing/changing the jamKeInput
-        
         const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
         const dateObj = new Date(filters.tanggal);
         const dayName = days[dateObj.getDay()];
@@ -145,6 +142,16 @@ export default function GuruAbsensiIndex({
         const relevantDurasis = durasis.filter(d => d.hari.toLowerCase() === dayName.toLowerCase());
         
         if (relevantDurasis.length === 0) return;
+
+        // Handle "Upacara" special case
+        if (jamKeInput.toLowerCase() === 'upacara') {
+            const upacara = relevantDurasis.find(d => d.nama?.toLowerCase() === 'upacara');
+            if (upacara) {
+                setWaktuMulaiInput(upacara.waktu_mulai.substring(0, 5));
+                setWaktuSelesaiInput(upacara.waktu_selesai.substring(0, 5));
+            }
+            return;
+        }
 
         // Parse jamKeInput (e.g., "1", "1-2", "3-5", "1,2")
         const jamParts = jamKeInput.match(/\d+/g);
@@ -158,7 +165,6 @@ export default function GuruAbsensiIndex({
         const endDurasi = relevantDurasis.find(d => d.jam_ke === maxJam);
         
         if (startDurasi && startDurasi.waktu_mulai) {
-            // Only format to HH:MM if it has seconds
             const startTime = startDurasi.waktu_mulai.substring(0, 5);
             setWaktuMulaiInput(startTime);
         }
@@ -494,6 +500,15 @@ export default function GuruAbsensiIndex({
                                                     {preset}
                                                 </Button>
                                             ))}
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-6 text-[10px] px-2 py-0 border-amber-400 text-amber-700 hover:bg-amber-50 dark:border-amber-600 dark:text-amber-400"
+                                                onClick={() => setJamKeInput('Upacara')}
+                                            >
+                                                Upacara
+                                            </Button>
                                         </div>
                                     </div>
 
@@ -605,7 +620,7 @@ export default function GuruAbsensiIndex({
                                                                     className={siswa.absensi?.status === 'sakit' ? 'bg-blue-600 hover:bg-blue-700 h-8 text-[11px] px-2.5' : 'hover:border-blue-600 hover:text-blue-600 bg-background/50 h-8 text-[11px] px-2.5'}
                                                                     onClick={() => handleStatusClick(siswa.id, 'sakit')}
                                                                 >
-                                                                    <Clock className="mr-1 h-3.5 w-3.5" /> Sakit
+                                                                    <Clock className="mr-1 h-3.5 w-3.5" /> Sakit{siswa.absensi?.bukti && siswa.absensi?.status === 'sakit' && <ImageUp className="ml-1 h-3 w-3" />}
                                                                 </Button>
                                                                 <Button
                                                                     size="sm"
@@ -613,7 +628,7 @@ export default function GuruAbsensiIndex({
                                                                     className={siswa.absensi?.status === 'izin' ? 'bg-orange-600 hover:bg-orange-700 h-8 text-[11px] px-2.5' : 'hover:border-orange-600 hover:text-orange-600 bg-background/50 h-8 text-[11px] px-2.5'}
                                                                     onClick={() => handleStatusClick(siswa.id, 'izin')}
                                                                 >
-                                                                    <FileWarning className="mr-1 h-3.5 w-3.5" /> Izin
+                                                                    <FileWarning className="mr-1 h-3.5 w-3.5" /> Izin{siswa.absensi?.bukti && siswa.absensi?.status === 'izin' && <ImageUp className="ml-1 h-3 w-3" />}
                                                                 </Button>
                                                                 <Button
                                                                     size="sm"
@@ -629,7 +644,7 @@ export default function GuruAbsensiIndex({
                                                                     className={siswa.absensi?.status === 'dispensasi' ? 'bg-indigo-600 hover:bg-indigo-700 h-8 text-[11px] px-2.5' : 'hover:border-indigo-600 hover:text-indigo-600 bg-background/50 h-8 text-[11px] px-2.5'}
                                                                     onClick={() => handleStatusClick(siswa.id, 'dispensasi')}
                                                                 >
-                                                                    <Award className="mr-1 h-3.5 w-3.5" /> Dispensasi
+                                                                    <Award className="mr-1 h-3.5 w-3.5" /> Dispensasi{siswa.absensi?.bukti && siswa.absensi?.status === 'dispensasi' && <ImageUp className="ml-1 h-3 w-3" />}
                                                                 </Button>
                                                             </div>
                                                         </td>

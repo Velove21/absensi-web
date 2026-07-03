@@ -13,7 +13,6 @@ class DataAbsensiController extends Controller
     public function index(Request $request)
     {
         $guru = $request->user()->guru;
-        $guruJurusans = $guru ? $guru->jurusans->pluck('id')->toArray() : [];
 
         $kelas = Kelas::with(['jurusan', 'jenjangKelas'])->get();
 

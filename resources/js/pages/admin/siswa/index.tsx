@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
 import adminSiswa from '@/routes/admin/siswa';
 import { dashboard as adminDashboard } from '@/routes/admin';
@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Edit2, Trash2, X, Plus, Save, UserCircle, Users, KeyRound } from 'lucide-react';
+import { Edit2, Trash2, X, Plus, Save, UserCircle, Users, KeyRound, Search } from 'lucide-react';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -58,12 +58,32 @@ export default function SiswaIndex({
     const [editingSiswa, setEditingSiswa] = useState<Siswa | null>(null);
     const [deletingSiswaId, setDeletingSiswaId] = useState<number | null>(null);
     const [resettingPasswordSiswaId, setResettingPasswordSiswaId] = useState<number | null>(null);
+    const [search, setSearch] = useState('');
+    const searchTimeout = useRef<ReturnType<typeof setTimeout>>();
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         nis: '',
         nama: '',
         kelas_id: '',
+        password: '',
     });
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        setSearch(params.get('search') || '');
+    }, []);
+
+    const handleSearch = (value: string) => {
+        setSearch(value);
+        clearTimeout(searchTimeout.current);
+        searchTimeout.current = setTimeout(() => {
+            router.get(adminSiswa.index.url(), { search: value || undefined }, {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+            });
+        }, 400);
+    };
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -95,6 +115,7 @@ export default function SiswaIndex({
             nis: siswa.nis,
             nama: siswa.nama,
             kelas_id: siswa.kelas_id.toString(),
+            password: '',
         });
     };
 
@@ -176,7 +197,7 @@ export default function SiswaIndex({
                                         onChange={(e) =>
                                             setData('nis', e.target.value)
                                         }
-                                        placeholder="Format: XX.XXXXXX"
+                                        placeholder="Format: XX.XXXX"
                                         className="bg-muted/30"
                                     />
                                     {errors.nis && (
@@ -228,6 +249,29 @@ export default function SiswaIndex({
                                     )}
                                 </div>
 
+                                {editingSiswa && (
+                                    <div className="space-y-2 pt-2 border-t border-sidebar-border mt-4">
+                                        <Label htmlFor="password">
+                                            Password Baru (Opsional)
+                                        </Label>
+                                        <Input
+                                            id="password"
+                                            type="password"
+                                            value={data.password}
+                                            onChange={(e) =>
+                                                setData('password', e.target.value)
+                                            }
+                                            placeholder="Minimal 8 karakter, kosongkan jika tidak diubah"
+                                            className="bg-muted/30"
+                                        />
+                                        {errors.password && (
+                                            <p className="text-xs text-destructive">
+                                                {errors.password}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+
                                 <div className="flex gap-2 pt-2">
                                     {editingSiswa && (
                                         <Button
@@ -259,6 +303,15 @@ export default function SiswaIndex({
 
                     {/* Data Table */}
                     <div className="col-span-1 lg:col-span-2 space-y-4">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Cari nama, NIS, atau kelas..."
+                                value={search}
+                                onChange={(e) => handleSearch(e.target.value)}
+                                className="pl-9 bg-muted/30"
+                            />
+                        </div>
                         <div className="overflow-hidden rounded-xl border border-sidebar-border/70 bg-card shadow-sm dark:border-sidebar-border">
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-sm">

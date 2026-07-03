@@ -55,6 +55,7 @@ class PasswordResetController extends Controller
         $role = request()->user()->role;
 
         $page = match ($role) {
+            'admin' => 'admin/change-password',
             'guru' => 'guru/change-password',
             default => 'siswa/change-password',
         };

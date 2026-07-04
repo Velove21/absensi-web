@@ -1,6 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { Shield, Users, BookOpen, GraduationCap, Activity, PieChart as PieChartIcon, CheckCircle, Clock, FileWarning, XCircle, Award, TableProperties, ImageUp } from 'lucide-react';
+import { Shield, Users, BookOpen, GraduationCap, Activity, PieChart as PieChartIcon, CheckCircle, Clock, FileWarning, XCircle, Award, TableProperties, ImageUp, FileSpreadsheet } from 'lucide-react';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
@@ -8,6 +8,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import {
     Dialog,
     DialogContent,
@@ -47,6 +48,18 @@ interface DetailedAttendance {
     guru: string;
 }
 
+interface MataPelajaranExport {
+    id: number;
+    nama_mapel: string;
+    kategori: string;
+}
+
+interface GuruExport {
+    id: number;
+    nama: string;
+    nip: string | null;
+}
+
 interface AdminDashboardProps {
     stats: Stats;
     attendanceToday: {
@@ -67,6 +80,8 @@ interface AdminDashboardProps {
     };
     detailedAttendance: DetailedAttendance[];
     kelasList: Kelas[];
+    gurus: GuruExport[];
+    mataPelajarans: MataPelajaranExport[];
 }
 
 const attendanceConfig = {
@@ -87,7 +102,9 @@ export default function AdminDashboard({
     studentsPerJurusan,
     filters,
     detailedAttendance,
-    kelasList
+    kelasList,
+    gurus = [],
+    mataPelajarans = [],
 }: AdminDashboardProps) {
     const [previewBukti, setPreviewBukti] = useState<string | null>(null);
     const attendanceData = [
@@ -114,6 +131,25 @@ export default function AdminDashboard({
             { tanggal: filters.tanggal },
             { preserveState: true, preserveScroll: true }
         );
+    };
+
+    // Export state
+    const [exportGuruId, setExportGuruId] = useState('');
+    const [exportMapelId, setExportMapelId] = useState('');
+    const [exportStartDate, setExportStartDate] = useState('');
+    const [exportEndDate, setExportEndDate] = useState('');
+
+    const handleExport = () => {
+        if (!exportGuruId || !exportMapelId) {
+            toast.error('Silakan pilih Guru dan Mata Pelajaran.');
+            return;
+        }
+        const params = new URLSearchParams();
+        params.set('guru_id', exportGuruId);
+        params.set('mapel_id', exportMapelId);
+        if (exportStartDate) params.set('start_date', exportStartDate);
+        if (exportEndDate) params.set('end_date', exportEndDate);
+        window.open('/admin/export-absensi?' + params.toString(), '_blank');
     };
 
     const formatKelasName = (k: Kelas) => {
@@ -252,6 +288,64 @@ export default function AdminDashboard({
                                 Hapus Filter
                             </Button>
                         )}
+                    </div>
+                </div>
+
+                {/* Export Section */}
+                <div className="rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border">
+                    <div className="flex items-center gap-2 mb-4">
+                        <FileSpreadsheet className="h-5 w-5 text-emerald-600" />
+                        <h2 className="text-lg font-semibold">Export Rekap Absensi (Excel)</h2>
+                    </div>
+                    <div className="flex flex-wrap gap-3 items-end">
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-muted-foreground">Pilih Guru</label>
+                            <select
+                                value={exportGuruId}
+                                onChange={e => { setExportGuruId(e.target.value); setExportMapelId(''); }}
+                                className="flex h-9 rounded-md border border-input bg-muted/30 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none w-[220px]"
+                            >
+                                <option value="">-- Pilih Guru --</option>
+                                {gurus.map(g => (
+                                    <option key={g.id} value={g.id.toString()}>{g.nama} ({g.nip || '-'})</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-muted-foreground">Pilih Mapel</label>
+                            <select
+                                value={exportMapelId}
+                                onChange={e => setExportMapelId(e.target.value)}
+                                disabled={!exportGuruId}
+                                className="flex h-9 rounded-md border border-input bg-muted/30 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none w-[220px] disabled:opacity-50"
+                            >
+                                <option value="">-- Pilih Mapel --</option>
+                                {mataPelajarans.map(m => (
+                                    <option key={m.id} value={m.id.toString()}>{m.nama_mapel} ({m.kategori})</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-muted-foreground">Tanggal Mulai</label>
+                            <Input
+                                type="date"
+                                value={exportStartDate}
+                                onChange={e => setExportStartDate(e.target.value)}
+                                className="w-[170px] bg-muted/30 h-9"
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-muted-foreground">Tanggal Selesai</label>
+                            <Input
+                                type="date"
+                                value={exportEndDate}
+                                onChange={e => setExportEndDate(e.target.value)}
+                                className="w-[170px] bg-muted/30 h-9"
+                            />
+                        </div>
+                        <Button onClick={handleExport} className="h-9 gap-1.5">
+                            <FileSpreadsheet className="h-4 w-4" /> Export Excel
+                        </Button>
                     </div>
                 </div>
 

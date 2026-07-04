@@ -8,6 +8,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import SearchableSelect from '@/components/ui/searchable-select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, XCircle, Clock, FileWarning, Trash2, UserCircle, BookOpen, Clock3, Calendar, Award, ImageUp, Loader2 } from 'lucide-react';
@@ -111,6 +112,7 @@ export default function GuruAbsensiIndex({
     const [jamKeInput, setJamKeInput] = useState(filters.jam_ke || '');
     const [waktuMulaiInput, setWaktuMulaiInput] = useState(filters.waktu_mulai || '');
     const [waktuSelesaiInput, setWaktuSelesaiInput] = useState(filters.waktu_selesai || '');
+    const [recommendations, setRecommendations] = useState<string[]>([]);
 
     useEffect(() => {
         const initialKeterangans: Record<number, string> = {};
@@ -174,6 +176,43 @@ export default function GuruAbsensiIndex({
             setWaktuSelesaiInput(endTime);
         }
         
+    }, [jamKeInput, filters.tanggal, durasis]);
+
+    // Compute dynamic recommendations when user types a single number
+    useEffect(() => {
+        if (!jamKeInput || !filters.tanggal || !durasis.length) {
+            setRecommendations([]);
+            return;
+        }
+
+        const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+        const dateObj = new Date(filters.tanggal);
+        const dayName = days[dateObj.getDay()];
+
+        const relevantDurasis = durasis.filter(d => d.hari.toLowerCase() === dayName.toLowerCase());
+        if (relevantDurasis.length === 0) {
+            setRecommendations([]);
+            return;
+        }
+
+        const maxJamKe = Math.max(...relevantDurasis.map(d => d.jam_ke));
+        const trimmed = jamKeInput.trim();
+
+        // Only show recommendations if input is a single number
+        if (/^\d+$/.test(trimmed)) {
+            const num = parseInt(trimmed, 10);
+            if (num >= 1 && num < maxJamKe) {
+                const recs: string[] = [];
+                for (let i = num + 1; i <= maxJamKe; i++) {
+                    recs.push(`${num}-${i}`);
+                }
+                setRecommendations(recs);
+            } else {
+                setRecommendations([]);
+            }
+        } else {
+            setRecommendations([]);
+        }
     }, [jamKeInput, filters.tanggal, durasis]);
 
     const handleFilterChange = (key: keyof Props['filters'], value: string) => {
@@ -399,26 +438,17 @@ export default function GuruAbsensiIndex({
                             <div className="space-y-4">
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Kelas</label>
-                                    <Select
+                                    <SearchableSelect
                                         value={filters.kelas_id || undefined}
                                         onValueChange={(val) =>
                                             handleFilterChange('kelas_id', val)
                                         }
-                                    >
-                                        <SelectTrigger className="bg-muted/30">
-                                            <SelectValue placeholder="Pilih Kelas..." />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {kelasList.map((kelas) => (
-                                                <SelectItem
-                                                    key={kelas.id}
-                                                    value={kelas.id.toString()}
-                                                >
-                                                    {formatKelasName(kelas)}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                        placeholder="Pilih Kelas..."
+                                        items={kelasList.map(k => ({
+                                            value: k.id.toString(),
+                                            label: formatKelasName(k),
+                                        }))}
+                                    />
                                 </div>
 
                                 {filters.kelas_id && (
@@ -484,32 +514,34 @@ export default function GuruAbsensiIndex({
                                         <Input
                                             value={jamKeInput}
                                             onChange={(e) => setJamKeInput(e.target.value)}
-                                            placeholder="Contoh: 1-2 atau 3-4"
+                                            placeholder="Ketik angka (contoh: 2)"
                                             className="bg-muted/30"
                                         />
-                                        <div className="flex flex-wrap gap-1.5 mt-1">
-                                            {['1-2', '3-4', '5-6', '7-8'].map((preset) => (
-                                                <Button
-                                                    key={preset}
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="h-6 text-[10px] px-2 py-0"
-                                                    onClick={() => setJamKeInput(preset)}
-                                                >
-                                                    {preset}
-                                                </Button>
-                                            ))}
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                className="h-6 text-[10px] px-2 py-0 border-amber-400 text-amber-700 hover:bg-amber-50 dark:border-amber-600 dark:text-amber-400"
-                                                onClick={() => setJamKeInput('Upacara')}
-                                            >
-                                                Upacara
-                                            </Button>
-                                        </div>
+                                        {recommendations.length > 0 && (
+                                            <div className="flex flex-wrap gap-1.5 mt-1">
+                                                {recommendations.map((rec) => (
+                                                    <Button
+                                                        key={rec}
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="h-6 text-[10px] px-2 py-0"
+                                                        onClick={() => setJamKeInput(rec)}
+                                                    >
+                                                        {rec}
+                                                    </Button>
+                                                ))}
+                                            </div>
+                                        )}
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-6 text-[10px] px-2 py-0 border-amber-400 text-amber-700 hover:bg-amber-50 dark:border-amber-600 dark:text-amber-400"
+                                            onClick={() => setJamKeInput('Upacara')}
+                                        >
+                                            Upacara
+                                        </Button>
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-2">
@@ -518,8 +550,8 @@ export default function GuruAbsensiIndex({
                                             <Input
                                                 type="time"
                                                 value={waktuMulaiInput}
-                                                onChange={(e) => setWaktuMulaiInput(e.target.value)}
-                                                className="bg-muted/30"
+                                                readOnly
+                                                className="bg-muted/30 cursor-not-allowed opacity-80"
                                             />
                                         </div>
                                         <div className="space-y-1">
@@ -527,8 +559,8 @@ export default function GuruAbsensiIndex({
                                             <Input
                                                 type="time"
                                                 value={waktuSelesaiInput}
-                                                onChange={(e) => setWaktuSelesaiInput(e.target.value)}
-                                                className="bg-muted/30"
+                                                readOnly
+                                                className="bg-muted/30 cursor-not-allowed opacity-80"
                                             />
                                         </div>
                                     </div>

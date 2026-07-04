@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\KelasController;
 use App\Http\Controllers\Admin\MataPelajaranController;
 use App\Http\Controllers\Admin\ResetPasswordController;
 use App\Http\Controllers\Admin\SiswaController;
+use App\Http\Controllers\Export\AttendanceExportController;
 use App\Http\Controllers\Guru\AbsensiController;
 use App\Http\Controllers\Guru\DataAbsensiController;
 use App\Http\Controllers\PasswordResetController;
@@ -43,6 +44,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             // Admin change password
             Route::get('ubah-sandi', [PasswordResetController::class, 'showChange'])->name('ubah-sandi.show');
             Route::post('ubah-sandi', [PasswordResetController::class, 'updateChange'])->name('ubah-sandi.update');
+            // Export
+            Route::get('export-absensi', [AttendanceExportController::class, 'export'])->name('export-absensi');
         });
 
         // Guru Routes
@@ -53,6 +56,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('data-absensi', [DataAbsensiController::class, 'index'])->name('data-absensi.index');
             Route::get('ubah-sandi', [PasswordResetController::class, 'showChange'])->name('ubah-sandi.show');
             Route::post('ubah-sandi', [PasswordResetController::class, 'updateChange'])->name('ubah-sandi.update');
+            // Export
+            Route::get('export-absensi', [AttendanceExportController::class, 'export'])->name('export-absensi');
         });
 
         // Siswa Routes

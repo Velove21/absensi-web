@@ -7,6 +7,7 @@ use App\Models\Absensi;
 use App\Models\Guru;
 use App\Models\Jurusan;
 use App\Models\Kelas;
+use App\Models\MataPelajaran;
 use App\Models\Siswa;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -99,6 +100,8 @@ class DashboardController extends Controller
             ],
             'detailedAttendance' => $detailedAttendance,
             'kelasList' => Kelas::with('jurusan')->get(),
+            'gurus' => Guru::orderBy('nama')->get(['id', 'nama', 'nip']),
+            'mataPelajarans' => MataPelajaran::with('kategoriPembelajaran')->get(),
         ]);
     }
 }

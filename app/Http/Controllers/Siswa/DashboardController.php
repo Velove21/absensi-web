@@ -24,39 +24,15 @@ class DashboardController extends Controller
             'dispensasi' => $siswa->absensis()->where('status', 'dispensasi')->count(),
         ];
 
-        $allHistory = $siswa->absensis()
-            ->with('mapel')
+        $history = $siswa->absensis()
             ->orderBy('tanggal', 'desc')
             ->orderBy('jam_ke', 'asc')
             ->get();
 
-        $groupedHistory = [
-            'Senin' => [],
-            'Selasa' => [],
-            'Rabu' => [],
-            'Kamis' => [],
-            'Jumat' => [],
-        ];
-
-        $daysMap = [
-            1 => 'Senin',
-            2 => 'Selasa',
-            3 => 'Rabu',
-            4 => 'Kamis',
-            5 => 'Jumat',
-        ];
-
-        foreach ($allHistory as $record) {
-            $dayOfWeek = date('N', strtotime($record->tanggal)); // 1 to 7
-            if (isset($daysMap[$dayOfWeek])) {
-                $groupedHistory[$daysMap[$dayOfWeek]][] = $record;
-            }
-        }
-
         return Inertia::render('siswa/dashboard', [
-            'siswa' => $siswa->load('kelas.jurusan'),
+            'siswa' => $siswa->load('kelas.jurusan', 'kelas.jenjangKelas'),
             'stats' => $stats,
-            'groupedHistory' => $groupedHistory,
+            'history' => $history,
             'passwordDefault' => $request->user()->password_default,
         ]);
     }

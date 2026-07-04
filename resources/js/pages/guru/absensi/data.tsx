@@ -8,8 +8,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import SearchableSelect from '@/components/ui/searchable-select';
 import { Input } from '@/components/ui/input';
-import { BookOpen, Calendar, Users, TableProperties, CheckCircle, Clock, FileWarning, XCircle, Award, ImageUp } from 'lucide-react';
+import { toast } from 'sonner';
+import { BookOpen, Calendar, Users, TableProperties, CheckCircle, Clock, FileWarning, XCircle, Award, ImageUp, Download, X, FileSpreadsheet } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -63,6 +67,7 @@ interface Props {
         kelas_id: string | null;
         mapel_id: string | null;
         tanggal: string;
+        berhalangan_hadir: boolean;
     };
     absensis: AbsensiRecord[];
 }
@@ -74,13 +79,42 @@ export default function GuruDataAbsensi({
     absensis = [],
 }: Props) {
     const [previewBukti, setPreviewBukti] = useState<string | null>(null);
+    const [exportStartDate, setExportStartDate] = useState('');
+    const [exportEndDate, setExportEndDate] = useState('');
+
+    const handleExport = () => {
+        if (!filters.mapel_id) {
+            toast.error('Silakan pilih Mata Pelajaran terlebih dahulu.');
+            return;
+        }
+        const params = new URLSearchParams();
+        params.set('mapel_id', filters.mapel_id);
+        if (exportStartDate) params.set('start_date', exportStartDate);
+        if (exportEndDate) params.set('end_date', exportEndDate);
+        window.open('/guru/export-absensi?' + params.toString(), '_blank');
+    };
+
     const handleFilterChange = (key: keyof Props['filters'], value: string) => {
         const newFilters = { ...filters, [key]: value };
-        
-        // If changing kelas, reset mapel
+
+        // If changing kelas, reset mapel and berhalangan_hadir
         if (key === 'kelas_id') {
             newFilters.mapel_id = '';
+            newFilters.berhalangan_hadir = false;
         }
+
+        router.get(
+            absensiData.index.url(),
+            newFilters,
+            { preserveState: true, preserveScroll: true },
+        );
+    };
+
+    const handleBerhalanganHadirToggle = (checked: boolean) => {
+        const newFilters = {
+            ...filters,
+            berhalangan_hadir: checked,
+        };
 
         router.get(
             absensiData.index.url(),
@@ -157,26 +191,17 @@ export default function GuruDataAbsensi({
 
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Kelas</label>
-                                    <Select
+                                    <SearchableSelect
                                         value={filters.kelas_id || undefined}
                                         onValueChange={(val) =>
                                             handleFilterChange('kelas_id', val)
                                         }
-                                    >
-                                        <SelectTrigger className="bg-muted/30">
-                                            <SelectValue placeholder="Pilih Kelas..." />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {kelasList.map((kelas) => (
-                                                <SelectItem
-                                                    key={kelas.id}
-                                                    value={kelas.id.toString()}
-                                                >
-                                                    {formatKelasName(kelas)}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                        placeholder="Pilih Kelas..."
+                                        items={kelasList.map(k => ({
+                                            value: k.id.toString(),
+                                            label: formatKelasName(k),
+                                        }))}
+                                    />
                                 </div>
 
                                 {filters.kelas_id && (
@@ -200,7 +225,7 @@ export default function GuruDataAbsensi({
                                                         {mapel.nama_mapel} ({mapel.kategori})
                                                     </SelectItem>
                                                 ))}
-                                                {mataPelajarans.length === 0 && (
+                                                    {mataPelajarans.length === 0 && (
                                                     <SelectItem value="none" disabled>
                                                         Belum ada mapel relevan
                                                     </SelectItem>
@@ -209,107 +234,239 @@ export default function GuruDataAbsensi({
                                         </Select>
                                     </div>
                                 )}
+
+                                {filters.kelas_id && (
+                                    <div className="flex items-center gap-2 pt-2">
+                                        <Checkbox
+                                            id="berhalangan-hadir"
+                                            checked={filters.berhalangan_hadir}
+                                            onCheckedChange={handleBerhalanganHadirToggle}
+                                        />
+                                        <label
+                                            htmlFor="berhalangan-hadir"
+                                            className="text-sm font-medium leading-none cursor-pointer select-none"
+                                        >
+                                            Berhalangan Hadir
+                                        </label>
+                                    </div>
+                                )}
+
+                                {filters.mapel_id && (
+                                    <div className="border-t border-sidebar-border/70 pt-4 mt-4 space-y-3">
+                                        <h3 className="text-sm font-semibold flex items-center gap-1.5 text-muted-foreground">
+                                            <FileSpreadsheet className="h-3.5 w-3.5" /> Export Excel
+                                        </h3>
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-medium text-muted-foreground">Tanggal Mulai</label>
+                                            <Input
+                                                type="date"
+                                                value={exportStartDate}
+                                                onChange={e => setExportStartDate(e.target.value)}
+                                                className="bg-muted/30 h-8 text-xs"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-medium text-muted-foreground">Tanggal Selesai</label>
+                                            <Input
+                                                type="date"
+                                                value={exportEndDate}
+                                                onChange={e => setExportEndDate(e.target.value)}
+                                                className="bg-muted/30 h-8 text-xs"
+                                            />
+                                        </div>
+                                        <Button
+                                            onClick={handleExport}
+                                            size="sm"
+                                            className="w-full gap-1.5"
+                                        >
+                                            <FileSpreadsheet className="h-4 w-4" /> Export Excel
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
 
                     {/* Data Table */}
                     <div className="col-span-1 lg:col-span-3">
-                        {filters.kelas_id && filters.mapel_id ? (
-                            <div className="rounded-xl border border-sidebar-border/70 bg-card shadow-sm dark:border-sidebar-border overflow-hidden flex flex-col animate-in fade-in duration-200">
-                                <div className="p-6 border-b border-sidebar-border/70 dark:border-sidebar-border flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                                    <div>
-                                        <h2 className="text-lg font-semibold flex items-center gap-2">
-                                            Rekap Absensi
-                                        </h2>
-                                        <p className="text-xs text-muted-foreground mt-0.5">
-                                            Menampilkan absensi yang dicatat pada {filters.tanggal}.
-                                        </p>
-                                    </div>
-                                    <div className="flex flex-col text-xs text-muted-foreground md:text-right font-medium shrink-0 gap-1 bg-muted/40 p-3 rounded-lg border border-sidebar-border/70">
-                                        <div className="flex items-center gap-1.5">
-                                            <Calendar className="h-3.5 w-3.5 text-primary" /> {filters.tanggal}
+                        {filters.kelas_id && (filters.mapel_id || filters.berhalangan_hadir) ? (
+                            <>
+                                {filters.berhalangan_hadir ? (
+                                    <div className="rounded-xl border border-sidebar-border/70 bg-card shadow-sm dark:border-sidebar-border overflow-hidden flex flex-col animate-in fade-in duration-200">
+                                        <div className="p-6 border-b border-sidebar-border/70 dark:border-sidebar-border flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                                            <div>
+                                                <h2 className="text-lg font-semibold flex items-center gap-2">
+                                                    Siswa Berhalangan Hadir
+                                                </h2>
+                                                <p className="text-xs text-muted-foreground mt-0.5">
+                                                    Menampilkan siswa yang berhalangan hadir pada {filters.tanggal}.
+                                                </p>
+                                            </div>
+                                            <div className="flex flex-col text-xs text-muted-foreground md:text-right font-medium shrink-0 gap-1 bg-muted/40 p-3 rounded-lg border border-sidebar-border/70">
+                                                <div className="flex items-center gap-1.5">
+                                                    <Calendar className="h-3.5 w-3.5 text-primary" /> {filters.tanggal}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left text-sm whitespace-nowrap">
+                                                <thead className="bg-muted/50 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                                    <tr>
+                                                        <th className="px-6 py-4 w-12 text-center">No</th>
+                                                        <th className="px-6 py-4">Nama Siswa</th>
+                                                        <th className="px-6 py-4">Status</th>
+                                                        <th className="px-6 py-4">Jam Ke-</th>
+                                                        <th className="px-6 py-4">Keterangan</th>
+                                                        <th className="px-6 py-4">Bukti</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-sidebar-border/70 dark:divide-sidebar-border">
+                                                    {absensis.length === 0 ? (
+                                                        <tr>
+                                                            <td
+                                                                colSpan={6}
+                                                                className="px-6 py-12 text-center text-muted-foreground"
+                                                            >
+                                                                <div className="flex flex-col items-center gap-2">
+                                                                    <Users className="h-8 w-8 opacity-20" />
+                                                                    <p>Tidak ada siswa berhalangan hadir pada filter ini.</p>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ) : (
+                                                        absensis.map((record, index) => (
+                                                            <tr key={record.id} className="group transition-colors hover:bg-muted/30">
+                                                                <td className="px-6 py-4 text-center text-muted-foreground">
+                                                                    {index + 1}
+                                                                </td>
+                                                                <td className="px-6 py-4 font-medium text-foreground">
+                                                                    {record.siswa.nama}
+                                                                </td>
+                                                                <td className="px-6 py-4">
+                                                                    <StatusBadge status={record.status} />
+                                                                </td>
+                                                                <td className="px-6 py-4 text-xs text-muted-foreground">
+                                                                    {record.status === 'dispensasi' ? (record.jam_ke || '-') : '-'}
+                                                                </td>
+                                                                <td className="px-6 py-4 text-xs text-muted-foreground truncate max-w-[200px]" title={record.keterangan || ''}>
+                                                                    {record.keterangan || '-'}
+                                                                </td>
+                                                                <td className="px-6 py-4">
+                                                                    {record.bukti ? (
+                                                                        <button
+                                                                            onClick={() => setPreviewBukti(`/storage/${record.bukti}`)}
+                                                                            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 underline underline-offset-2"
+                                                                        >
+                                                                            <ImageUp className="h-3 w-3" /> Lihat
+                                                                        </button>
+                                                                    ) : (
+                                                                        <span className="text-xs text-muted-foreground">-</span>
+                                                                    )}
+                                                                </td>
+                                                            </tr>
+                                                        ))
+                                                    )}
+                                                </tbody>
+                                            </table>
                                         </div>
                                     </div>
-                                </div>
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-left text-sm whitespace-nowrap">
-                                        <thead className="bg-muted/50 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                            <tr>
-                                                <th className="px-6 py-4 w-12 text-center">No</th>
-                                                <th className="px-6 py-4 w-24">Jam Ke</th>
-                                                <th className="px-6 py-4">Waktu</th>
-                                                <th className="px-6 py-4">NIS</th>
-                                                <th className="px-6 py-4">Nama Siswa</th>
-                                                <th className="px-6 py-4">Status</th>
-                                                <th className="px-6 py-4">Keterangan</th>
-                                                <th className="px-6 py-4">Bukti</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-sidebar-border/70 dark:divide-sidebar-border">
-                                            {absensis.length === 0 ? (
-                                                <tr>
-                                                    <td
-                                                        colSpan={8}
-                                                        className="px-6 py-12 text-center text-muted-foreground"
-                                                    >
-                                                        <div className="flex flex-col items-center gap-2">
-                                                            <Users className="h-8 w-8 opacity-20" />
-                                                            <p>Tidak ada data absensi untuk filter ini.</p>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ) : (
-                                                absensis.map((record, index) => (
-                                                    <tr key={record.id} className="group transition-colors hover:bg-muted/30">
-                                                        <td className="px-6 py-4 text-center text-muted-foreground">
-                                                            {index + 1}
-                                                        </td>
-                                                        <td className="px-6 py-4 font-medium">
-                                                            {record.jam_ke}
-                                                        </td>
-                                                        <td className="px-6 py-4 text-xs text-muted-foreground">
-                                                            {record.waktu_mulai && record.waktu_selesai 
-                                                                ? `${record.waktu_mulai} - ${record.waktu_selesai}` 
-                                                                : '-'}
-                                                        </td>
-                                                        <td className="px-6 py-4 font-mono text-xs font-medium">
-                                                            {record.siswa.nis}
-                                                        </td>
-                                                        <td className="px-6 py-4 font-medium text-foreground">
-                                                            {record.siswa.nama}
-                                                        </td>
-                                                        <td className="px-6 py-4">
-                                                            <StatusBadge status={record.status} />
-                                                        </td>
-                                                        <td className="px-6 py-4 text-xs text-muted-foreground truncate max-w-[200px]" title={record.keterangan || ''}>
-                                                            {record.keterangan || '-'}
-                                                        </td>
-                                                        <td className="px-6 py-4">
-                                                            {record.bukti ? (
-                                                                <button
-                                                                    onClick={() => setPreviewBukti(`/storage/${record.bukti}`)}
-                                                                    className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 underline underline-offset-2"
-                                                                >
-                                                                    <ImageUp className="h-3 w-3" /> Lihat
-                                                                </button>
-                                                            ) : (
-                                                                <span className="text-xs text-muted-foreground">-</span>
-                                                            )}
-                                                        </td>
+                                ) : (
+                                    <div className="rounded-xl border border-sidebar-border/70 bg-card shadow-sm dark:border-sidebar-border overflow-hidden flex flex-col animate-in fade-in duration-200">
+                                        <div className="p-6 border-b border-sidebar-border/70 dark:border-sidebar-border flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                                            <div>
+                                                <h2 className="text-lg font-semibold flex items-center gap-2">
+                                                    Rekap Absensi
+                                                </h2>
+                                                <p className="text-xs text-muted-foreground mt-0.5">
+                                                    Menampilkan absensi yang dicatat pada {filters.tanggal}.
+                                                </p>
+                                            </div>
+                                            <div className="flex flex-col text-xs text-muted-foreground md:text-right font-medium shrink-0 gap-1 bg-muted/40 p-3 rounded-lg border border-sidebar-border/70">
+                                                <div className="flex items-center gap-1.5">
+                                                    <Calendar className="h-3.5 w-3.5 text-primary" /> {filters.tanggal}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left text-sm whitespace-nowrap">
+                                                <thead className="bg-muted/50 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                                    <tr>
+                                                        <th className="px-6 py-4 w-12 text-center">No</th>
+                                                        <th className="px-6 py-4 w-24">Jam Ke</th>
+                                                        <th className="px-6 py-4">Waktu</th>
+                                                        <th className="px-6 py-4">NIS</th>
+                                                        <th className="px-6 py-4">Nama Siswa</th>
+                                                        <th className="px-6 py-4">Status</th>
+                                                        <th className="px-6 py-4">Keterangan</th>
+                                                        <th className="px-6 py-4">Surat</th>
                                                     </tr>
-                                                ))
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
+                                                </thead>
+                                                <tbody className="divide-y divide-sidebar-border/70 dark:divide-sidebar-border">
+                                                    {absensis.length === 0 ? (
+                                                        <tr>
+                                                            <td
+                                                                colSpan={8}
+                                                                className="px-6 py-12 text-center text-muted-foreground"
+                                                            >
+                                                                <div className="flex flex-col items-center gap-2">
+                                                                    <Users className="h-8 w-8 opacity-20" />
+                                                                    <p>Tidak ada data absensi untuk filter ini.</p>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ) : (
+                                                        absensis.map((record, index) => (
+                                                            <tr key={record.id} className="group transition-colors hover:bg-muted/30">
+                                                                <td className="px-6 py-4 text-center text-muted-foreground">
+                                                                    {index + 1}
+                                                                </td>
+                                                                <td className="px-6 py-4 font-medium">
+                                                                    {record.jam_ke}
+                                                                </td>
+                                                                <td className="px-6 py-4 text-xs text-muted-foreground">
+                                                                    {record.waktu_mulai && record.waktu_selesai 
+                                                                        ? `${record.waktu_mulai} - ${record.waktu_selesai}` 
+                                                                        : '-'}
+                                                                </td>
+                                                                <td className="px-6 py-4 font-mono text-xs font-medium">
+                                                                    {record.siswa.nis}
+                                                                </td>
+                                                                <td className="px-6 py-4 font-medium text-foreground">
+                                                                    {record.siswa.nama}
+                                                                </td>
+                                                                <td className="px-6 py-4">
+                                                                    <StatusBadge status={record.status} />
+                                                                </td>
+                                                                <td className="px-6 py-4 text-xs text-muted-foreground truncate max-w-[200px]" title={record.keterangan || ''}>
+                                                                    {record.keterangan || '-'}
+                                                                </td>
+                                                                <td className="px-6 py-4">
+                                                                    {record.bukti ? (
+                                                                        <button
+                                                                            onClick={() => setPreviewBukti(`/storage/${record.bukti}`)}
+                                                                            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 underline underline-offset-2"
+                                                                        >
+                                                                            <ImageUp className="h-3 w-3" /> Lihat
+                                                                        </button>
+                                                                    ) : (
+                                                                        <span className="text-xs text-muted-foreground">-</span>
+                                                                    )}
+                                                                </td>
+                                                            </tr>
+                                                        ))
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
                         ) : (
                             <div className="flex flex-col items-center justify-center border border-dashed border-sidebar-border/70 bg-card rounded-xl p-12 text-center h-[400px]">
                                 <TableProperties className="h-12 w-12 text-primary opacity-25 mb-4 animate-pulse" />
                                 <h3 className="text-lg font-semibold">Data Belum Ditampilkan</h3>
                                 <p className="text-sm text-muted-foreground max-w-sm mt-1">
-                                    Silakan pilih Kelas dan Mata Pelajaran di panel sebelah kiri untuk melihat laporan data absensi.
+                                    Silakan pilih Kelas dan Mata Pelajaran atau centang Berhalangan Hadir di panel sebelah kiri untuk melihat laporan data absensi.
                                 </p>
                             </div>
                         )}
@@ -320,18 +477,39 @@ export default function GuruDataAbsensi({
             <Dialog open={previewBukti !== null} onOpenChange={(open) => { if (!open) setPreviewBukti(null); }}>
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
-                        <DialogTitle>Bukti Absensi</DialogTitle>
+                        <div className="flex items-center justify-between">
+                            <DialogTitle>Surat Absensi</DialogTitle>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setPreviewBukti(null)}
+                                className="h-8 w-8 rounded-full"
+                            >
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
                         <DialogDescription>
-                            Foto bukti yang diunggah saat pencatatan absensi.
+                            Surat yang diunggah saat pencatatan absensi.
                         </DialogDescription>
                     </DialogHeader>
                     {previewBukti && (
-                        <div className="flex justify-center">
-                            <img
-                                src={previewBukti}
-                                alt="Bukti absensi"
-                                className="max-w-full max-h-[60vh] rounded-lg object-contain"
-                            />
+                        <div className="space-y-4">
+                            <div className="flex justify-center">
+                                <img
+                                    src={previewBukti}
+                                    alt="Surat absensi"
+                                    className="max-w-full max-h-[60vh] rounded-lg object-contain"
+                                />
+                            </div>
+                            <div className="flex justify-center">
+                                <a
+                                    href={previewBukti}
+                                    download
+                                    className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                                >
+                                    <Download className="h-4 w-4" /> Download
+                                </a>
+                            </div>
                         </div>
                     )}
                 </DialogContent>

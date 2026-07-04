@@ -38,7 +38,8 @@ class AbsensiController extends Controller
                     ->with(['absensis' => function ($query) use ($tanggal, $selectedMapelId, $jamKe) {
                         $query->where('tanggal', $tanggal)
                             ->where('mapel_id', $selectedMapelId)
-                            ->where('jam_ke', $jamKe);
+                            ->where('jam_ke', $jamKe)
+                            ->orderBy('updated_at', 'desc');
                     }])
                     ->get()
                     ->map(function ($siswa) {
@@ -91,7 +92,15 @@ class AbsensiController extends Controller
             'bukti' => 'nullable|file|mimes:jpg,jpeg,png,webp|max:2048',
         ];
 
-        if (in_array($request->input('status'), ['sakit', 'izin', 'dispensasi'])) {
+        // Check if any record exists for this student/subject/period (update mode from any teacher)
+        $existingAny = Absensi::where([
+            'siswa_id' => $request->siswa_id,
+            'mapel_id' => $request->mapel_id,
+            'tanggal' => $request->tanggal,
+            'jam_ke' => $request->jam_ke,
+        ])->first();
+
+        if (in_array($request->input('status'), ['sakit', 'izin', 'dispensasi']) && ! $existingAny) {
             $rules['bukti'] = 'required|file|mimes:jpg,jpeg,png,webp|max:2048';
         }
 
@@ -101,6 +110,16 @@ class AbsensiController extends Controller
         if (! $guru) {
             return back()->with('error', 'Profil Guru tidak ditemukan.');
         }
+
+        // Check if current teacher has an existing dispensasi record for this student
+        $myDispensasi = Absensi::where([
+            'siswa_id' => $validated['siswa_id'],
+            'mapel_id' => $validated['mapel_id'],
+            'tanggal' => $validated['tanggal'],
+            'jam_ke' => $validated['jam_ke'],
+            'guru_id' => $guru->id,
+            'status' => 'dispensasi',
+        ])->first();
 
         $data = [
             'guru_id' => $guru->id,
@@ -114,12 +133,19 @@ class AbsensiController extends Controller
             $data['bukti'] = $request->file('bukti')->store('bukti', 'public');
         }
 
+        // Preserve own dispensasi record when status changes away from dispensasi
+        if ($myDispensasi && $validated['status'] !== 'dispensasi') {
+            $myDispensasi->delete(); // soft delete preserves the dispen record
+        }
+
+        // Each teacher has their own record — guru_id is part of the unique key
         Absensi::updateOrCreate(
             [
                 'siswa_id' => $validated['siswa_id'],
                 'mapel_id' => $validated['mapel_id'],
                 'tanggal' => $validated['tanggal'],
                 'jam_ke' => $validated['jam_ke'],
+                'guru_id' => $guru->id,
             ],
             $data
         );

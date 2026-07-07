@@ -35,7 +35,7 @@ class LoginRequest extends FortifyLoginRequest
         } elseif ($role === 'guru') {
             $rules[Fortify::username()] = ['required', 'string', 'regex:/^\d{18}$/'];
         } elseif ($role === 'siswa') {
-            $rules[Fortify::username()] = ['required', 'string', 'regex:/^\d{2}\.\d{4}$/'];
+            $rules[Fortify::username()] = ['required', 'string', 'regex:/^\d{2}\.\d{6}$/'];
         }
 
         return $rules;

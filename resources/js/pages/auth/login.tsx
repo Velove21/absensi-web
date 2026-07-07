@@ -98,10 +98,10 @@ export default function Login({ status }: Props) {
                                         required
                                         autoFocus
                                         tabIndex={1}
-                                        autoComplete={isAdmin ? 'email' : 'username'}
-                                        placeholder={isSiswa ? 'Masukkan NIS Anda' : isAdmin ? 'Masukkan Email' : 'Masukkan NIP'}
-                                        pattern={isSiswa ? '^\d{2}\.\d{4}$' : isAdmin ? undefined : '^\d{18}$'}
-                                        title={isSiswa ? 'Format: xx.xxxx (2 angka, titik, 4 angka)' : isAdmin ? undefined : 'Harus 18 digit angka'}
+                                        autoComplete={isAdmin ? 'email' : 'off'}
+                                        placeholder={isSiswa ? 'Masukkan NIS' : isAdmin ? 'Masukkan Email' : 'Masukkan NIP'}
+                                        inputMode={isAdmin ? undefined : 'numeric'}
+                                        maxLength={isAdmin ? undefined : isSiswa ? 9 : 18}
                                         className="h-11 border-white/20 bg-white/10 text-white placeholder:text-blue-200/40 focus:border-[#0ea5e9] focus:ring-[#0ea5e9]/20"
                                     />
                                     <InputError message={errors.login} />

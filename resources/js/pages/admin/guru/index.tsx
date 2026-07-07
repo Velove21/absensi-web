@@ -178,7 +178,7 @@ export default function GuruIndex({
         router.post(adminGuru.resetPassword.url({ guru: resettingPasswordGuruId }), {}, {
             preserveScroll: true,
             onSuccess: () => {
-                toast.success('Password guru berhasil direset ke default (password123)');
+                toast.success('Password guru berhasil direset ke default (password)');
                 setResettingPasswordGuruId(null);
             },
             onError: () => setResettingPasswordGuruId(null),
@@ -542,7 +542,7 @@ export default function GuruIndex({
                     <AlertDialogHeader>
                         <AlertDialogTitle>Konfirmasi Reset Password</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Password guru ini akan direset ke <strong>password123</strong>. Guru wajib mengganti password setelah login berikutnya.
+                            Password guru ini akan direset ke <strong>password</strong>. Guru wajib mengganti password setelah login berikutnya.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

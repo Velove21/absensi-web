@@ -37,7 +37,7 @@
 | Item | Detail |
 |------|--------|
 | **Halaman login** | `/` (welcome) atau `/auth/login` |
-| **Field login** | NIP (`pattern="^\d{18}$"`) |
+| **Field login** | NIP (`inputMode="numeric"`, `maxLength=18`) |
 | **Contoh** | `197012052003121002` |
 | **Password default** | `password` |
 | **Validasi backend** | `regex:/^\d{18}$/` |
@@ -60,10 +60,9 @@
 | Item | Detail |
 |------|--------|
 | **Halaman login** | `/` (welcome) atau `/auth/login` |
-| **Field login** | NIS (`pattern="^\d{2}\.\d{4}$"`) |
+| **Field login** | NIS (`inputMode="numeric"`, `maxLength=9`) |
 | **Contoh** | `24.012472` |
-| **Password default** | `password` |
-| **Validasi backend** | `regex:/^\d{2}\.\d{4}$/` |
+| **Validasi backend** | `regex:/^\d{2}\.\d{6}$/` |
 | **Cara login** | Backend mencari user via relasi `siswas.nis` |
 | **Setelah login** | Redirect ke `siswa.dashboard` (jika `password_default = false`) |
 | **Password default?** | Dicegat `CheckPasswordStatus` → `/password/change` |

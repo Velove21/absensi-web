@@ -12,10 +12,10 @@ use Illuminate\Support\Facades\Hash;
 class ResetPasswordController extends Controller
 {
     /** Default password for guru accounts. */
-    private const GURU_DEFAULT_PASSWORD = 'password123';
+    private const GURU_DEFAULT_PASSWORD = 'password';
 
     /** Default password for siswa accounts. */
-    private const SISWA_DEFAULT_PASSWORD = 'password1';
+    private const SISWA_DEFAULT_PASSWORD = 'password';
 
     /**
      * Reset a guru's password to the default value.

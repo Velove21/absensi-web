@@ -23,9 +23,33 @@ class LoginRequest extends FortifyLoginRequest
      */
     public function rules(): array
     {
-        return [
+        $rules = [
             Fortify::username() => 'required|string',
             'password' => 'required|string',
+        ];
+
+        $role = $this->input('role');
+
+        if ($role === 'guru') {
+            $rules[Fortify::username()] = ['required', 'string', 'regex:/^\d{18}$/'];
+        } elseif ($role === 'siswa') {
+            $rules[Fortify::username()] = ['required', 'string', 'regex:/^\d{2}\.\d{4}$/'];
+        } elseif ($role === 'admin') {
+            $rules[Fortify::username()] = ['required', 'string', 'regex:/^.{19}$/'];
+        }
+
+        return $rules;
+    }
+
+    /**
+     * Get custom error messages for the defined validation rules.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'login.regex' => 'Format kode akses tidak sesuai dengan role yang dipilih.',
         ];
     }
 }

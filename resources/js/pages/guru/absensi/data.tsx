@@ -11,7 +11,7 @@ import {
 import SearchableSelect from '@/components/ui/searchable-select';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { BookOpen, Calendar, Users, TableProperties, CheckCircle, Clock, FileWarning, XCircle, Award, ImageUp, Download, X, FileSpreadsheet } from 'lucide-react';
+import { BookOpen, Calendar, Users, TableProperties, CheckCircle, Clock, FileWarning, XCircle, Award, ImageUp, Download, FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -78,7 +78,7 @@ export default function GuruDataAbsensi({
     filters,
     absensis = [],
 }: Props) {
-    const [previewBukti, setPreviewBukti] = useState<string | null>(null);
+    const [previewBukti, setPreviewBukti] = useState<{ url: string; id: number } | null>(null);
     const [exportStartDate, setExportStartDate] = useState('');
     const [exportEndDate, setExportEndDate] = useState('');
 
@@ -354,7 +354,7 @@ export default function GuruDataAbsensi({
                                                                 <td className="px-6 py-4">
                                                                     {record.bukti ? (
                                                                         <button
-                                                                            onClick={() => setPreviewBukti(`/storage/${record.bukti}`)}
+                                                                            onClick={() => setPreviewBukti({ url: `/storage/${record.bukti}`, id: record.id })}
                                                                             className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 underline underline-offset-2"
                                                                         >
                                                                             <ImageUp className="h-3 w-3" /> Lihat
@@ -443,7 +443,7 @@ export default function GuruDataAbsensi({
                                                                 <td className="px-6 py-4">
                                                                     {record.bukti ? (
                                                                         <button
-                                                                            onClick={() => setPreviewBukti(`/storage/${record.bukti}`)}
+                                                                            onClick={() => setPreviewBukti({ url: `/storage/${record.bukti}`, id: record.id })}
                                                                             className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 underline underline-offset-2"
                                                                         >
                                                                             <ImageUp className="h-3 w-3" /> Lihat
@@ -477,17 +477,7 @@ export default function GuruDataAbsensi({
             <Dialog open={previewBukti !== null} onOpenChange={(open) => { if (!open) setPreviewBukti(null); }}>
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
-                        <div className="flex items-center justify-between">
-                            <DialogTitle>Surat Absensi</DialogTitle>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setPreviewBukti(null)}
-                                className="h-8 w-8 rounded-full"
-                            >
-                                <X className="h-4 w-4" />
-                            </Button>
-                        </div>
+                        <DialogTitle>Surat Absensi</DialogTitle>
                         <DialogDescription>
                             Surat yang diunggah saat pencatatan absensi.
                         </DialogDescription>
@@ -496,15 +486,14 @@ export default function GuruDataAbsensi({
                         <div className="space-y-4">
                             <div className="flex justify-center">
                                 <img
-                                    src={previewBukti}
+                                    src={previewBukti.url}
                                     alt="Surat absensi"
                                     className="max-w-full max-h-[60vh] rounded-lg object-contain"
                                 />
                             </div>
                             <div className="flex justify-center">
                                 <a
-                                    href={previewBukti}
-                                    download
+                                    href={`/guru/download-bukti/${previewBukti.id}`}
                                     className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
                                 >
                                     <Download className="h-4 w-4" /> Download

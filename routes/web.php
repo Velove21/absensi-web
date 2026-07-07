@@ -12,6 +12,8 @@ use App\Http\Controllers\Admin\SiswaController;
 use App\Http\Controllers\Export\AttendanceExportController;
 use App\Http\Controllers\Guru\AbsensiController;
 use App\Http\Controllers\Guru\DataAbsensiController;
+use App\Http\Controllers\Guru\DownloadBuktiController;
+use App\Http\Controllers\Guru\ExportPageController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\Siswa\DashboardController;
 use Illuminate\Support\Facades\Route;
@@ -58,6 +60,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('ubah-sandi', [PasswordResetController::class, 'updateChange'])->name('ubah-sandi.update');
             // Export
             Route::get('export-absensi', [AttendanceExportController::class, 'export'])->name('export-absensi');
+            Route::get('export', [ExportPageController::class, 'index'])->name('export.index');
+            // Download bukti
+            Route::get('download-bukti/{absensi}', [DownloadBuktiController::class, 'download'])->name('download-bukti');
         });
 
         // Siswa Routes

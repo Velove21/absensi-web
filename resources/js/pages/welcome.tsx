@@ -37,10 +37,10 @@ export default function Welcome() {
 
                 {/* Heading */}
                 <div className="relative z-10 mb-15 text-center space-y-3">
-                    <h1 className="text-2xl font-bold tracking-tight text-white md:text-4xl lg:text-4xl">
+                    <h1 className="text-4xl font-bold tracking-tight text-white md:text-5xl lg:text-5xl">
                         Selamat Datang, SCOSEN
                     </h1>
-                    <p className="text-2xl font-bold tracking-tight text-white md:text-4xl lg:text-4xl">
+                    <p className="text-4xl font-bold tracking-tight text-white md:text-5xl lg:text-5xl">
                         Silahkan Akses Absensi{' '}
                         <span className="font-semibold text-[#0ea5e9]">SMKN 2 SURAKARTA</span>
                     </p>
@@ -84,13 +84,15 @@ export default function Welcome() {
                     >
                         {({ processing, errors, setData }) => (
                             <div className="grid gap-4">
+                                <input type="hidden" name="role" value={activeRole} />
+
                                 {/* Username / NIS Field */}
                                 <div className="grid gap-1.5">
                                     <Label
                                         htmlFor="login"
                                         className="text-sm text-blue-100/90 font-medium"
                                     >
-                                        {isSiswa ? 'Nomor Induk Siswa (NIS)' : isAdmin ? 'Username' : 'Username / NIP'}
+                                        {isSiswa ? 'Nomor Induk Siswa (NIS)' : isAdmin ? 'Username' : 'NIP'}
                                     </Label>
                                     <Input
                                         id="login"
@@ -100,14 +102,11 @@ export default function Welcome() {
                                         autoFocus
                                         tabIndex={1}
                                         autoComplete="username"
-                                        placeholder={isSiswa ? 'Masukkan NIS Anda' : isAdmin ? 'Masukkan Username' : 'Masukkan Username / NIP'}
+                                        placeholder={isSiswa ? 'Masukkan NIS Anda' : isAdmin ? 'Masukkan Username' : 'Masukkan NIP'}
+                                        pattern={isSiswa ? '^\d{2}\.\d{4}$' : isAdmin ? '^.{19}$' : '^\d{18}$'}
+                                        title={isSiswa ? 'Format: xx.xxxx (2 angka, titik, 4 angka)' : isAdmin ? 'Harus 19 karakter' : 'Harus 18 digit angka'}
                                         className="h-11 border-white/20 bg-white/10 text-white placeholder:text-blue-200/40 focus:border-[#0ea5e9] focus:ring-[#0ea5e9]/20"
                                     />
-                                    {!isSiswa && (
-                                        <p className="text-[11px] text-blue-200/50 mt-0.5">
-                                            {isAdmin ? 'Gunakan 19 digit kode akses Admin' : 'Gunakan NIP 18 digit'}
-                                        </p>
-                                    )}
                                     <InputError message={errors.login} />
                                 </div>
 

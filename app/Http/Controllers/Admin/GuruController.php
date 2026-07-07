@@ -19,11 +19,15 @@ class GuruController extends Controller
     {
         $search = $request->input('search');
 
-        $gurus = Guru::with(['user', 'kelas', 'mataPelajarans'])
+        $gurus = Guru::with(['user', 'kelas.jurusan', 'kelas.jenjangKelas', 'mataPelajarans'])
             ->when($search, function ($query, $search) {
                 $query->where('nama', 'like', "%{$search}%")
                     ->orWhere('nip', 'like', "%{$search}%")
-                    ->orWhereHas('kelas', fn ($q) => $q->where('nama_kelas', 'like', "%{$search}%"))
+                    ->orWhereHas('kelas', function ($q) use ($search) {
+                        $q->where('nama_kelas', 'like', "%{$search}%")
+                            ->orWhereHas('jurusan', fn ($j) => $j->where('singkatan', 'like', "%{$search}%"))
+                            ->orWhereHas('jenjangKelas', fn ($j) => $j->where('nama_jenjang', 'like', "%{$search}%"));
+                    })
                     ->orWhereHas('mataPelajarans', fn ($q) => $q->where('nama_mapel', 'like', "%{$search}%"));
             })
             ->latest()

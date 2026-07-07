@@ -7,7 +7,6 @@ use App\Models\Absensi;
 use App\Models\Guru;
 use App\Models\Jurusan;
 use App\Models\Kelas;
-use App\Models\MataPelajaran;
 use App\Models\Siswa;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -18,9 +17,9 @@ class DashboardController extends Controller
 {
     public function __invoke(Request $request)
     {
-        // Date filter for attendance
         $tanggal = $request->query('tanggal', Carbon::today()->format('Y-m-d'));
-        
+
+        // Attendance stats for the selected date
         $attendanceToday = Absensi::where('tanggal', $tanggal)
             ->select('status', DB::raw('count(*) as count'))
             ->groupBy('status')
@@ -45,25 +44,16 @@ class DashboardController extends Controller
             ->groupBy('jurusans.id', 'jurusans.singkatan')
             ->get();
 
-        // Detailed Attendance Data (if filter is applied)
+        // Detailed Attendance Data (for stat detail dialog)
         $detailStatus = $request->query('status');
-        $detailKelasId = $request->query('kelas_id');
-        
+
         $detailedAttendance = [];
-        if ($detailStatus || $detailKelasId) {
+        if ($detailStatus) {
             $query = Absensi::with(['siswa.kelas.jurusan', 'mataPelajaran', 'guru'])
-                ->where('tanggal', $tanggal);
-                
-            if ($detailStatus) {
-                $query->where('status', $detailStatus);
-            }
-            if ($detailKelasId) {
-                $query->whereHas('siswa', function($q) use ($detailKelasId) {
-                    $q->where('kelas_id', $detailKelasId);
-                });
-            }
-            
-            $detailedAttendance = $query->orderBy('jam_ke')->get()->map(function($absensi) {
+                ->where('tanggal', $tanggal)
+                ->where('status', $detailStatus);
+
+            $detailedAttendance = $query->orderBy('jam_ke')->get()->map(function ($absensi) {
                 return [
                     'id' => $absensi->id,
                     'jam_ke' => $absensi->jam_ke,
@@ -74,9 +64,9 @@ class DashboardController extends Controller
                         'nis' => $absensi->siswa->nis,
                         'nama' => $absensi->siswa->nama,
                     ],
-                    'kelas' => $absensi->siswa->kelas ? 
-                        trim($absensi->siswa->kelas->tingkat . ' ' . 
-                        ($absensi->siswa->kelas->jurusan ? $absensi->siswa->kelas->jurusan->singkatan : '') . ' ' . 
+                    'kelas' => $absensi->siswa->kelas ?
+                        trim($absensi->siswa->kelas->tingkat . ' ' .
+                        ($absensi->siswa->kelas->jurusan ? $absensi->siswa->kelas->jurusan->singkatan : '') . ' ' .
                         $absensi->siswa->kelas->nama_kelas) : '-',
                     'mapel' => $absensi->mataPelajaran->nama_mapel,
                     'guru' => $absensi->guru ? $absensi->guru->nama : '-',
@@ -95,13 +85,32 @@ class DashboardController extends Controller
             'studentsPerJurusan' => $studentsPerJurusan,
             'filters' => [
                 'tanggal' => $tanggal,
-                'status' => $detailStatus,
-                'kelas_id' => $detailKelasId,
             ],
             'detailedAttendance' => $detailedAttendance,
-            'kelasList' => Kelas::with('jurusan')->get(),
-            'gurus' => Guru::orderBy('nama')->get(['id', 'nama', 'nip']),
-            'mataPelajarans' => MataPelajaran::with('kategoriPembelajaran')->get(),
+            'gurus' => Guru::with(['mataPelajarans', 'kelas'])->orderBy('nama')->get()->map(function ($guru) {
+                return [
+                    'id' => $guru->id,
+                    'nama' => $guru->nama,
+                    'nip' => $guru->nip,
+                    'mapels' => $guru->mataPelajarans->map(function ($mapel) {
+                        return [
+                            'id' => $mapel->id,
+                            'nama_mapel' => $mapel->nama_mapel,
+                            'kategori' => $mapel->kategori,
+                        ];
+                    }),
+                    'kelasList' => $guru->kelas->map(function ($kelas) {
+                        return [
+                            'id' => $kelas->id,
+                            'nama_kelas' => $kelas->nama_kelas,
+                            'tingkat' => $kelas->tingkat,
+                            'jurusan' => $kelas->jurusan ? [
+                                'singkatan' => $kelas->jurusan->singkatan,
+                            ] : null,
+                        ];
+                    }),
+                ];
+            }),
         ]);
     }
 }

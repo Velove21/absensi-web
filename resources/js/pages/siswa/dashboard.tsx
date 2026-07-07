@@ -117,83 +117,83 @@ export default function SiswaDashboard({ siswa, stats, history }: Props) {
                     </h1>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+                <div className="grid grid-cols-5 gap-1.5">
                     <Card className="border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/20">
-                        <CardContent className="flex items-center gap-3 p-4 md:p-6">
-                            <div className="rounded-full bg-emerald-100 p-2 md:p-3 dark:bg-emerald-900/50">
-                                <CheckCircle className="h-5 w-5 md:h-6 md:w-6 text-emerald-600 dark:text-emerald-400" />
+                        <CardContent className="flex items-center gap-1 p-2">
+                            <div className="rounded-full bg-emerald-100 p-1 dark:bg-emerald-900/50">
+                                <CheckCircle className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
                             </div>
                             <div className="min-w-0">
-                                <p className="text-xs md:text-sm font-medium text-emerald-600 dark:text-emerald-400 truncate">
+                                <p className="text-[10px] leading-tight font-medium text-emerald-600 dark:text-emerald-400 truncate">
                                     Hadir
                                 </p>
-                                <h3 className="text-xl md:text-2xl font-bold text-emerald-700 dark:text-emerald-300">
+                                <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300">
                                     {stats.hadir}
-                                </h3>
+                                </p>
                             </div>
                         </CardContent>
                     </Card>
 
                     <Card className="border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/20">
-                        <CardContent className="flex items-center gap-3 p-4 md:p-6">
-                            <div className="rounded-full bg-blue-100 p-2 md:p-3 dark:bg-blue-900/50">
-                                <Clock className="h-5 w-5 md:h-6 md:w-6 text-blue-600 dark:text-blue-400" />
+                        <CardContent className="flex items-center gap-1 p-2">
+                            <div className="rounded-full bg-blue-100 p-1 dark:bg-blue-900/50">
+                                <Clock className="h-3 w-3 text-blue-600 dark:text-blue-400" />
                             </div>
                             <div className="min-w-0">
-                                <p className="text-xs md:text-sm font-medium text-blue-600 dark:text-blue-400 truncate">
+                                <p className="text-[10px] leading-tight font-medium text-blue-600 dark:text-blue-400 truncate">
                                     Sakit
                                 </p>
-                                <h3 className="text-xl md:text-2xl font-bold text-blue-700 dark:text-blue-300">
+                                <p className="text-xs font-bold text-blue-700 dark:text-blue-300">
                                     {stats.sakit}
-                                </h3>
+                                </p>
                             </div>
                         </CardContent>
                     </Card>
 
                     <Card className="border-orange-200 bg-orange-50 dark:border-orange-900 dark:bg-orange-950/20">
-                        <CardContent className="flex items-center gap-3 p-4 md:p-6">
-                            <div className="rounded-full bg-orange-100 p-2 md:p-3 dark:bg-orange-900/50">
-                                <FileWarning className="h-5 w-5 md:h-6 md:w-6 text-orange-600 dark:text-orange-400" />
+                        <CardContent className="flex items-center gap-1 p-2">
+                            <div className="rounded-full bg-orange-100 p-1 dark:bg-orange-900/50">
+                                <FileWarning className="h-3 w-3 text-orange-600 dark:text-orange-400" />
                             </div>
                             <div className="min-w-0">
-                                <p className="text-xs md:text-sm font-medium text-orange-600 dark:text-orange-400 truncate">
+                                <p className="text-[10px] leading-tight font-medium text-orange-600 dark:text-orange-400 truncate">
                                     Izin
                                 </p>
-                                <h3 className="text-xl md:text-2xl font-bold text-orange-700 dark:text-orange-300">
+                                <p className="text-xs font-bold text-orange-700 dark:text-orange-300">
                                     {stats.izin}
-                                </h3>
+                                </p>
                             </div>
                         </CardContent>
                     </Card>
 
                     <Card className="border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/20">
-                        <CardContent className="flex items-center gap-3 p-4 md:p-6">
-                            <div className="rounded-full bg-red-100 p-2 md:p-3 dark:bg-red-900/50">
-                                <XCircle className="h-5 w-5 md:h-6 md:w-6 text-red-600 dark:text-red-400" />
+                        <CardContent className="flex items-center gap-1 p-2">
+                            <div className="rounded-full bg-red-100 p-1 dark:bg-red-900/50">
+                                <XCircle className="h-3 w-3 text-red-600 dark:text-red-400" />
                             </div>
                             <div className="min-w-0">
-                                <p className="text-xs md:text-sm font-medium text-red-600 dark:text-red-400 truncate">
+                                <p className="text-[10px] leading-tight font-medium text-red-600 dark:text-red-400 truncate">
                                     Alfa
                                 </p>
-                                <h3 className="text-xl md:text-2xl font-bold text-red-700 dark:text-red-300">
+                                <p className="text-xs font-bold text-red-700 dark:text-red-300">
                                     {stats.alpha}
-                                </h3>
+                                </p>
                             </div>
                         </CardContent>
                     </Card>
 
                     <Card className="border-indigo-200 bg-indigo-50 dark:border-indigo-900 dark:bg-indigo-950/20">
-                        <CardContent className="flex items-center gap-3 p-4 md:p-6">
-                            <div className="rounded-full bg-indigo-100 p-2 md:p-3 dark:bg-indigo-900/50">
-                                <Award className="h-5 w-5 md:h-6 md:w-6 text-indigo-600 dark:text-indigo-400" />
+                        <CardContent className="flex items-center gap-1 p-2">
+                            <div className="rounded-full bg-indigo-100 p-1 dark:bg-indigo-900/50">
+                                <Award className="h-3 w-3 text-indigo-600 dark:text-indigo-400" />
                             </div>
                             <div className="min-w-0">
-                                <p className="text-xs md:text-sm font-medium text-indigo-600 dark:text-indigo-400 truncate">
+                                <p className="text-[10px] leading-tight font-medium text-indigo-600 dark:text-indigo-400 truncate">
                                     Dispensasi
                                 </p>
-                                <h3 className="text-xl md:text-2xl font-bold text-indigo-700 dark:text-indigo-300">
+                                <p className="text-xs font-bold text-indigo-700 dark:text-indigo-300">
                                     {stats.dispensasi}
-                                </h3>
+                                </p>
                             </div>
                         </CardContent>
                     </Card>

@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid, Users, UserCircle, GraduationCap, School, ClipboardList, History, ListOrdered, Clock, KeyRound } from 'lucide-react';
+import { BookOpen, FolderGit2, LayoutGrid, Users, UserCircle, GraduationCap, School, ClipboardList, History, ListOrdered, Clock, KeyRound, FileSpreadsheet } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -17,6 +17,7 @@ import * as routes from '@/routes';
 import admin from '@/routes/admin';
 import guruRoutes from '@/routes/guru/absensi';
 import absensiData from '@/routes/guru/data-absensi';
+import exportAbsensi from '@/routes/guru/export';
 import { dashboard as siswaDashboard } from '@/routes/siswa';
 import type { NavItem, SharedData } from '@/types';
 
@@ -90,6 +91,11 @@ export function AppSidebar() {
                 title: 'Lihat Data Absensi',
                 href: absensiData.index.url(),
                 icon: BookOpen,
+            },
+            {
+                title: 'Export Absensi',
+                href: exportAbsensi.index.url(),
+                icon: FileSpreadsheet,
             },
             {
                 title: 'Ubah Sandi',

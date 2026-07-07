@@ -1,14 +1,14 @@
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { Shield, Users, BookOpen, GraduationCap, Activity, PieChart as PieChartIcon, CheckCircle, Clock, FileWarning, XCircle, Award, TableProperties, ImageUp, FileSpreadsheet } from 'lucide-react';
+import { Shield, Users, BookOpen, GraduationCap, Activity, PieChart as PieChartIcon, CheckCircle, Clock, FileWarning, XCircle, Award, ImageUp, FileSpreadsheet, Search, ChevronDown } from 'lucide-react';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from '@/components/ui/chart';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import SearchableSelect from '@/components/ui/searchable-select';
 import {
     Dialog,
     DialogContent,
@@ -48,16 +48,25 @@ interface DetailedAttendance {
     guru: string;
 }
 
-interface MataPelajaranExport {
+interface MapelItem {
     id: number;
     nama_mapel: string;
     kategori: string;
+}
+
+interface KelasItem {
+    id: number;
+    nama_kelas: string;
+    tingkat: string | null;
+    jurusan: { singkatan: string } | null;
 }
 
 interface GuruExport {
     id: number;
     nama: string;
     nip: string | null;
+    mapels: MapelItem[];
+    kelasList: KelasItem[];
 }
 
 interface AdminDashboardProps {
@@ -75,13 +84,9 @@ interface AdminDashboardProps {
     }[];
     filters: {
         tanggal: string;
-        status: string | null;
-        kelas_id: string | null;
     };
     detailedAttendance: DetailedAttendance[];
-    kelasList: Kelas[];
     gurus: GuruExport[];
-    mataPelajarans: MataPelajaranExport[];
 }
 
 const attendanceConfig = {
@@ -102,9 +107,7 @@ export default function AdminDashboard({
     studentsPerJurusan,
     filters,
     detailedAttendance,
-    kelasList,
     gurus = [],
-    mataPelajarans = [],
 }: AdminDashboardProps) {
     const [previewBukti, setPreviewBukti] = useState<string | null>(null);
     const attendanceData = [
@@ -115,42 +118,123 @@ export default function AdminDashboard({
         { status: 'dispensasi', count: attendanceToday.dispensasi, fill: 'var(--color-dispensasi)' },
     ];
 
-    const handleFilterChange = (key: keyof AdminDashboardProps['filters'], value: string | null) => {
-        const newFilters = { ...filters, [key]: value };
-        
-        router.get(
-            adminDashboard.url(),
-            newFilters as any,
-            { preserveState: true, preserveScroll: true }
-        );
-    };
-
-    const clearFilters = () => {
-        router.get(
-            adminDashboard.url(),
-            { tanggal: filters.tanggal },
-            { preserveState: true, preserveScroll: true }
-        );
-    };
-
     // Export state
     const [exportGuruId, setExportGuruId] = useState('');
-    const [exportMapelId, setExportMapelId] = useState('');
+    const [exportMapelIds, setExportMapelIds] = useState<string[]>([]);
+    const [exportKelasIds, setExportKelasIds] = useState<string[]>([]);
     const [exportStartDate, setExportStartDate] = useState('');
     const [exportEndDate, setExportEndDate] = useState('');
+    const [exportMapelSearch, setExportMapelSearch] = useState('');
+    const [exportKelasSearch, setExportKelasSearch] = useState('');
+    const [exportMapelOpen, setExportMapelOpen] = useState(false);
+    const [exportKelasOpen, setExportKelasOpen] = useState(false);
+
+    const selectedGuru = gurus.find(g => g.id.toString() === exportGuruId);
+    const teacherMapels = selectedGuru?.mapels ?? [];
+    const teacherKelas = selectedGuru?.kelasList ?? [];
+
+    const allMapelSelected = exportMapelIds.length === teacherMapels.length && teacherMapels.length > 0;
+    const allKelasSelected = exportKelasIds.length === teacherKelas.length && teacherKelas.length > 0;
+
+    const toggleMapel = (id: string) => {
+        setExportMapelIds(prev =>
+            prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id]
+        );
+    };
+
+    const toggleAllMapel = () => {
+        if (allMapelSelected) {
+            setExportMapelIds([]);
+        } else {
+            setExportMapelIds(teacherMapels.map(m => m.id.toString()));
+        }
+    };
+
+    const toggleKelas = (id: string) => {
+        setExportKelasIds(prev =>
+            prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id]
+        );
+    };
+
+    const toggleAllKelas = () => {
+        if (allKelasSelected) {
+            setExportKelasIds([]);
+        } else {
+            setExportKelasIds(teacherKelas.map(k => k.id.toString()));
+        }
+    };
 
     const handleExport = () => {
-        if (!exportGuruId || !exportMapelId) {
-            toast.error('Silakan pilih Guru dan Mata Pelajaran.');
+        if (!exportGuruId) {
+            toast.error('Silakan pilih Guru.');
+            return;
+        }
+        if (exportMapelIds.length === 0) {
+            toast.error('Silakan pilih Mata Pelajaran.');
             return;
         }
         const params = new URLSearchParams();
         params.set('guru_id', exportGuruId);
-        params.set('mapel_id', exportMapelId);
+        exportMapelIds.forEach(id => params.append('mapel_ids[]', id));
+        exportKelasIds.forEach(id => params.append('kelas_ids[]', id));
         if (exportStartDate) params.set('start_date', exportStartDate);
         if (exportEndDate) params.set('end_date', exportEndDate);
         window.open('/admin/export-absensi?' + params.toString(), '_blank');
     };
+
+    // Statistik detail state
+    const [statDate, setStatDate] = useState(filters.tanggal);
+    const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+    const [statDetail, setStatDetail] = useState<DetailedAttendance[]>([]);
+    const [statLoading, setStatLoading] = useState(false);
+    const [statDialogOpen, setStatDialogOpen] = useState(false);
+
+    const handleStatDateChange = (newDate: string) => {
+        setStatDate(newDate);
+        router.get(
+            adminDashboard.url(),
+            { tanggal: newDate },
+            { preserveState: true, preserveScroll: true }
+        );
+    };
+
+    const fetchStatDetail = (status: string) => {
+        setSelectedStatus(status);
+        setStatLoading(true);
+        const params = new URLSearchParams();
+        params.set('tanggal', statDate);
+        params.set('status', status);
+        router.get(
+            adminDashboard.url() + '?' + params.toString(),
+            {},
+            {
+                preserveState: false,
+                preserveScroll: true,
+                only: ['detailedAttendance'],
+                onSuccess: (page) => {
+                    const data = (page.props as any).detailedAttendance as DetailedAttendance[];
+                    const singlePerDay = data.reduce<DetailedAttendance[]>((acc, curr) => {
+                        const exists = acc.find(a => a.siswa.nis === curr.siswa.nis);
+                        if (!exists) acc.push(curr);
+                        return acc;
+                    }, []);
+                    setStatDetail(singlePerDay);
+                    setStatLoading(false);
+                    setStatDialogOpen(true);
+                },
+                onError: () => {
+                    setStatLoading(false);
+                }
+            }
+        );
+    };
+
+    const filteredMapels = teacherMapels.filter(m =>
+        m.nama_mapel.toLowerCase().includes(exportMapelSearch.toLowerCase())
+    );
+    const filteredKelas = teacherKelas.filter(k =>
+        k.nama_kelas.toLowerCase().includes(exportKelasSearch.toLowerCase())
+    );
 
     const formatKelasName = (k: Kelas) => {
         const parts = [];
@@ -240,91 +324,160 @@ export default function AdminDashboard({
                     </div>
                 </div>
 
-                <div className="flex flex-col md:flex-row gap-4 items-center bg-card p-4 rounded-xl border border-sidebar-border/70 shadow-sm dark:border-sidebar-border">
-                    <div className="text-sm font-medium text-muted-foreground w-full md:w-auto shrink-0">
-                        Filter Analisis Kehadiran:
-                    </div>
-                    <div className="flex flex-wrap gap-3 w-full">
-                        <Input
-                            type="date"
-                            value={filters.tanggal}
-                            onChange={(e) => handleFilterChange('tanggal', e.target.value)}
-                            className="w-full md:w-[200px]"
-                        />
-                        <Select
-                            value={filters.kelas_id || undefined}
-                            onValueChange={(val) => handleFilterChange('kelas_id', val === 'all' ? null : val)}
-                        >
-                            <SelectTrigger className="w-full md:w-[220px]">
-                                <SelectValue placeholder="Semua Kelas" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Semua Kelas</SelectItem>
-                                {kelasList.map(kelas => (
-                                    <SelectItem key={kelas.id} value={kelas.id.toString()}>
-                                        {formatKelasName(kelas)}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <Select
-                            value={filters.status || undefined}
-                            onValueChange={(val) => handleFilterChange('status', val === 'all' ? null : val)}
-                        >
-                            <SelectTrigger className="w-full md:w-[180px]">
-                                <SelectValue placeholder="Semua Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Semua Status</SelectItem>
-                                <SelectItem value="hadir">Hadir</SelectItem>
-                                <SelectItem value="sakit">Sakit</SelectItem>
-                                <SelectItem value="izin">Izin</SelectItem>
-                                <SelectItem value="alpha">Alpha</SelectItem>
-                                <SelectItem value="dispensasi">Dispensasi</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        {(filters.status || filters.kelas_id) && (
-                            <Button variant="ghost" onClick={clearFilters} className="text-muted-foreground hover:text-foreground">
-                                Hapus Filter
-                            </Button>
-                        )}
-                    </div>
-                </div>
+
 
                 {/* Export Section */}
                 <div className="rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border">
                     <div className="flex items-center gap-2 mb-4">
                         <FileSpreadsheet className="h-5 w-5 text-emerald-600" />
-                        <h2 className="text-lg font-semibold">Export Rekap Absensi (Excel)</h2>
+                        <h2 className="text-lg font-semibold">Export Rekap Absensi</h2>
                     </div>
                     <div className="flex flex-wrap gap-3 items-end">
+                        {/* Pilih Guru - Searchable */}
                         <div className="space-y-1.5">
                             <label className="text-xs font-medium text-muted-foreground">Pilih Guru</label>
-                            <select
+                            <SearchableSelect
                                 value={exportGuruId}
-                                onChange={e => { setExportGuruId(e.target.value); setExportMapelId(''); }}
-                                className="flex h-9 rounded-md border border-input bg-muted/30 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none w-[220px]"
-                            >
-                                <option value="">-- Pilih Guru --</option>
-                                {gurus.map(g => (
-                                    <option key={g.id} value={g.id.toString()}>{g.nama} ({g.nip || '-'})</option>
-                                ))}
-                            </select>
+                                onValueChange={(val) => {
+                                    setExportGuruId(val);
+                                    setExportMapelIds([]);
+                                    setExportKelasIds([]);
+                                }}
+                                placeholder="-- Pilih Guru --"
+                                items={gurus.map(g => ({
+                                    value: g.id.toString(),
+                                    label: `${g.nama} (${g.nip || '-'})`,
+                                }))}
+                            />
                         </div>
+
+                        {/* Pilih Mapel - Multi-select with search */}
                         <div className="space-y-1.5">
                             <label className="text-xs font-medium text-muted-foreground">Pilih Mapel</label>
-                            <select
-                                value={exportMapelId}
-                                onChange={e => setExportMapelId(e.target.value)}
-                                disabled={!exportGuruId}
-                                className="flex h-9 rounded-md border border-input bg-muted/30 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none w-[220px] disabled:opacity-50"
-                            >
-                                <option value="">-- Pilih Mapel --</option>
-                                {mataPelajarans.map(m => (
-                                    <option key={m.id} value={m.id.toString()}>{m.nama_mapel} ({m.kategori})</option>
-                                ))}
-                            </select>
+                            <div className="relative">
+                                <button
+                                    type="button"
+                                    disabled={!exportGuruId}
+                                    onClick={() => { setExportMapelOpen(!exportMapelOpen); setExportKelasOpen(false); }}
+                                    className="flex h-9 w-[220px] items-center justify-between gap-2 rounded-md border border-input bg-muted/30 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50"
+                                >
+                                    <span className="line-clamp-1 flex-1 text-left">
+                                        {exportMapelIds.length === 0
+                                            ? '-- Pilih Mapel --'
+                                            : allMapelSelected
+                                                ? 'Semua Mapel'
+                                                : `${exportMapelIds.length} mapel dipilih`}
+                                    </span>
+                                    <ChevronDown className="size-4 shrink-0 opacity-50" />
+                                </button>
+                                {exportMapelOpen && (
+                                    <div className="bg-popover text-popover-foreground absolute z-50 mt-1 w-[220px] origin-top overflow-hidden rounded-md border shadow-md">
+                                        <div className="flex items-center gap-2 border-b px-3 py-2">
+                                            <Search className="size-4 shrink-0 opacity-50" />
+                                            <input
+                                                value={exportMapelSearch}
+                                                onChange={e => setExportMapelSearch(e.target.value)}
+                                                placeholder="Cari mapel..."
+                                                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                                            />
+                                        </div>
+                                        <div className="max-h-48 overflow-y-auto p-1">
+                                            <label className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={allMapelSelected}
+                                                    onChange={toggleAllMapel}
+                                                    className="size-4"
+                                                />
+                                                <span className="font-medium">Semua Mapel</span>
+                                            </label>
+                                            {filteredMapels.length === 0 ? (
+                                                <p className="px-2 py-6 text-center text-sm text-muted-foreground">
+                                                    Tidak ada hasil
+                                                </p>
+                                            ) : (
+                                                filteredMapels.map(m => (
+                                                    <label key={m.id} className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={exportMapelIds.includes(m.id.toString())}
+                                                            onChange={() => toggleMapel(m.id.toString())}
+                                                            className="size-4"
+                                                        />
+                                                        <span className="flex-1">{m.nama_mapel}</span>
+                                                        <span className="text-xs text-muted-foreground">{m.kategori}</span>
+                                                    </label>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
+
+                        {/* Pilih Kelas - Multi-select with search */}
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-muted-foreground">Pilih Kelas</label>
+                            <div className="relative">
+                                <button
+                                    type="button"
+                                    disabled={!exportGuruId}
+                                    onClick={() => { setExportKelasOpen(!exportKelasOpen); setExportMapelOpen(false); }}
+                                    className="flex h-9 w-[220px] items-center justify-between gap-2 rounded-md border border-input bg-muted/30 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50"
+                                >
+                                    <span className="line-clamp-1 flex-1 text-left">
+                                        {exportKelasIds.length === 0
+                                            ? '-- Pilih Kelas --'
+                                            : allKelasSelected
+                                                ? 'Semua Kelas'
+                                                : `${exportKelasIds.length} kelas dipilih`}
+                                    </span>
+                                    <ChevronDown className="size-4 shrink-0 opacity-50" />
+                                </button>
+                                {exportKelasOpen && (
+                                    <div className="bg-popover text-popover-foreground absolute z-50 mt-1 w-[220px] origin-top overflow-hidden rounded-md border shadow-md">
+                                        <div className="flex items-center gap-2 border-b px-3 py-2">
+                                            <Search className="size-4 shrink-0 opacity-50" />
+                                            <input
+                                                value={exportKelasSearch}
+                                                onChange={e => setExportKelasSearch(e.target.value)}
+                                                placeholder="Cari kelas..."
+                                                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                                            />
+                                        </div>
+                                        <div className="max-h-48 overflow-y-auto p-1">
+                                            <label className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={allKelasSelected}
+                                                    onChange={toggleAllKelas}
+                                                    className="size-4"
+                                                />
+                                                <span className="font-medium">Semua Kelas</span>
+                                            </label>
+                                            {filteredKelas.length === 0 ? (
+                                                <p className="px-2 py-6 text-center text-sm text-muted-foreground">
+                                                    Tidak ada hasil
+                                                </p>
+                                            ) : (
+                                                filteredKelas.map(k => (
+                                                    <label key={k.id} className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={exportKelasIds.includes(k.id.toString())}
+                                                            onChange={() => toggleKelas(k.id.toString())}
+                                                            className="size-4"
+                                                        />
+                                                        <span className="flex-1">{formatKelasName(k)}</span>
+                                                    </label>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
                         <div className="space-y-1.5">
                             <label className="text-xs font-medium text-muted-foreground">Tanggal Mulai</label>
                             <Input
@@ -344,20 +497,28 @@ export default function AdminDashboard({
                             />
                         </div>
                         <Button onClick={handleExport} className="h-9 gap-1.5">
-                            <FileSpreadsheet className="h-4 w-4" /> Export Excel
+                            <FileSpreadsheet className="h-4 w-4" /> Export
                         </Button>
                     </div>
                 </div>
+
+
 
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 mt-2">
                     {/* Attendance Chart */}
                     <Card className="border-sidebar-border/70 shadow-sm dark:border-sidebar-border flex flex-col">
                         <CardHeader className="flex flex-row items-center gap-2 pb-2">
                             <PieChartIcon className="h-5 w-5 text-muted-foreground" />
-                            <div>
-                                <CardTitle className="text-lg">Statistik Absensi: {filters.tanggal}</CardTitle>
-                                <CardDescription>Persentase kehadiran (Berdasarkan filter aktif)</CardDescription>
+                            <div className="flex-1">
+                                <CardTitle className="text-lg">Statistik Absensi</CardTitle>
+                                <CardDescription>Klik status untuk melihat detail siswa</CardDescription>
                             </div>
+                            <Input
+                                type="date"
+                                value={statDate}
+                                onChange={e => handleStatDateChange(e.target.value)}
+                                className="w-[170px] h-8 text-xs"
+                            />
                         </CardHeader>
                         <CardContent className="flex-1 flex flex-col justify-center">
                             {attendanceData.reduce((sum, item) => sum + item.count, 0) > 0 ? (
@@ -384,9 +545,9 @@ export default function AdminDashboard({
                                         {attendanceData.map((item) => (
                                             <button 
                                                 key={item.status} 
-                                                className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors hover:bg-muted/50 ${filters.status === item.status ? 'bg-muted ring-1 ring-border' : ''}`}
-                                                onClick={() => handleFilterChange('status', filters.status === item.status ? null : item.status)}
-                                                title="Klik untuk filter data"
+                                                className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors hover:bg-muted/50 hover:ring-1 hover:ring-border cursor-pointer"
+                                                onClick={() => fetchStatDetail(item.status)}
+                                                title={`Klik lihat detail ${item.status}`}
                                             >
                                                 <div className="flex items-center justify-center gap-1.5">
                                                     <div
@@ -418,114 +579,98 @@ export default function AdminDashboard({
                         </CardContent>
                     </Card>
 
-                    {/* Students per Jurusan Chart or Details Table */}
-                    {filters.status || filters.kelas_id ? (
-                        <Card className="border-sidebar-border/70 shadow-sm dark:border-sidebar-border flex flex-col lg:col-span-1 h-[500px]">
-                            <CardHeader className="flex flex-row items-center justify-between pb-2">
-                                <div className="flex items-center gap-2">
-                                    <TableProperties className="h-5 w-5 text-muted-foreground" />
-                                    <div>
-                                        <CardTitle className="text-lg">Detail Data Absensi</CardTitle>
-                                        <CardDescription>Menampilkan daftar spesifik berdasarkan filter.</CardDescription>
-                                    </div>
-                                </div>
-                                <div className="text-xs font-medium bg-primary/10 text-primary px-2.5 py-1 rounded-full">
-                                    {detailedAttendance.length} Entri
-                                </div>
-                            </CardHeader>
-                            <CardContent className="flex-1 p-0 overflow-hidden flex flex-col">
-                                <div className="overflow-y-auto flex-1">
-                                    {detailedAttendance.length > 0 ? (
-                                        <table className="w-full text-left text-sm whitespace-nowrap">
-                                            <thead className="bg-muted/50 text-xs font-medium text-muted-foreground uppercase tracking-wider sticky top-0 z-10 backdrop-blur-sm">
-                                                <tr>
-                                                    <th className="px-4 py-3">Siswa</th>
-                                                    <th className="px-4 py-3">Kelas</th>
-                                                    <th className="px-4 py-3">Jam / Mapel</th>
-                                                    <th className="px-4 py-3">Status</th>
-                                                    <th className="px-4 py-3">Bukti</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-sidebar-border/70 dark:divide-sidebar-border">
-                                                {detailedAttendance.map((record) => (
-                                                    <tr key={record.id} className="hover:bg-muted/30 transition-colors">
-                                                        <td className="px-4 py-3">
-                                                            <div className="font-medium">{record.siswa.nama}</div>
-                                                            <div className="text-xs text-muted-foreground font-mono">{record.siswa.nis}</div>
-                                                        </td>
-                                                        <td className="px-4 py-3 text-xs">{record.kelas}</td>
-                                                        <td className="px-4 py-3 text-xs">
-                                                            <div>Jam Ke-{record.jam_ke}</div>
-                                                            <div className="text-muted-foreground truncate max-w-[120px]" title={record.mapel}>{record.mapel}</div>
-                                                        </td>
-                                                        <td className="px-4 py-3">
-                                                            <div className="flex flex-col gap-1 items-start">
-                                                                <StatusBadge status={record.status} />
-                                                                {record.keterangan && (
-                                                                    <span className="text-[10px] text-muted-foreground italic max-w-[120px] truncate" title={record.keterangan}>
-                                                                        "{record.keterangan}"
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-4 py-3">
-                                                            {record.bukti ? (
-                                                                <button
-                                                                    onClick={() => setPreviewBukti(`/storage/${record.bukti}`)}
-                                                                    className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 underline underline-offset-2"
-                                                                >
-                                                                    <ImageUp className="h-3 w-3" /> Lihat
-                                                                </button>
-                                                            ) : (
-                                                                <span className="text-xs text-muted-foreground">-</span>
-                                                            )}
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    ) : (
-                                        <div className="flex h-full items-center justify-center text-muted-foreground text-sm">
-                                            Tidak ada data untuk filter ini.
-                                        </div>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ) : (
-                        <Card className="border-sidebar-border/70 shadow-sm dark:border-sidebar-border">
-                            <CardHeader className="flex flex-row items-center gap-2 pb-2">
-                                <Activity className="h-5 w-5 text-muted-foreground" />
-                                <div>
-                                    <CardTitle className="text-lg">Distribusi Siswa</CardTitle>
-                                    <CardDescription>Jumlah siswa per jurusan</CardDescription>
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                <ChartContainer config={jurusanConfig} className="mt-4 aspect-auto h-[350px] w-full">
-                                    <BarChart data={studentsPerJurusan} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                        <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                                        <XAxis
-                                            dataKey="singkatan"
-                                            tickLine={false}
-                                            axisLine={false}
-                                            tickMargin={8}
-                                            fontSize={12}
-                                        />
-                                        <YAxis
-                                            tickLine={false}
-                                            axisLine={false}
-                                            tickMargin={8}
-                                            fontSize={12}
-                                        />
-                                        <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                                        <Bar dataKey="count" fill="var(--chart-3)" radius={[4, 4, 0, 0]} />
-                                    </BarChart>
-                                </ChartContainer>
-                            </CardContent>
-                        </Card>
-                    )}
+                    {/* Students per Jurusan Chart */}
+                    <Card className="border-sidebar-border/70 shadow-sm dark:border-sidebar-border">
+                        <CardHeader className="flex flex-row items-center gap-2 pb-2">
+                            <Activity className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                                <CardTitle className="text-lg">Distribusi Siswa</CardTitle>
+                                <CardDescription>Jumlah siswa per jurusan</CardDescription>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <ChartContainer config={jurusanConfig} className="mt-4 aspect-auto h-[350px] w-full">
+                                <BarChart data={studentsPerJurusan} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                                    <XAxis
+                                        dataKey="singkatan"
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tickMargin={8}
+                                        fontSize={12}
+                                    />
+                                    <YAxis
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tickMargin={8}
+                                        fontSize={12}
+                                    />
+                                    <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                                    <Bar dataKey="count" fill="var(--chart-3)" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                            </ChartContainer>
+                        </CardContent>
+                    </Card>
                 </div>
+
+                {/* Statistik Detail Dialog */}
+                <Dialog open={statDialogOpen} onOpenChange={(open) => { if (!open) setStatDialogOpen(false); }}>
+                    <DialogContent className="sm:max-w-4xl max-h-[80vh] flex flex-col">
+                        <DialogHeader>
+                            <DialogTitle className="capitalize">Detail Absensi: {selectedStatus}</DialogTitle>
+                            <DialogDescription>
+                                Tanggal: {statDate} — {statDetail.length} siswa
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="overflow-y-auto flex-1 -mx-6 px-6">
+                            {statLoading ? (
+                                <div className="flex items-center justify-center py-12 text-muted-foreground">Memuat data...</div>
+                            ) : statDetail.length > 0 ? (
+                                <table className="w-full text-left text-sm whitespace-nowrap">
+                                    <thead className="bg-muted/50 text-xs font-medium text-muted-foreground uppercase tracking-wider sticky top-0 z-10">
+                                        <tr>
+                                            <th className="px-3 py-2 w-10">#</th>
+                                            <th className="px-3 py-2">NIS</th>
+                                            <th className="px-3 py-2">Nama</th>
+                                            <th className="px-3 py-2">Kelas</th>
+                                            <th className="px-3 py-2">Status</th>
+                                            <th className="px-3 py-2">Keterangan</th>
+                                            <th className="px-3 py-2">Surat</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-sidebar-border/70">
+                                        {statDetail.map((record, idx) => (
+                                            <tr key={record.id} className="hover:bg-muted/30 transition-colors">
+                                                <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
+                                                <td className="px-3 py-2 font-mono text-xs">{record.siswa.nis}</td>
+                                                <td className="px-3 py-2 font-medium">{record.siswa.nama}</td>
+                                                <td className="px-3 py-2 text-xs">{record.kelas}</td>
+                                                <td className="px-3 py-2"><StatusBadge status={record.status} /></td>
+                                                <td className="px-3 py-2 text-xs max-w-[150px] truncate" title={record.keterangan ?? ''}>
+                                                    {record.keterangan || '-'}
+                                                </td>
+                                                <td className="px-3 py-2">
+                                                    {record.bukti ? (
+                                                        <button onClick={() => setPreviewBukti(`/storage/${record.bukti}`)}
+                                                            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 underline underline-offset-2">
+                                                            <ImageUp className="h-3 w-3" /> Lihat
+                                                        </button>
+                                                    ) : (
+                                                        <span className="text-xs text-muted-foreground">-</span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            ) : (
+                                <div className="flex items-center justify-center py-12 text-muted-foreground">
+                                    Tidak ada data untuk status ini.
+                                </div>
+                            )}
+                        </div>
+                    </DialogContent>
+                </Dialog>
             </div>
 
             <Dialog open={previewBukti !== null} onOpenChange={(open) => { if (!open) setPreviewBukti(null); }}>

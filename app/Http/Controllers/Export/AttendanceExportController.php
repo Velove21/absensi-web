@@ -8,6 +8,7 @@ use App\Models\MataPelajaran;
 use App\Models\Absensi;
 use App\Models\Siswa;
 use App\Models\Kelas;
+use App\Models\DurasiPembelajaran;
 use Illuminate\Http\Request;
 
 class AttendanceExportController extends Controller
@@ -15,7 +16,8 @@ class AttendanceExportController extends Controller
     public function export(Request $request)
     {
         $guruId = $request->query('guru_id');
-        $mapelId = $request->query('mapel_id');
+        $mapelIds = $request->query('mapel_ids', []);
+        $kelasIds = $request->query('kelas_ids', []);
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
 
@@ -27,18 +29,17 @@ class AttendanceExportController extends Controller
             $guruId = $guru->id;
         }
 
-        if (! $guruId || ! $mapelId) {
+        if (! $guruId || empty($mapelIds)) {
             return back()->with('error', 'Parameter guru dan mata pelajaran diperlukan.');
         }
 
         $guru = Guru::findOrFail($guruId);
-        $mapel = MataPelajaran::with('kategoriPembelajaran')->findOrFail($mapelId);
+        $mapels = MataPelajaran::with('kategoriPembelajaran')->whereIn('id', $mapelIds)->get();
 
-        $kelasIds = $guru->kelas()->pluck('kelas.id');
+        $html = $this->generateExcel($guru, $mapels, $kelasIds, $startDate, $endDate);
 
-        $html = $this->generateExcel($guru, $mapel, $kelasIds, $startDate, $endDate);
-
-        $filename = 'rekap-absensi-' . $guru->nama . '-' . $mapel->nama_mapel . '.xls';
+        $mapelNames = $mapels->pluck('nama_mapel')->implode('-');
+        $filename = 'rekap-absensi-' . $guru->nama . '-' . $mapelNames . '.xls';
 
         return response($html)
             ->header('Content-Type', 'application/vnd.ms-excel')
@@ -47,17 +48,20 @@ class AttendanceExportController extends Controller
             ->header('Expires', '0');
     }
 
-    private function generateExcel(Guru $guru, MataPelajaran $mapel, $kelasIds, $startDate, $endDate): string
+    private function generateExcel(Guru $guru, $mapels, $kelasIds, $startDate, $endDate): string
     {
+        $durasi = DurasiPembelajaran::all()->groupBy('hari');
+
         $html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
         $html .= '<head><meta charset="UTF-8">';
         $html .= '<style>
-            table { border-collapse: collapse; width: 100%; font-family: Calibri, sans-serif; font-size: 11px; }
-            th, td { border: 1px solid #999; padding: 4px 6px; text-align: left; vertical-align: top; }
+            body { font-family: Calibri, sans-serif; font-size: 11px; }
+            table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+            th, td { border: 1px solid #999; padding: 5px 8px; text-align: left; vertical-align: middle; }
             th { background-color: #4472C4; color: white; font-weight: bold; text-align: center; }
-            .header-info { font-size: 14px; margin-bottom: 16px; }
-            .header-info td { border: none; padding: 2px 6px; }
-            .section-title { background-color: #D6E4F0; font-weight: bold; font-size: 12px; text-align: left; }
+            .header-info { font-size: 13px; margin-bottom: 12px; width: auto; }
+            .header-info td { border: none; padding: 2px 8px; }
+            .title-row td { background-color: #D6E4F0; font-weight: bold; font-size: 12px; text-align: left; border: 1px solid #999; }
             .summary-row td { font-weight: bold; background-color: #E2EFDA; }
             .text-center { text-align: center; }
         </style>';
@@ -66,7 +70,7 @@ class AttendanceExportController extends Controller
         $html .= '<table class="header-info">';
         $html .= '<tr><td><strong>Nama Guru</strong></td><td>: ' . e($guru->nama) . '</td></tr>';
         $html .= '<tr><td><strong>NIP</strong></td><td>: ' . e($guru->nip ?? '-') . '</td></tr>';
-        $html .= '<tr><td><strong>Mata Pelajaran</strong></td><td>: ' . e($mapel->nama_mapel) . ' (' . e($mapel->kategori) . ')' . '</td></tr>';
+        $html .= '<tr><td><strong>Mata Pelajaran</strong></td><td>: ' . e($mapels->pluck('nama_mapel')->implode(', ')) . '</td></tr>';
         if ($startDate && $endDate) {
             $html .= '<tr><td><strong>Periode</strong></td><td>: ' . e($startDate) . ' s/d ' . e($endDate) . '</td></tr>';
         } elseif ($startDate) {
@@ -77,84 +81,138 @@ class AttendanceExportController extends Controller
             $html .= '<tr><td><strong>Periode</strong></td><td>: Semua data</td></tr>';
         }
         $html .= '</table>';
-        $html .= '<br/>';
 
-        $kelasList = Kelas::with(['jurusan', 'jenjangKelas'])->whereIn('id', $kelasIds)->get();
+        // Determine which classes to include
+        $guruKelasIds = $guru->kelas()->pluck('kelas.id');
+        if (! empty($kelasIds)) {
+            $guruKelasIds = array_intersect($guruKelasIds->toArray(), $kelasIds);
+        }
 
+        $kelasList = Kelas::with(['jurusan', 'jenjangKelas'])->whereIn('id', $guruKelasIds)->get();
+        $siswaIdsByKelas = [];
         foreach ($kelasList as $kelas) {
-            $siswas = Siswa::where('kelas_id', $kelas->id)->orderBy('nama')->get();
-            $siswaIds = $siswas->pluck('id');
+            $siswaIdsByKelas[$kelas->id] = Siswa::where('kelas_id', $kelas->id)->orderBy('nama')->get()->keyBy('id');
+        }
 
-            $absensisQuery = Absensi::with(['siswa'])
-                ->whereIn('siswa_id', $siswaIds)
-                ->where('mapel_id', $mapel->id);
+        // Get all absensi records grouped by date
+        $allSiswaIds = collect($siswaIdsByKelas)->flatten(1)->pluck('id');
 
-            if ($startDate) {
-                $absensisQuery->where('tanggal', '>=', $startDate);
-            }
-            if ($endDate) {
-                $absensisQuery->where('tanggal', '<=', $endDate);
-            }
+        $absensisQuery = Absensi::with(['siswa.kelas.jurusan', 'siswa.kelas.jenjangKelas'])
+            ->whereIn('siswa_id', $allSiswaIds)
+            ->whereIn('mapel_id', $mapels->pluck('id'));
 
-            $absensis = $absensisQuery->orderBy('tanggal', 'desc')->orderBy('jam_ke')->get();
+        if ($startDate) {
+            $absensisQuery->where('tanggal', '>=', $startDate);
+        }
+        if ($endDate) {
+            $absensisQuery->where('tanggal', '<=', $endDate);
+        }
 
-            $html .= '<h3>' . e($kelas->full_nama_kelas ?: $kelas->nama_kelas) . '</h3>';
+        $absensis = $absensisQuery->orderBy('tanggal', 'asc')->orderBy('jam_ke')->get();
 
-            $html .= '<table>';
-            $html .= '<thead><tr>';
-            $html .= '<th style="width:40px">No</th>';
-            $html .= '<th style="width:80px">NIS</th>';
-            $html .= '<th>Nama Siswa</th>';
-            $html .= '<th style="width:100px">Tanggal</th>';
-            $html .= '<th style="width:60px">Jam Ke</th>';
-            $html .= '<th style="width:100px">Waktu</th>';
-            $html .= '<th style="width:90px">Status</th>';
-            $html .= '<th>Keterangan</th>';
-            $html .= '</tr></thead><tbody>';
+        // Group by date, then by kelas
+        $grouped = $absensis->groupBy('tanggal');
 
-            if ($absensis->isEmpty()) {
-                $html .= '<tr><td colspan="8" style="text-align:center; color:#888;">Belum ada data absensi untuk kelas ini.</td></tr>';
-            } else {
-                $no = 1;
-                foreach ($absensis as $absensi) {
-                    $waktu = '';
-                    if ($absensi->waktu_mulai && $absensi->waktu_selesai) {
-                        $waktu = substr($absensi->waktu_mulai, 0, 5) . ' - ' . substr($absensi->waktu_selesai, 0, 5);
-                    } elseif ($absensi->waktu_mulai) {
-                        $waktu = substr($absensi->waktu_mulai, 0, 5);
-                    }
+        foreach ($grouped as $tanggal => $dateAbsensis) {
+            $byKelas = $dateAbsensis->groupBy(function ($item) {
+                return $item->siswa->kelas_id;
+            });
 
-                    $html .= '<tr>';
-                    $html .= '<td class="text-center">' . $no++ . '</td>';
-                    $html .= '<td>' . e($absensi->siswa->nis ?? '-') . '</td>';
-                    $html .= '<td>' . e($absensi->siswa->nama ?? '-') . '</td>';
-                    $html .= '<td class="text-center">' . e($absensi->tanggal) . '</td>';
-                    $html .= '<td class="text-center">' . e($absensi->jam_ke) . '</td>';
-                    $html .= '<td class="text-center">' . e($waktu) . '</td>';
-                    $html .= '<td class="text-center">' . e(ucfirst($absensi->status)) . '</td>';
-                    $html .= '<td>' . e($absensi->keterangan ?? '-') . '</td>';
-                    $html .= '</tr>';
+            foreach ($byKelas as $kelasId => $kelasAbsensis) {
+                $kelas = $kelasList->firstWhere('id', $kelasId);
+                if (! $kelas) {
+                    continue;
                 }
 
-                // Summary row
-                $totalHadir = $absensis->where('status', 'hadir')->count();
-                $totalSakit = $absensis->where('status', 'sakit')->count();
-                $totalIzin = $absensis->where('status', 'izin')->count();
-                $totalAlpha = $absensis->where('status', 'alpha')->count();
-                $totalDispensasi = $absensis->where('status', 'dispensasi')->count();
+                $fullKelasName = $kelas->full_nama_kelas ?: $kelas->nama_kelas;
 
-                $html .= '<tr class="summary-row">';
-                $html .= '<td colspan="7" style="text-align:right;"><strong>Total</strong></td>';
-                $html .= '<td><strong>' . $absensis->count() . ' entri</strong></td>';
-                $html .= '</tr>';
-                $html .= '<tr class="summary-row">';
-                $html .= '<td colspan="7" style="text-align:right;">Hadir / Sakit / Izin / Alpha / Dispensasi</td>';
-                $html .= '<td>' . $totalHadir . ' / ' . $totalSakit . ' / ' . $totalIzin . ' / ' . $totalAlpha . ' / ' . $totalDispensasi . '</td>';
-                $html .= '</tr>';
+                // Group by mapel
+                $byMapel = $kelasAbsensis->groupBy('mapel_id');
+
+                foreach ($byMapel as $mapelId => $mapelAbsensis) {
+                    $mapel = $mapels->firstWhere('id', $mapelId);
+                    if (! $mapel) {
+                        continue;
+                    }
+
+                    // Determine day of week for jam_ke lookup
+                    $dayName = strtolower(\Carbon\Carbon::parse($tanggal)->format('l'));
+                    $dayMap = [
+                        'monday' => 'senin',
+                        'tuesday' => 'selasa',
+                        'wednesday' => 'rabu',
+                        'thursday' => 'kamis',
+                        'friday' => 'jumat',
+                        'saturday' => 'sabtu',
+                        'sunday' => 'minggu',
+                    ];
+                    $hari = $dayMap[$dayName] ?? $dayName;
+                    $durasiHari = $durasi->get($hari, collect());
+
+                    $formattedDate = \Carbon\Carbon::parse($tanggal)->format('d-m-Y');
+
+                    $html .= '<table>';
+                    $html .= '<tr class="title-row"><td colspan="8">' . e($fullKelasName) . ' - ' . e($formattedDate) . ' (' . e($mapel->nama_mapel) . ')' . '</td></tr>';
+                    $html .= '<thead><tr>';
+                    $html .= '<th style="width:35px">No</th>';
+                    $html .= '<th style="width:85px">NIS</th>';
+                    $html .= '<th style="min-width:180px">Nama Siswa</th>';
+                    $html .= '<th style="width:100px">Jam Ke</th>';
+                    $html .= '<th style="width:120px">Waktu</th>';
+                    $html .= '<th style="width:85px">Status</th>';
+                    $html .= '<th style="min-width:150px">Keterangan</th>';
+                    $html .= '</tr></thead><tbody>';
+
+                    if ($mapelAbsensis->isEmpty()) {
+                        $html .= '<tr><td colspan="7" style="text-align:center; color:#888;">Belum ada data absensi.</td></tr>';
+                    } else {
+                        $no = 1;
+                        foreach ($mapelAbsensis as $absensi) {
+                            // Look up jam_ke time from durasi table
+                            $jamLabel = $absensi->jam_ke;
+                            $waktu = '';
+                            $durasiRecord = $durasiHari->firstWhere('jam_ke', $absensi->jam_ke);
+                            if ($durasiRecord) {
+                                $waktu = substr($durasiRecord->waktu_mulai, 0, 5) . ' - ' . substr($durasiRecord->waktu_selesai, 0, 5);
+                                if ($durasiRecord->nama) {
+                                    $jamLabel = $durasiRecord->nama;
+                                }
+                            } elseif ($absensi->waktu_mulai && $absensi->waktu_selesai) {
+                                $waktu = substr($absensi->waktu_mulai, 0, 5) . ' - ' . substr($absensi->waktu_selesai, 0, 5);
+                            } elseif ($absensi->waktu_mulai) {
+                                $waktu = substr($absensi->waktu_mulai, 0, 5);
+                            }
+
+                            $html .= '<tr>';
+                            $html .= '<td class="text-center">' . $no++ . '</td>';
+                            $html .= '<td>' . e($absensi->siswa->nis ?? '-') . '</td>';
+                            $html .= '<td>' . e($absensi->siswa->nama ?? '-') . '</td>';
+                            $html .= '<td class="text-center">' . e($jamLabel) . '</td>';
+                            $html .= '<td class="text-center">' . e($waktu) . '</td>';
+                            $html .= '<td class="text-center">' . e(ucfirst($absensi->status)) . '</td>';
+                            $html .= '<td>' . e($absensi->keterangan ?? '-') . '</td>';
+                            $html .= '</tr>';
+                        }
+
+                        $totalHadir = $mapelAbsensis->where('status', 'hadir')->count();
+                        $totalSakit = $mapelAbsensis->where('status', 'sakit')->count();
+                        $totalIzin = $mapelAbsensis->where('status', 'izin')->count();
+                        $totalAlpha = $mapelAbsensis->where('status', 'alpha')->count();
+                        $totalDispensasi = $mapelAbsensis->where('status', 'dispensasi')->count();
+
+                        $html .= '<tr class="summary-row">';
+                        $html .= '<td colspan="6" style="text-align:right;"><strong>Total</strong></td>';
+                        $html .= '<td><strong>' . $mapelAbsensis->count() . ' entri</strong></td>';
+                        $html .= '</tr>';
+                        $html .= '<tr class="summary-row">';
+                        $html .= '<td colspan="6" style="text-align:right;">Hadir / Sakit / Izin / Alpha / Dispensasi</td>';
+                        $html .= '<td>' . $totalHadir . ' / ' . $totalSakit . ' / ' . $totalIzin . ' / ' . $totalAlpha . ' / ' . $totalDispensasi . '</td>';
+                        $html .= '</tr>';
+                    }
+
+                    $html .= '</tbody></table>';
+                }
             }
-
-            $html .= '</tbody></table>';
-            $html .= '<br/>';
         }
 
         $html .= '</body></html>';

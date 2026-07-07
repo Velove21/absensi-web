@@ -56,7 +56,7 @@ export default function Login({ status }: Props) {
                                 {loginAs === 'pegawai' ? (
                                     <>
                                         <div className="grid gap-2">
-                                            <Label htmlFor="login">Username / NIP</Label>
+                                            <Label htmlFor="login">NIP</Label>
                                             <Input
                                                 id="login"
                                                 type="text"
@@ -65,7 +65,9 @@ export default function Login({ status }: Props) {
                                                 autoFocus
                                                 tabIndex={1}
                                                 autoComplete="username"
-                                                placeholder="Masukkan Username / NIP"
+                                                placeholder="Masukkan NIP"
+                                                pattern="^\d{18}$"
+                                                title="Harus 18 digit angka"
                                                 className="h-11 bg-muted/30"
                                             />
                                             <InputError message={errors.login} />

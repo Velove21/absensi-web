@@ -59,7 +59,7 @@ export default function SiswaIndex({
     const [deletingSiswaId, setDeletingSiswaId] = useState<number | null>(null);
     const [resettingPasswordSiswaId, setResettingPasswordSiswaId] = useState<number | null>(null);
     const [search, setSearch] = useState('');
-    const searchTimeout = useRef<ReturnType<typeof setTimeout>>();
+    const searchTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         nis: '',

@@ -59,7 +59,7 @@ export default function SiswaIndex({
     const [deletingSiswaId, setDeletingSiswaId] = useState<number | null>(null);
     const [resettingPasswordSiswaId, setResettingPasswordSiswaId] = useState<number | null>(null);
     const [search, setSearch] = useState('');
-    const searchTimeout = useRef<ReturnType<typeof setTimeout>>();
+    const searchTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         nis: '',
@@ -142,7 +142,7 @@ export default function SiswaIndex({
         router.post(`/admin/siswa/${resettingPasswordSiswaId}/reset-password`, {}, {
             preserveScroll: true,
             onSuccess: () => {
-                toast.success('Password siswa berhasil direset ke default (password1)');
+                toast.success('Password siswa berhasil direset ke default (password)');
                 setResettingPasswordSiswaId(null);
             },
             onError: () => setResettingPasswordSiswaId(null),
@@ -436,7 +436,7 @@ export default function SiswaIndex({
                     <AlertDialogHeader>
                         <AlertDialogTitle>Konfirmasi Reset Password</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Password siswa ini akan direset ke <strong>password1</strong>. Siswa wajib mengganti password setelah login berikutnya.
+                            Password siswa ini akan direset ke <strong>password</strong>. Siswa wajib mengganti password setelah login berikutnya.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

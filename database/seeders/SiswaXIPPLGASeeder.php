@@ -70,6 +70,7 @@ class SiswaXIPPLGASeeder extends Seeder
                     'email' => strtolower(str_replace([' ', '.', '-'], '', $nama)) . '@siswa.com',
                     'password' => Hash::make('password'),
                     'role' => 'siswa',
+                    'password_default' => true,
                 ]
             );
 

@@ -49,16 +49,15 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::createUsersUsing(CreateNewUser::class);
 
         Fortify::authenticateUsing(function (Request $request) {
-            $user = User::where(function ($query) use ($request) {
-                $query->where('email', $request->login)
-                    ->orWhere('username', $request->login);
-            });
+            $role = $request->input('role');
+            $login = $request->login;
 
-            if ($request->has('role')) {
-                $user->where('role', $request->role);
-            }
-
-            $user = $user->first();
+            $user = match ($role) {
+                'admin' => User::where('email', $login)->first(),
+                'guru' => User::whereHas('guru', fn ($q) => $q->where('nip', $login))->first(),
+                'siswa' => User::whereHas('siswa', fn ($q) => $q->where('nis', $login))->first(),
+                default => null,
+            };
 
             if ($user && Hash::check($request->password, $user->password)) {
                 return $user;

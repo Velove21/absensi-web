@@ -82,7 +82,7 @@ export default function Welcome() {
                         {...store.form()}
                         resetOnSuccess={['password']}
                     >
-                        {({ processing, errors, setData }) => (
+                        {({ processing, errors }) => (
                             <div className="grid gap-4">
                                 <input type="hidden" name="role" value={activeRole} />
 
@@ -92,19 +92,19 @@ export default function Welcome() {
                                         htmlFor="login"
                                         className="text-sm text-blue-100/90 font-medium"
                                     >
-                                        {isSiswa ? 'Nomor Induk Siswa (NIS)' : isAdmin ? 'Username' : 'NIP'}
+                                        {isSiswa ? 'Nomor Induk Siswa (NIS)' : isAdmin ? 'Email' : 'NIP'}
                                     </Label>
                                     <Input
                                         id="login"
-                                        type="text"
+                                        type={isAdmin ? 'email' : 'text'}
                                         name="login"
                                         required
                                         autoFocus
                                         tabIndex={1}
-                                        autoComplete="username"
-                                        placeholder={isSiswa ? 'Masukkan NIS Anda' : isAdmin ? 'Masukkan Username' : 'Masukkan NIP'}
-                                        pattern={isSiswa ? '^\d{2}\.\d{4}$' : isAdmin ? '^.{19}$' : '^\d{18}$'}
-                                        title={isSiswa ? 'Format: xx.xxxx (2 angka, titik, 4 angka)' : isAdmin ? 'Harus 19 karakter' : 'Harus 18 digit angka'}
+                                        autoComplete={isAdmin ? 'email' : 'username'}
+                                        placeholder={isSiswa ? 'Masukkan NIS Anda' : isAdmin ? 'Masukkan Email' : 'Masukkan NIP'}
+                                        pattern={isSiswa ? '^\d{2}\.\d{4}$' : isAdmin ? undefined : '^\d{18}$'}
+                                        title={isSiswa ? 'Format: xx.xxxx (2 angka, titik, 4 angka)' : isAdmin ? undefined : 'Harus 18 digit angka'}
                                         className="h-11 border-white/20 bg-white/10 text-white placeholder:text-blue-200/40 focus:border-[#0ea5e9] focus:ring-[#0ea5e9]/20"
                                     />
                                     <InputError message={errors.login} />

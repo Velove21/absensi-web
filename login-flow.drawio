@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="drawio" version="26.0.0">
+  <diagram name="Login Flow">
+    <mxGraphModel>
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ===== LAYER: CLIENT (Browser) ===== -->
+        <mxCell id="layer-client" value="CLIENT (Browser)" style="swimlane;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="400" height="300" as="geometry" />
+        </mxCell>
+
+        <!-- User Action: Akses Halaman -->
+        <mxCell id="c1" value="User akses&#xa;/ atau /auth/login" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="layer-client">
+          <mxGeometry x="120" y="60" width="160" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Pilih Role -->
+        <mxCell id="c2" value="Pilih Role&#xa;(Admin/Guru/Siswa)" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="layer-client">
+          <mxGeometry x="130" y="150" width="140" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Form Login -->
+        <mxCell id="c3" value="Isi form login:&#xa;login (NIP/NIS/username)&#xa;+ password" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="layer-client">
+          <mxGeometry x="120" y="255" width="160" height="65" as="geometry" />
+        </mxCell>
+
+        <!-- ===== LAYER: FORTIFY (Server) ===== -->
+        <mxCell id="layer-fortify" value="LARAVEL FORTIFY (Server)" style="swimlane;startSize=30;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="40" width="400" height="550" as="geometry" />
+        </mxCell>
+
+        <!-- 1. Validasi LoginRequest -->
+        <mxCell id="f1" value="1. LoginRequest&#xa;(custom validation rules)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="layer-fortify">
+          <mxGeometry x="100" y="60" width="200" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Decision: Valid? -->
+        <mxCell id="f1d" value="Valid?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="layer-fortify">
+          <mxGeometry x="130" y="155" width="140" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- 2. Rate Limiter -->
+        <mxCell id="f2" value="2. Rate Limiter&#xa;(5/menit per user+IP)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="layer-fortify">
+          <mxGeometry x="100" y="265" width="200" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- 3. authenticateUsing -->
+        <mxCell id="f3" value="3. authenticateUsing&#xa;Cari user by email/username&#xa;+ filter role + Hash::check" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="layer-fortify">
+          <mxGeometry x="100" y="360" width="200" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Decision: Auth success? -->
+        <mxCell id="f3d" value="Login&#xa;berhasil?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="layer-fortify">
+          <mxGeometry x="130" y="480" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ===== LAYER: POST-LOGIN ===== -->
+        <mxCell id="layer-post" value="POST-LOGIN" style="swimlane;startSize=30;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="40" width="360" height="400" as="geometry" />
+        </mxCell>
+
+        <!-- Redirect error -->
+        <mxCell id="p0" value="Redirect back&#xa;+ error message" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="layer-post">
+          <mxGeometry x="80" y="50" width="160" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- CheckPasswordStatus -->
+        <mxCell id="p1" value="CheckPasswordStatus&#xa;middleware:&#xa;password_default == true?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="layer-post">
+          <mxGeometry x="80" y="145" width="160" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Force change password -->
+        <mxCell id="p2" value="Redirect ke&#xa;/password/change" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="layer-post">
+          <mxGeometry x="80" y="250" width="160" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- LoginResponse by role -->
+        <mxCell id="p3" value="LoginResponse&#xa;(redirect by role):&#xa;admin &rarr; admin.dashboard&#xa;guru &rarr; guru.absensi&#xa;siswa &rarr; siswa.dashboard" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="layer-post">
+          <mxGeometry x="70" y="335" width="180" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ===== EDGES: Client layer ===== -->
+        <mxCell id="e-c1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;exitX=0.5;exitY=1;" edge="1" parent="layer-client" source="c1" target="c2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-c2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;exitX=0.5;exitY=1;" edge="1" parent="layer-client" source="c2" target="c3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ===== EDGES: Client → Fortify ===== -->
+        <mxCell id="e-post" value="POST /login&#xa;(Inertia Form)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="c3" target="f1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ===== EDGES: Fortify layer ===== -->
+        <mxCell id="e-f1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="layer-fortify" source="f1" target="f1d">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e-f1y" value="Ya (lanjut)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="layer-fortify" source="f1d" target="f2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-f1n" value="Tidak" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;exitX=1;exitY=0.5;" edge="1" parent="layer-fortify" source="f1d" target="p0">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e-f2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="layer-fortify" source="f2" target="f3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e-f3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="layer-fortify" source="f3" target="f3d">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ===== EDGES: Fortify → Post-login ===== -->
+        <mxCell id="e-f3y" value="Ya" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="f3d" target="p1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-f3n" value="Tidak" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;exitX=0;exitY=0.3;" edge="1" parent="layer-fortify" source="f3d" target="p0">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="80" y="460" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ===== EDGES: Post-login ===== -->
+        <mxCell id="e-p1y" value="Ya (default)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="layer-post" source="p1" target="p2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-p1n" value="Tidak" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="layer-post" source="p1" target="p3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Redirect back edge -->
+        <mxCell id="e-redirect" value="Redirect back" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;strokeColor=#b85450;dashed=1;exitX=0;exitY=0.5;" edge="1" parent="1" source="p0" target="c3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1080" y="220" />
+              <mxPoint x="440" y="220" />
+            </Array>
+          </mxGeometry>
+        </mxEdge>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

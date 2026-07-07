@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { store } from '@/routes/login';
-import { KeyRound } from 'lucide-react';
+import { BookOpen, GraduationCap, KeyRound } from 'lucide-react';
 import { useState } from 'react';
 
 type Props = {
@@ -17,46 +17,81 @@ export default function Login({ status }: Props) {
     const [loginAs, setLoginAs] = useState<'pegawai' | 'siswa'>('pegawai');
 
     return (
-        <div className="relative w-full max-w-md mx-auto pt-4">
-            <Head title="Login Portal" />
-            
-            <div className="flex flex-col items-center mb-8 px-8">
-                <h1 className="text-2xl font-bold tracking-tight text-foreground text-center">Selamat Datang</h1>
-                <h2 className="text-xl font-bold tracking-tight text-foreground text-center mt-1">Absensi SMKN 2 SURAKARTA</h2>
-                <h3 className="text-lg font-semibold tracking-tight text-foreground text-center mt-1">PORTAL SCOSEN</h3>
-                <p className="text-sm text-muted-foreground mt-2 text-center">Masuk ke dalam absensi SMKN 2 Surakarta</p>
-            </div>
+        <>
+            <Head title="Login Portal - Absensi SMKN 2 SURAKARTA" />
 
-            {/* Toggle Role Login */}
-            <div className="flex bg-muted/50 p-1 rounded-lg mb-6">
-                <button 
-                    type="button"
-                    onClick={() => setLoginAs('pegawai')}
-                    className={`flex-1 py-2 text-sm font-medium rounded-md transition-all duration-200 ${loginAs === 'pegawai' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+            <div className="relative flex min-h-screen flex-col items-center justify-center p-6 font-sans lg:p-8 overflow-hidden">
+                {/* Background */}
+                <div
+                    className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                    style={{ backgroundImage: "url('/images/background.jpg')" }}
                 >
-                    Admin / Guru
-                </button>
-                <button 
-                    type="button"
-                    onClick={() => setLoginAs('siswa')}
-                    className={`flex-1 py-2 text-sm font-medium rounded-md transition-all duration-200 ${loginAs === 'siswa' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-                >
-                    Siswa
-                </button>
-            </div>
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#0a192f]/90 via-[#112240]/85 to-[#1a365d]/90 backdrop-blur-[2px]" />
+                </div>
 
-            <Form
-                {...store.form()}
-                resetOnSuccess={['password']}
-            >
-                {({ processing, errors, setData }) => (
-                    <>
-                        <div className="grid gap-6">
-                            <div className="grid gap-5 animate-in fade-in duration-300">
+                {/* Heading */}
+                <div className="relative z-10 mb-15 text-center space-y-3">
+                    <h1 className="text-4xl font-bold tracking-tight text-white md:text-5xl lg:text-5xl">
+                        Selamat Datang, SCOSEN
+                    </h1>
+                    <p className="text-4xl font-bold tracking-tight text-white md:text-5xl lg:text-5xl">
+                        Silahkan Akses Absensi{' '}
+                        <span className="font-semibold text-[#0ea5e9]">SMKN 2 SURAKARTA</span>
+                    </p>
+                </div>
+
+                {/* Portal Card */}
+                <div className="relative z-10 w-full max-w-sm rounded-2xl border border-white/20 bg-white/10 p-8 shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] backdrop-blur-md">
+                    {/* Card Header */}
+                    <div className="mb-6 text-center">
+                        <h2 className="text-lg font-bold tracking-widest text-white uppercase">
+                            Portal SCOSEN
+                        </h2>
+                        <p className="mt-1 text-xs text-blue-200/70">
+                            Masuk kedalam absensi SMKN 2 Surakarta
+                        </p>
+                    </div>
+
+                    {/* Toggle Role Login */}
+                    <div className="mb-6 flex rounded-xl bg-white/5 p-1 border border-white/10">
+                        <button
+                            type="button"
+                            onClick={() => setLoginAs('pegawai')}
+                            className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-all duration-200 ${
+                                loginAs === 'pegawai'
+                                    ? 'bg-[#0ea5e9] text-white shadow-md'
+                                    : 'text-blue-200/60 hover:text-blue-100'
+                            }`}
+                        >
+                            <BookOpen className="h-3.5 w-3.5" />
+                            Admin / Guru
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setLoginAs('siswa')}
+                            className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-all duration-200 ${
+                                loginAs === 'siswa'
+                                    ? 'bg-[#0ea5e9] text-white shadow-md'
+                                    : 'text-blue-200/60 hover:text-blue-100'
+                            }`}
+                        >
+                            <GraduationCap className="h-3.5 w-3.5" />
+                            Siswa
+                        </button>
+                    </div>
+
+                    <Form
+                        {...store.form()}
+                        resetOnSuccess={['password']}
+                    >
+                        {({ processing, errors }) => (
+                            <div className="grid gap-4">
                                 {loginAs === 'pegawai' ? (
                                     <>
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="login">NIP</Label>
+                                        <div className="grid gap-1.5">
+                                            <Label htmlFor="login" className="text-sm text-blue-100/90 font-medium">
+                                                NIP
+                                            </Label>
                                             <Input
                                                 id="login"
                                                 type="text"
@@ -68,12 +103,14 @@ export default function Login({ status }: Props) {
                                                 placeholder="Masukkan NIP"
                                                 pattern="^\d{18}$"
                                                 title="Harus 18 digit angka"
-                                                className="h-11 bg-muted/30"
+                                                className="h-11 border-white/20 bg-white/10 text-white placeholder:text-blue-200/40 focus:border-[#0ea5e9] focus:ring-[#0ea5e9]/20"
                                             />
                                             <InputError message={errors.login} />
                                         </div>
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="password">Password</Label>
+                                        <div className="grid gap-1.5">
+                                            <Label htmlFor="password" className="text-sm text-blue-100/90 font-medium">
+                                                Password
+                                            </Label>
                                             <PasswordInput
                                                 id="password"
                                                 name="password"
@@ -81,15 +118,17 @@ export default function Login({ status }: Props) {
                                                 tabIndex={2}
                                                 autoComplete="current-password"
                                                 placeholder="Masukkan password"
-                                                className="h-11 bg-muted/30"
+                                                className="h-11 border-white/20 bg-white/10 text-white placeholder:text-blue-200/40 focus:border-[#0ea5e9] focus:ring-[#0ea5e9]/20"
                                             />
                                             <InputError message={errors.password} />
                                         </div>
                                     </>
                                 ) : (
                                     <>
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="login">Nomor Induk Siswa (NIS)</Label>
+                                        <div className="grid gap-1.5">
+                                            <Label htmlFor="login" className="text-sm text-blue-100/90 font-medium">
+                                                Nomor Induk Siswa (NIS)
+                                            </Label>
                                             <Input
                                                 id="login"
                                                 type="text"
@@ -99,12 +138,16 @@ export default function Login({ status }: Props) {
                                                 tabIndex={1}
                                                 autoComplete="username"
                                                 placeholder="Masukkan NIS Anda"
-                                                className="h-11 bg-muted/30"
+                                                pattern="^\d{2}\.\d{4}$"
+                                                title="Format: xx.xxxx (2 angka, titik, 4 angka)"
+                                                className="h-11 border-white/20 bg-white/10 text-white placeholder:text-blue-200/40 focus:border-[#0ea5e9] focus:ring-[#0ea5e9]/20"
                                             />
                                             <InputError message={errors.login} />
                                         </div>
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="password">Password</Label>
+                                        <div className="grid gap-1.5">
+                                            <Label htmlFor="password" className="text-sm text-blue-100/90 font-medium">
+                                                Password
+                                            </Label>
                                             <PasswordInput
                                                 id="password"
                                                 name="password"
@@ -112,42 +155,42 @@ export default function Login({ status }: Props) {
                                                 tabIndex={2}
                                                 autoComplete="current-password"
                                                 placeholder="Masukkan password (default: password1)"
-                                                className="h-11 bg-muted/30"
+                                                className="h-11 border-white/20 bg-white/10 text-white placeholder:text-blue-200/40 focus:border-[#0ea5e9] focus:ring-[#0ea5e9]/20"
                                             />
                                             <InputError message={errors.password} />
-                                            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                                            <p className="text-xs text-blue-200/60 mt-1 flex items-center gap-1">
                                                 <KeyRound className="h-3 w-3" />
                                                 Lupa sandi? Hubungi admin. Setelah login, Anda bisa ubah sandi.
                                             </p>
                                         </div>
                                     </>
                                 )}
+
+                                <Button
+                                    type="submit"
+                                    tabIndex={3}
+                                    disabled={processing}
+                                    data-test="login-button"
+                                    className="mt-2 h-11 w-full bg-gradient-to-r from-[#0ea5e9] to-blue-600 text-base font-semibold text-white shadow-[0_4px_14px_0_rgba(14,165,233,0.4)] transition-all duration-300 hover:from-[#0284c7] hover:to-blue-700 hover:shadow-[0_6px_20px_rgba(14,165,233,0.35)]"
+                                >
+                                    {processing ? (
+                                        <><Spinner className="mr-2" /> Memproses...</>
+                                    ) : (
+                                        'Masuk'
+                                    )}
+                                </Button>
                             </div>
+                        )}
+                    </Form>
 
-                            <Button
-                                type="submit"
-                                className="mt-2 w-full h-11 text-base font-medium"
-                                tabIndex={3}
-                                disabled={processing}
-                                data-test="login-button"
-                            >
-                                {processing ? (
-                                    <><Spinner className="mr-2" /> Memproses...</>
-                                ) : (
-                                    'Masuk'
-                                )}
-                            </Button>
+                    {status && (
+                        <div className="mt-6 text-center text-sm font-medium text-green-600 bg-green-50 dark:bg-green-500/10 p-3 rounded-md border border-green-200 dark:border-green-500/20">
+                            {status}
                         </div>
-                    </>
-                )}
-            </Form>
-
-            {status && (
-                <div className="mt-6 text-center text-sm font-medium text-green-600 bg-green-50 dark:bg-green-500/10 p-3 rounded-md border border-green-200 dark:border-green-500/20">
-                    {status}
+                    )}
                 </div>
-            )}
-        </div>
+            </div>
+        </>
     );
 }
 

@@ -65,8 +65,8 @@ class DashboardController extends Controller
                         'nama' => $absensi->siswa->nama,
                     ],
                     'kelas' => $absensi->siswa->kelas ?
-                        trim($absensi->siswa->kelas->tingkat . ' ' .
-                        ($absensi->siswa->kelas->jurusan ? $absensi->siswa->kelas->jurusan->singkatan : '') . ' ' .
+                        trim($absensi->siswa->kelas->tingkat.' '.
+                        ($absensi->siswa->kelas->jurusan ? $absensi->siswa->kelas->jurusan->singkatan : '').' '.
                         $absensi->siswa->kelas->nama_kelas) : '-',
                     'mapel' => $absensi->mataPelajaran->nama_mapel,
                     'guru' => $absensi->guru ? $absensi->guru->nama : '-',

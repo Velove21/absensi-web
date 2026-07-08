@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder
             SiswaXIPPLGASeeder::class,
             SiswaXIDPIBBSeeder::class,
             SiswaXITMASeeder::class,
+            ScheduleTemplateSeeder::class,
         ]);
     }
 }

@@ -3,12 +3,13 @@
 namespace App\Http\Controllers\Export;
 
 use App\Http\Controllers\Controller;
-use App\Models\Guru;
-use App\Models\MataPelajaran;
 use App\Models\Absensi;
-use App\Models\Siswa;
+use App\Models\Guru;
 use App\Models\Kelas;
-use App\Models\DurasiPembelajaran;
+use App\Models\MataPelajaran;
+use App\Models\Schedule;
+use App\Models\Siswa;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class AttendanceExportController extends Controller
@@ -39,18 +40,41 @@ class AttendanceExportController extends Controller
         $html = $this->generateExcel($guru, $mapels, $kelasIds, $startDate, $endDate);
 
         $mapelNames = $mapels->pluck('nama_mapel')->implode('-');
-        $filename = 'rekap-absensi-' . $guru->nama . '-' . $mapelNames . '.xls';
+        $filename = 'rekap-absensi-'.$guru->nama.'-'.$mapelNames.'.xls';
 
         return response($html)
             ->header('Content-Type', 'application/vnd.ms-excel')
-            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"')
+            ->header('Content-Disposition', 'attachment; filename="'.$filename.'"')
             ->header('Pragma', 'no-cache')
             ->header('Expires', '0');
     }
 
+    private function getScheduleInfo(string $jamKe, $allSchedules): array
+    {
+        if (is_numeric($jamKe)) {
+            $schedule = $allSchedules->firstWhere('urutan', (int) $jamKe);
+            if ($schedule) {
+                return [
+                    'label' => $schedule->nama,
+                    'waktu' => substr($schedule->waktu_mulai, 0, 5).' - '.substr($schedule->waktu_selesai, 0, 5),
+                ];
+            }
+        }
+
+        $schedule = $allSchedules->firstWhere('nama', $jamKe);
+        if ($schedule) {
+            return [
+                'label' => $schedule->nama,
+                'waktu' => substr($schedule->waktu_mulai, 0, 5).' - '.substr($schedule->waktu_selesai, 0, 5),
+            ];
+        }
+
+        return ['label' => $jamKe, 'waktu' => ''];
+    }
+
     private function generateExcel(Guru $guru, $mapels, $kelasIds, $startDate, $endDate): string
     {
-        $durasi = DurasiPembelajaran::all()->groupBy('hari');
+        $allSchedules = Schedule::orderBy('urutan')->get();
 
         $html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
         $html .= '<head><meta charset="UTF-8">';
@@ -68,21 +92,20 @@ class AttendanceExportController extends Controller
         $html .= '</head><body>';
 
         $html .= '<table class="header-info">';
-        $html .= '<tr><td><strong>Nama Guru</strong></td><td>: ' . e($guru->nama) . '</td></tr>';
-        $html .= '<tr><td><strong>NIP</strong></td><td>: ' . e($guru->nip ?? '-') . '</td></tr>';
-        $html .= '<tr><td><strong>Mata Pelajaran</strong></td><td>: ' . e($mapels->pluck('nama_mapel')->implode(', ')) . '</td></tr>';
+        $html .= '<tr><td><strong>Nama Guru</strong></td><td>: '.e($guru->nama).'</td></tr>';
+        $html .= '<tr><td><strong>NIP</strong></td><td>: '.e($guru->nip ?? '-').'</td></tr>';
+        $html .= '<tr><td><strong>Mata Pelajaran</strong></td><td>: '.e($mapels->pluck('nama_mapel')->implode(', ')).'</td></tr>';
         if ($startDate && $endDate) {
-            $html .= '<tr><td><strong>Periode</strong></td><td>: ' . e($startDate) . ' s/d ' . e($endDate) . '</td></tr>';
+            $html .= '<tr><td><strong>Periode</strong></td><td>: '.e($startDate).' s/d '.e($endDate).'</td></tr>';
         } elseif ($startDate) {
-            $html .= '<tr><td><strong>Periode</strong></td><td>: Mulai ' . e($startDate) . '</td></tr>';
+            $html .= '<tr><td><strong>Periode</strong></td><td>: Mulai '.e($startDate).'</td></tr>';
         } elseif ($endDate) {
-            $html .= '<tr><td><strong>Periode</strong></td><td>: Sampai ' . e($endDate) . '</td></tr>';
+            $html .= '<tr><td><strong>Periode</strong></td><td>: Sampai '.e($endDate).'</td></tr>';
         } else {
             $html .= '<tr><td><strong>Periode</strong></td><td>: Semua data</td></tr>';
         }
         $html .= '</table>';
 
-        // Determine which classes to include
         $guruKelasIds = $guru->kelas()->pluck('kelas.id');
         if (! empty($kelasIds)) {
             $guruKelasIds = array_intersect($guruKelasIds->toArray(), $kelasIds);
@@ -94,7 +117,6 @@ class AttendanceExportController extends Controller
             $siswaIdsByKelas[$kelas->id] = Siswa::where('kelas_id', $kelas->id)->orderBy('nama')->get()->keyBy('id');
         }
 
-        // Get all absensi records grouped by date
         $allSiswaIds = collect($siswaIdsByKelas)->flatten(1)->pluck('id');
 
         $absensisQuery = Absensi::with(['siswa.kelas.jurusan', 'siswa.kelas.jenjangKelas'])
@@ -110,7 +132,6 @@ class AttendanceExportController extends Controller
 
         $absensis = $absensisQuery->orderBy('tanggal', 'asc')->orderBy('jam_ke')->get();
 
-        // Group by date, then by kelas
         $grouped = $absensis->groupBy('tanggal');
 
         foreach ($grouped as $tanggal => $dateAbsensis) {
@@ -125,8 +146,6 @@ class AttendanceExportController extends Controller
                 }
 
                 $fullKelasName = $kelas->full_nama_kelas ?: $kelas->nama_kelas;
-
-                // Group by mapel
                 $byMapel = $kelasAbsensis->groupBy('mapel_id');
 
                 foreach ($byMapel as $mapelId => $mapelAbsensis) {
@@ -135,24 +154,10 @@ class AttendanceExportController extends Controller
                         continue;
                     }
 
-                    // Determine day of week for jam_ke lookup
-                    $dayName = strtolower(\Carbon\Carbon::parse($tanggal)->format('l'));
-                    $dayMap = [
-                        'monday' => 'senin',
-                        'tuesday' => 'selasa',
-                        'wednesday' => 'rabu',
-                        'thursday' => 'kamis',
-                        'friday' => 'jumat',
-                        'saturday' => 'sabtu',
-                        'sunday' => 'minggu',
-                    ];
-                    $hari = $dayMap[$dayName] ?? $dayName;
-                    $durasiHari = $durasi->get($hari, collect());
-
-                    $formattedDate = \Carbon\Carbon::parse($tanggal)->format('d-m-Y');
+                    $formattedDate = Carbon::parse($tanggal)->format('d-m-Y');
 
                     $html .= '<table>';
-                    $html .= '<tr class="title-row"><td colspan="8">' . e($fullKelasName) . ' - ' . e($formattedDate) . ' (' . e($mapel->nama_mapel) . ')' . '</td></tr>';
+                    $html .= '<tr class="title-row"><td colspan="7">'.e($fullKelasName).' - '.e($formattedDate).' ('.e($mapel->nama_mapel).')'.'</td></tr>';
                     $html .= '<thead><tr>';
                     $html .= '<th style="width:35px">No</th>';
                     $html .= '<th style="width:85px">NIS</th>';
@@ -168,29 +173,24 @@ class AttendanceExportController extends Controller
                     } else {
                         $no = 1;
                         foreach ($mapelAbsensis as $absensi) {
-                            // Look up jam_ke time from durasi table
-                            $jamLabel = $absensi->jam_ke;
-                            $waktu = '';
-                            $durasiRecord = $durasiHari->firstWhere('jam_ke', $absensi->jam_ke);
-                            if ($durasiRecord) {
-                                $waktu = substr($durasiRecord->waktu_mulai, 0, 5) . ' - ' . substr($durasiRecord->waktu_selesai, 0, 5);
-                                if ($durasiRecord->nama) {
-                                    $jamLabel = $durasiRecord->nama;
-                                }
-                            } elseif ($absensi->waktu_mulai && $absensi->waktu_selesai) {
-                                $waktu = substr($absensi->waktu_mulai, 0, 5) . ' - ' . substr($absensi->waktu_selesai, 0, 5);
-                            } elseif ($absensi->waktu_mulai) {
+                            $scheduleInfo = $this->getScheduleInfo($absensi->jam_ke, $allSchedules);
+                            $jamLabel = $scheduleInfo['label'];
+                            $waktu = $scheduleInfo['waktu'];
+
+                            if (! $waktu && $absensi->waktu_mulai && $absensi->waktu_selesai) {
+                                $waktu = substr($absensi->waktu_mulai, 0, 5).' - '.substr($absensi->waktu_selesai, 0, 5);
+                            } elseif (! $waktu && $absensi->waktu_mulai) {
                                 $waktu = substr($absensi->waktu_mulai, 0, 5);
                             }
 
                             $html .= '<tr>';
-                            $html .= '<td class="text-center">' . $no++ . '</td>';
-                            $html .= '<td>' . e($absensi->siswa->nis ?? '-') . '</td>';
-                            $html .= '<td>' . e($absensi->siswa->nama ?? '-') . '</td>';
-                            $html .= '<td class="text-center">' . e($jamLabel) . '</td>';
-                            $html .= '<td class="text-center">' . e($waktu) . '</td>';
-                            $html .= '<td class="text-center">' . e(ucfirst($absensi->status)) . '</td>';
-                            $html .= '<td>' . e($absensi->keterangan ?? '-') . '</td>';
+                            $html .= '<td class="text-center">'.$no++.'</td>';
+                            $html .= '<td>'.e($absensi->siswa->nis ?? '-').'</td>';
+                            $html .= '<td>'.e($absensi->siswa->nama ?? '-').'</td>';
+                            $html .= '<td class="text-center">'.e($jamLabel).'</td>';
+                            $html .= '<td class="text-center">'.e($waktu).'</td>';
+                            $html .= '<td class="text-center">'.e(ucfirst($absensi->status)).'</td>';
+                            $html .= '<td>'.e($absensi->keterangan ?? '-').'</td>';
                             $html .= '</tr>';
                         }
 
@@ -202,11 +202,11 @@ class AttendanceExportController extends Controller
 
                         $html .= '<tr class="summary-row">';
                         $html .= '<td colspan="6" style="text-align:right;"><strong>Total</strong></td>';
-                        $html .= '<td><strong>' . $mapelAbsensis->count() . ' entri</strong></td>';
+                        $html .= '<td><strong>'.$mapelAbsensis->count().' entri</strong></td>';
                         $html .= '</tr>';
                         $html .= '<tr class="summary-row">';
                         $html .= '<td colspan="6" style="text-align:right;">Hadir / Sakit / Izin / Alpha / Dispensasi</td>';
-                        $html .= '<td>' . $totalHadir . ' / ' . $totalSakit . ' / ' . $totalIzin . ' / ' . $totalAlpha . ' / ' . $totalDispensasi . '</td>';
+                        $html .= '<td>'.$totalHadir.' / '.$totalSakit.' / '.$totalIzin.' / '.$totalAlpha.' / '.$totalDispensasi.'</td>';
                         $html .= '</tr>';
                     }
 

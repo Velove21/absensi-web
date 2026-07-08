@@ -46,4 +46,9 @@ class Absensi extends Model
     {
         return $this->belongsTo(MataPelajaran::class, 'mapel_id');
     }
+
+    public function schedule(): BelongsTo
+    {
+        return $this->belongsTo(Schedule::class);
+    }
 }

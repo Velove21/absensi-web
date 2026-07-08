@@ -12,10 +12,11 @@ class SiswaXIPPLGASeeder extends Seeder
 {
     public function run(): void
     {
-        $kelas = Kelas::all()->filter(fn($k) => $k->full_nama_kelas == 'XI PPLG A')->first();
+        $kelas = Kelas::all()->filter(fn ($k) => $k->full_nama_kelas == 'XI PPLG A')->first();
 
-        if (!$kelas) {
+        if (! $kelas) {
             $this->command->error('Kelas XI PPLG A tidak ditemukan.');
+
             return;
         }
 
@@ -67,7 +68,7 @@ class SiswaXIPPLGASeeder extends Seeder
                 ['username' => $nis],
                 [
                     'name' => $nama,
-                    'email' => strtolower(str_replace([' ', '.', '-'], '', $nama)) . '@siswa.com',
+                    'email' => strtolower(str_replace([' ', '.', '-'], '', $nama)).'@siswa.com',
                     'password' => Hash::make('password'),
                     'role' => 'siswa',
                 ]

@@ -66,13 +66,12 @@ interface Siswa {
     } | null;
 }
 
-interface DurasiPembelajaran {
+interface Schedule {
     id: number;
-    hari: string;
-    jam_ke: number;
-    nama: string | null;
+    nama: string;
     waktu_mulai: string;
     waktu_selesai: string;
+    urutan: number;
 }
 
 interface Props {
@@ -87,7 +86,7 @@ interface Props {
         tanggal: string;
     };
     siswas: Siswa[];
-    durasis: DurasiPembelajaran[];
+    schedules: Schedule[];
 }
 
 export default function GuruAbsensiIndex({
@@ -95,12 +94,11 @@ export default function GuruAbsensiIndex({
     mataPelajarans = [],
     filters,
     siswas = [],
-    durasis = [],
+    schedules = [],
 }: Props) {
     const [keterangans, setKeterangans] = useState<Record<number, string>>({});
     const [deletingAbsensiId, setDeletingAbsensiId] = useState<number | null>(null);
 
-    // Photo proof modal state
     const [showBuktiModal, setShowBuktiModal] = useState(false);
     const [pendingSiswaId, setPendingSiswaId] = useState<number | null>(null);
     const [pendingStatus, setPendingStatus] = useState<string | null>(null);
@@ -108,7 +106,6 @@ export default function GuruAbsensiIndex({
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [buktiLoading, setBuktiLoading] = useState(false);
 
-    // Form inputs for current session
     const [jamKeInput, setJamKeInput] = useState(filters.jam_ke || '');
     const [waktuMulaiInput, setWaktuMulaiInput] = useState(filters.waktu_mulai || '');
     const [waktuSelesaiInput, setWaktuSelesaiInput] = useState(filters.waktu_selesai || '');
@@ -117,7 +114,7 @@ export default function GuruAbsensiIndex({
     useEffect(() => {
         const initialKeterangans: Record<number, string> = {};
         if (siswas && Array.isArray(siswas)) {
-            siswas.forEach(s => {
+            siswas.forEach((s) => {
                 if (s.absensi?.keterangan) {
                     initialKeterangans[s.id] = s.absensi.keterangan;
                 }
@@ -126,84 +123,59 @@ export default function GuruAbsensiIndex({
         setKeterangans(initialKeterangans);
     }, [siswas]);
 
-    // Keep inputs synced when filters change
     useEffect(() => {
         setJamKeInput(filters.jam_ke || '');
         setWaktuMulaiInput(filters.waktu_mulai || '');
         setWaktuSelesaiInput(filters.waktu_selesai || '');
     }, [filters.jam_ke, filters.waktu_mulai, filters.waktu_selesai]);
 
-    // Auto-fill waktu_mulai and waktu_selesai when jamKeInput or tanggal changes
     useEffect(() => {
-        if (!jamKeInput || !filters.tanggal || !durasis.length) return;
-        
-        const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-        const dateObj = new Date(filters.tanggal);
-        const dayName = days[dateObj.getDay()];
-        
-        const relevantDurasis = durasis.filter(d => d.hari.toLowerCase() === dayName.toLowerCase());
-        
-        if (relevantDurasis.length === 0) return;
+        if (!jamKeInput || !filters.tanggal || !schedules.length) return;
 
-        // Handle "Upacara" special case
-        if (jamKeInput.toLowerCase() === 'upacara') {
-            const upacara = relevantDurasis.find(d => d.nama?.toLowerCase() === 'upacara');
+        const normalizedInput = jamKeInput.toLowerCase();
+
+        if (normalizedInput === 'upacara') {
+            const upacara = schedules.find(s => s.nama.toLowerCase() === 'upacara');
             if (upacara) {
-                setWaktuMulaiInput(upacara.waktu_mulai.substring(0, 5));
-                setWaktuSelesaiInput(upacara.waktu_selesai.substring(0, 5));
+                setWaktuMulaiInput(upacara.waktu_mulai);
+                setWaktuSelesaiInput(upacara.waktu_selesai);
             }
             return;
         }
 
-        // Parse jamKeInput (e.g., "1", "1-2", "3-5", "1,2")
         const jamParts = jamKeInput.match(/\d+/g);
         if (!jamParts || jamParts.length === 0) return;
-        
+
         const jams = jamParts.map(Number);
         const minJam = Math.min(...jams);
         const maxJam = Math.max(...jams);
-        
-        const startDurasi = relevantDurasis.find(d => d.jam_ke === minJam);
-        const endDurasi = relevantDurasis.find(d => d.jam_ke === maxJam);
-        
-        if (startDurasi && startDurasi.waktu_mulai) {
-            const startTime = startDurasi.waktu_mulai.substring(0, 5);
-            setWaktuMulaiInput(startTime);
-        }
-        
-        if (endDurasi && endDurasi.waktu_selesai) {
-            const endTime = endDurasi.waktu_selesai.substring(0, 5);
-            setWaktuSelesaiInput(endTime);
-        }
-        
-    }, [jamKeInput, filters.tanggal, durasis]);
 
-    // Compute dynamic recommendations when user types a single number
+        const startSchedule = schedules.find(s => s.urutan === minJam);
+        const endSchedule = schedules.find(s => s.urutan === maxJam);
+
+        if (startSchedule) {
+            setWaktuMulaiInput(startSchedule.waktu_mulai);
+        }
+
+        if (endSchedule) {
+            setWaktuSelesaiInput(endSchedule.waktu_selesai);
+        }
+    }, [jamKeInput, filters.tanggal, schedules]);
+
     useEffect(() => {
-        if (!jamKeInput || !filters.tanggal || !durasis.length) {
+        if (!jamKeInput || !filters.tanggal || !schedules.length) {
             setRecommendations([]);
             return;
         }
 
-        const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-        const dateObj = new Date(filters.tanggal);
-        const dayName = days[dateObj.getDay()];
-
-        const relevantDurasis = durasis.filter(d => d.hari.toLowerCase() === dayName.toLowerCase());
-        if (relevantDurasis.length === 0) {
-            setRecommendations([]);
-            return;
-        }
-
-        const maxJamKe = Math.max(...relevantDurasis.map(d => d.jam_ke));
         const trimmed = jamKeInput.trim();
+        const maxUrutan = Math.max(...schedules.map(s => s.urutan));
 
-        // Only show recommendations if input is a single number
         if (/^\d+$/.test(trimmed)) {
             const num = parseInt(trimmed, 10);
-            if (num >= 1 && num < maxJamKe) {
+            if (num >= 1 && num < maxUrutan) {
                 const recs: string[] = [];
-                for (let i = num + 1; i <= maxJamKe; i++) {
+                for (let i = num + 1; i <= maxUrutan; i++) {
                     recs.push(`${num}-${i}`);
                 }
                 setRecommendations(recs);
@@ -213,12 +185,11 @@ export default function GuruAbsensiIndex({
         } else {
             setRecommendations([]);
         }
-    }, [jamKeInput, filters.tanggal, durasis]);
+    }, [jamKeInput, filters.tanggal, schedules]);
 
     const handleFilterChange = (key: keyof Props['filters'], value: string) => {
         const newFilters = { ...filters, [key]: value };
-        
-        // If changing kelas, reset mapel and jam
+
         if (key === 'kelas_id') {
             newFilters.mapel_id = '';
             newFilters.jam_ke = '';
@@ -271,7 +242,6 @@ export default function GuruAbsensiIndex({
             return;
         }
 
-        // Require photo proof for sakit, izin, dispensasi
         if (['sakit', 'izin', 'dispensasi'].includes(status)) {
             setPendingSiswaId(siswaId);
             setPendingStatus(status);
@@ -398,14 +368,14 @@ export default function GuruAbsensiIndex({
                     setDeletingAbsensiId(null);
                 },
                 onError: () => setDeletingAbsensiId(null),
-            }
+            },
         );
     };
 
     const formatKelasName = (k: Kelas) => {
         if (k.full_nama_kelas) return k.full_nama_kelas;
-        
-        const parts = [];
+
+        const parts: string[] = [];
         if (k.tingkat) parts.push(k.tingkat);
         if (k.jurusan?.singkatan) parts.push(k.jurusan.singkatan);
         parts.push(k.nama_kelas);
@@ -426,7 +396,6 @@ export default function GuruAbsensiIndex({
                 </div>
 
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                    {/* Panel Konfigurasi Presensi */}
                     <div className="col-span-1 space-y-6">
                         <div className="rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border">
                             <div className="mb-4">
@@ -495,6 +464,11 @@ export default function GuruAbsensiIndex({
                                             )
                                         }
                                     />
+                                    <p className="text-[10px] text-muted-foreground">
+                                        {schedules.length > 0
+                                            ? `Jadwal aktif: ${schedules.map(s => s.nama).join(', ')}`
+                                            : 'Tidak ada jadwal untuk tanggal ini.'}
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -503,14 +477,14 @@ export default function GuruAbsensiIndex({
                             <div className="rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border animate-in fade-in duration-200">
                                 <div className="mb-4">
                                     <h2 className="text-lg font-semibold flex items-center gap-2">
-                                        <Clock3 className="h-4 w-4 text-primary" /> Durasi Pembelajaran
+                                        <Clock3 className="h-4 w-4 text-primary" /> Jam Pembelajaran
                                     </h2>
-                                    <p className="text-xs text-muted-foreground">Tentukan jam ke dan durasi waktu KBM.</p>
+                                    <p className="text-xs text-muted-foreground">Pilih jam pelajaran sesuai jadwal yang aktif.</p>
                                 </div>
 
                                 <div className="space-y-4">
                                     <div className="space-y-2">
-                                        <label className="text-sm font-medium">Jam Pembelajaran (Jam Ke-)</label>
+                                        <label className="text-sm font-medium">Jam Pembelajaran</label>
                                         <Input
                                             value={jamKeInput}
                                             onChange={(e) => setJamKeInput(e.target.value)}
@@ -533,15 +507,17 @@ export default function GuruAbsensiIndex({
                                                 ))}
                                             </div>
                                         )}
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            className="h-6 text-[10px] px-2 py-0 border-amber-400 text-amber-700 hover:bg-amber-50 dark:border-amber-600 dark:text-amber-400"
-                                            onClick={() => setJamKeInput('Upacara')}
-                                        >
-                                            Upacara
-                                        </Button>
+                                        {schedules.some(s => s.nama.toLowerCase() === 'upacara') && (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-6 text-[10px] px-2 py-0 border-amber-400 text-amber-700 hover:bg-amber-50 dark:border-amber-600 dark:text-amber-400"
+                                                onClick={() => setJamKeInput('Upacara')}
+                                            >
+                                                Upacara
+                                            </Button>
+                                        )}
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-2">
@@ -565,7 +541,7 @@ export default function GuruAbsensiIndex({
                                         </div>
                                     </div>
 
-                                    <Button 
+                                    <Button
                                         onClick={applyTeachingDetails}
                                         className="w-full mt-2"
                                     >
@@ -576,7 +552,6 @@ export default function GuruAbsensiIndex({
                         )}
                     </div>
 
-                    {/* Data Table */}
                     <div className="col-span-1 lg:col-span-2">
                         {filters.kelas_id && filters.mapel_id && filters.jam_ke ? (
                             <div className="rounded-xl border border-sidebar-border/70 bg-card shadow-sm dark:border-sidebar-border overflow-hidden flex flex-col animate-in fade-in duration-200">
@@ -586,7 +561,7 @@ export default function GuruAbsensiIndex({
                                             Daftar Siswa
                                         </h2>
                                         <p className="text-xs text-muted-foreground mt-0.5">
-                                            Marking status saves automatically. You can add notes/reasons for status other than present.
+                                            Klik status untuk menandai kehadiran.
                                         </p>
                                     </div>
                                     <div className="flex flex-col text-xs text-muted-foreground md:text-right font-medium shrink-0 gap-1 bg-muted/40 p-3 rounded-lg border border-sidebar-border/70">
@@ -594,7 +569,7 @@ export default function GuruAbsensiIndex({
                                             <Calendar className="h-3.5 w-3.5 text-primary" /> {filters.tanggal}
                                         </div>
                                         <div className="flex items-center gap-1.5">
-                                            <Clock3 className="h-3.5 w-3.5 text-primary" /> Jam Ke-{filters.jam_ke}
+                                            <Clock3 className="h-3.5 w-3.5 text-primary" /> Jam {filters.jam_ke}
                                             {filters.waktu_mulai && ` (${filters.waktu_mulai} - ${filters.waktu_selesai || 'Selesai'})`}
                                         </div>
                                     </div>

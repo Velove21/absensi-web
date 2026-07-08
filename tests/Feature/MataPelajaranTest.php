@@ -1,9 +1,7 @@
 <?php
 
-use App\Models\User;
 use App\Models\Jurusan;
-use App\Models\Kelas;
-use App\Models\MataPelajaran;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -21,7 +19,7 @@ test('admin can view mata pelajaran list', function () {
         'role' => 'admin',
         'username' => 'admin',
     ]);
-    
+
     $this->actingAs($admin);
 
     $response = $this->get(route('admin.matapelajaran.index'));

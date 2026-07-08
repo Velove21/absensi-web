@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Guru;
 
 use App\Http\Controllers\Controller;
 use App\Models\Absensi;
-use App\Models\DurasiPembelajaran;
 use App\Models\Kelas;
+use App\Models\ScheduleTemplate;
 use App\Models\Siswa;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -25,12 +25,12 @@ class AbsensiController extends Controller
 
         $siswas = [];
         $mataPelajarans = [];
+        $schedules = collect();
 
         if ($selectedKelasId) {
             $selectedKelas = Kelas::findOrFail($selectedKelasId);
             $guru = $request->user()->guru;
 
-            // Fetch subjects explicitly assigned to the guru in the admin section
             $mataPelajarans = $guru ? $guru->mataPelajarans()->with('kategoriPembelajaran')->get() : collect([]);
 
             if ($selectedMapelId && $jamKe) {
@@ -60,12 +60,15 @@ class AbsensiController extends Controller
                         ];
                     });
             }
+
+            $template = ScheduleTemplate::forDate($tanggal);
+            $schedules = $template ? $template->schedules : collect();
         }
 
         return Inertia::render('guru/absensi/index', [
             'kelasList' => $kelas,
             'mataPelajarans' => $mataPelajarans,
-            'durasis' => DurasiPembelajaran::all(),
+            'schedules' => $schedules,
             'filters' => [
                 'kelas_id' => $selectedKelasId,
                 'mapel_id' => $selectedMapelId,
@@ -92,7 +95,6 @@ class AbsensiController extends Controller
             'bukti' => 'nullable|file|mimes:jpg,jpeg,png,webp|max:2048',
         ];
 
-        // Check if any record exists for this student/subject/period (update mode from any teacher)
         $existingAny = Absensi::where([
             'siswa_id' => $request->siswa_id,
             'mapel_id' => $request->mapel_id,
@@ -111,7 +113,6 @@ class AbsensiController extends Controller
             return back()->with('error', 'Profil Guru tidak ditemukan.');
         }
 
-        // Check if current teacher has an existing dispensasi record for this student
         $myDispensasi = Absensi::where([
             'siswa_id' => $validated['siswa_id'],
             'mapel_id' => $validated['mapel_id'],
@@ -133,12 +134,10 @@ class AbsensiController extends Controller
             $data['bukti'] = $request->file('bukti')->store('bukti', 'public');
         }
 
-        // Preserve own dispensasi record when status changes away from dispensasi
         if ($myDispensasi && $validated['status'] !== 'dispensasi') {
-            $myDispensasi->delete(); // soft delete preserves the dispen record
+            $myDispensasi->delete();
         }
 
-        // Each teacher has their own record — guru_id is part of the unique key
         Absensi::updateOrCreate(
             [
                 'siswa_id' => $validated['siswa_id'],

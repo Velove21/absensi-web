@@ -145,8 +145,9 @@ class GuruSeeder extends Seeder
                 ['username' => $data['nip']],
                 [
                     'name' => $data['nama'],
-                    'password' => Hash::make('password123'),
+                    'password' => Hash::make('password'),
                     'role' => 'guru',
+                    'password_default' => true,
                 ]
             );
 

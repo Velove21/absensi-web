@@ -56,7 +56,7 @@ class GuruController extends Controller
             $user = User::create([
                 'name' => $validated['nama'],
                 'username' => $validated['nip'],
-                'password' => Hash::make('password123'),
+                'password' => Hash::make('password'),
                 'role' => 'guru',
             ]);
 

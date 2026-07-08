@@ -44,7 +44,7 @@ class SiswaController extends Controller
         $user = User::create([
             'name' => $validated['nama'],
             'username' => $validated['nis'],
-            'password' => Hash::make('password1'),
+            'password' => Hash::make('password'),
             'password_default' => true,
             'role' => 'siswa',
         ]);

@@ -30,12 +30,12 @@ class LoginRequest extends FortifyLoginRequest
 
         $role = $this->input('role');
 
-        if ($role === 'guru') {
+        if ($role === 'admin') {
+            $rules[Fortify::username()] = ['required', 'string', 'email:rfc,dns'];
+        } elseif ($role === 'guru') {
             $rules[Fortify::username()] = ['required', 'string', 'regex:/^\d{18}$/'];
         } elseif ($role === 'siswa') {
-            $rules[Fortify::username()] = ['required', 'string', 'regex:/^\d{2}\.\d{4}$/'];
-        } elseif ($role === 'admin') {
-            $rules[Fortify::username()] = ['required', 'string', 'regex:/^.{19}$/'];
+            $rules[Fortify::username()] = ['required', 'string', 'regex:/^\d{2}\.\d{6}$/'];
         }
 
         return $rules;
@@ -49,6 +49,7 @@ class LoginRequest extends FortifyLoginRequest
     public function messages(): array
     {
         return [
+            'login.email' => 'Format email tidak valid untuk login Admin.',
             'login.regex' => 'Format kode akses tidak sesuai dengan role yang dipilih.',
         ];
     }

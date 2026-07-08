@@ -277,7 +277,7 @@ export default function GuruAbsensiIndex({
         formData.append('siswa_id', pendingSiswaId.toString());
         formData.append('mapel_id', filters.mapel_id!);
         formData.append('tanggal', filters.tanggal);
-        formData.append('jam_ke', filters.jam_ke);
+        formData.append('jam_ke', filters.jam_ke || '');
         formData.append('waktu_mulai', filters.waktu_mulai || '');
         formData.append('waktu_selesai', filters.waktu_selesai || '');
         formData.append('status', pendingStatus);

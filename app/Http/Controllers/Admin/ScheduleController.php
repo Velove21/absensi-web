@@ -19,7 +19,7 @@ class ScheduleController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nama' => 'required|string|max:100',
+            'hari' => 'required|string|in:Senin,Selasa,Rabu,Kamis,Jumat,Sabtu,Minggu',
             'waktu_mulai' => 'required|date_format:H:i',
             'waktu_selesai' => 'required|date_format:H:i|after:waktu_mulai',
             'urutan' => 'required|integer|min:0',
@@ -35,7 +35,7 @@ class ScheduleController extends Controller
         $schedule = Schedule::findOrFail($id);
 
         $validated = $request->validate([
-            'nama' => 'required|string|max:100',
+            'hari' => 'required|string|in:Senin,Selasa,Rabu,Kamis,Jumat,Sabtu,Minggu',
             'waktu_mulai' => 'required|date_format:H:i',
             'waktu_selesai' => 'required|date_format:H:i|after:waktu_mulai',
             'urutan' => 'required|integer|min:0',
@@ -48,6 +48,10 @@ class ScheduleController extends Controller
 
     public function destroy(string $id)
     {
-        abort(403, 'Penghapusan jam pelajaran tidak diizinkan.');
+        $schedule = Schedule::findOrFail($id);
+
+        $schedule->delete();
+
+        return back()->with('success', 'Jam pelajaran berhasil dihapus.');
     }
 }

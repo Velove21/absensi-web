@@ -1,16 +1,29 @@
 import { useState } from 'react';
-import { Head, useForm } from '@inertiajs/react';
-import adminSchedule from '@/routes/admin/schedule';
+import { Head, router, useForm } from '@inertiajs/react';
+import adminSchedule from '@/routes/admin/jadwal-pelajaran';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Edit2, X, Plus, Save, Clock } from 'lucide-react';
+import { Edit2, X, Plus, Save, Clock, Trash2 } from 'lucide-react';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+
+const DAYS = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 
 interface Schedule {
     id: number;
-    nama: string;
+    hari: string;
     waktu_mulai: string;
     waktu_selesai: string;
     urutan: number;
@@ -18,9 +31,10 @@ interface Schedule {
 
 export default function SchedulesIndex({ schedules }: { schedules: Schedule[] }) {
     const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
+    const [deletingSchedule, setDeletingSchedule] = useState<Schedule | null>(null);
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
-        nama: '',
+        hari: 'Senin',
         waktu_mulai: '07:00',
         waktu_selesai: '07:45',
         urutan: 1,
@@ -29,7 +43,7 @@ export default function SchedulesIndex({ schedules }: { schedules: Schedule[] })
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
         if (editingSchedule) {
-            put(adminSchedule.update.url({ schedule: editingSchedule.id }), {
+            put(adminSchedule.update.url(editingSchedule.id), {
                 preserveScroll: true,
                 onSuccess: () => {
                     handleCancel();
@@ -42,7 +56,6 @@ export default function SchedulesIndex({ schedules }: { schedules: Schedule[] })
                 onSuccess: () => {
                     setData(prev => ({
                         ...prev,
-                        nama: '',
                         urutan: Number(prev.urutan) + 1,
                     }));
                     toast.success('Jam pelajaran berhasil ditambahkan');
@@ -55,7 +68,7 @@ export default function SchedulesIndex({ schedules }: { schedules: Schedule[] })
         setEditingSchedule(schedule);
         clearErrors();
         setData({
-            nama: schedule.nama,
+            hari: schedule.hari,
             waktu_mulai: schedule.waktu_mulai,
             waktu_selesai: schedule.waktu_selesai,
             urutan: schedule.urutan,
@@ -66,6 +79,18 @@ export default function SchedulesIndex({ schedules }: { schedules: Schedule[] })
         setEditingSchedule(null);
         reset();
         clearErrors();
+    };
+
+    const handleDelete = () => {
+        if (!deletingSchedule) return;
+
+        router.delete(adminSchedule.destroy.url({ jadwal_pelajaran: deletingSchedule.id }), {
+            preserveScroll: true,
+            onSuccess: () => {
+                setDeletingSchedule(null);
+                toast.success('Jam pelajaran berhasil dihapus');
+            },
+        });
     };
 
     return (
@@ -108,16 +133,19 @@ export default function SchedulesIndex({ schedules }: { schedules: Schedule[] })
 
                             <form onSubmit={submit} className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="nama">Nama</Label>
-                                    <Input
-                                        id="nama"
-                                        value={data.nama}
-                                        onChange={(e) => setData('nama', e.target.value)}
-                                        placeholder="Contoh: Jam 1, Upacara"
-                                        className="bg-muted/30"
-                                    />
-                                    {errors.nama && (
-                                        <p className="text-xs text-destructive">{errors.nama}</p>
+                                    <Label htmlFor="hari">Hari</Label>
+                                    <Select value={data.hari} onValueChange={(val) => setData('hari', val)}>
+                                        <SelectTrigger className="bg-muted/30">
+                                            <SelectValue placeholder="Pilih hari" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {DAYS.map((day) => (
+                                                <SelectItem key={day} value={day}>{day}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {errors.hari && (
+                                        <p className="text-xs text-destructive">{errors.hari}</p>
                                     )}
                                 </div>
 
@@ -197,7 +225,7 @@ export default function SchedulesIndex({ schedules }: { schedules: Schedule[] })
                                     <thead className="bg-muted/50 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                         <tr>
                                             <th className="px-6 py-4">Urutan</th>
-                                            <th className="px-6 py-4">Nama</th>
+                                            <th className="px-6 py-4">Hari</th>
                                             <th className="px-6 py-4">Waktu Mulai</th>
                                             <th className="px-6 py-4">Waktu Selesai</th>
                                             <th className="px-6 py-4 text-right">Aksi</th>
@@ -210,20 +238,32 @@ export default function SchedulesIndex({ schedules }: { schedules: Schedule[] })
                                                 className={`transition-colors hover:bg-muted/30 ${editingSchedule?.id === schedule.id ? 'bg-primary/5' : ''}`}
                                             >
                                                 <td className="px-6 py-4 text-muted-foreground">{schedule.urutan}</td>
-                                                <td className="px-6 py-4 font-medium text-foreground">
-                                                    {schedule.nama}
+                                                <td className="px-6 py-4">
+                                                    <span className="inline-flex rounded-md bg-muted px-2 py-0.5 text-xs font-medium">
+                                                        {schedule.hari}
+                                                    </span>
                                                 </td>
                                                 <td className="px-6 py-4 text-muted-foreground">{schedule.waktu_mulai}</td>
                                                 <td className="px-6 py-4 text-muted-foreground">{schedule.waktu_selesai}</td>
                                                 <td className="px-6 py-4 text-right">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => handleEdit(schedule)}
-                                                        className="h-8 w-8 text-muted-foreground hover:text-primary"
-                                                    >
-                                                        <Edit2 className="h-4 w-4" />
-                                                    </Button>
+                                                    <div className="flex justify-end gap-1">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => handleEdit(schedule)}
+                                                            className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                                        >
+                                                            <Edit2 className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => setDeletingSchedule(schedule)}
+                                                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -244,6 +284,21 @@ export default function SchedulesIndex({ schedules }: { schedules: Schedule[] })
                     </div>
                 </div>
             </div>
+
+            <AlertDialog open={deletingSchedule !== null} onOpenChange={(open) => !open && setDeletingSchedule(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Hapus Jam Pelajaran</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Apakah Anda yakin ingin menghapus jam ke-{deletingSchedule?.urutan}? Tindakan ini tidak dapat dibatalkan.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Batal</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete}>Hapus</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     );
 }

@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Admin\CalendarOverrideController;
 use App\Http\Controllers\Admin\DurasiPembelajaranController;
 use App\Http\Controllers\Admin\GuruController;
 use App\Http\Controllers\Admin\JenjangKelasController;
@@ -10,11 +9,9 @@ use App\Http\Controllers\Admin\KelasController;
 use App\Http\Controllers\Admin\MataPelajaranController;
 use App\Http\Controllers\Admin\ResetPasswordController;
 use App\Http\Controllers\Admin\ScheduleController;
-use App\Http\Controllers\Admin\ScheduleTemplateController;
 use App\Http\Controllers\Admin\SiswaController;
 use App\Http\Controllers\Export\AttendanceExportController;
 use App\Http\Controllers\Guru\AbsensiController;
-use App\Http\Controllers\Guru\DataAbsensiController;
 use App\Http\Controllers\Guru\DownloadBuktiController;
 use App\Http\Controllers\Guru\ExportPageController;
 use App\Http\Controllers\PasswordResetController;
@@ -39,9 +36,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::resource('jenjang-kelas', JenjangKelasController::class);
             Route::resource('kategori-pembelajaran', KategoriPembelajaranController::class);
             Route::resource('durasi-pembelajaran', DurasiPembelajaranController::class)->except(['destroy']);
-            Route::resource('jadwal-pelajaran', ScheduleController::class)->except(['destroy']);
-            Route::resource('template-jadwal', ScheduleTemplateController::class);
-            Route::resource('jadwal-khusus', CalendarOverrideController::class);
+            Route::resource('jadwal-pelajaran', ScheduleController::class);
             Route::resource('kelas', KelasController::class);
             Route::resource('matapelajaran', MataPelajaranController::class);
             Route::resource('guru', GuruController::class);
@@ -61,7 +56,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('absensi', [AbsensiController::class, 'index'])->name('absensi.index');
             Route::post('absensi', [AbsensiController::class, 'store'])->name('absensi.store');
             Route::delete('absensi/{absensi}', [AbsensiController::class, 'destroy'])->name('absensi.destroy');
-            Route::get('data-absensi', [DataAbsensiController::class, 'index'])->name('data-absensi.index');
             Route::get('ubah-sandi', [PasswordResetController::class, 'showChange'])->name('ubah-sandi.show');
             Route::post('ubah-sandi', [PasswordResetController::class, 'updateChange'])->name('ubah-sandi.update');
             // Export

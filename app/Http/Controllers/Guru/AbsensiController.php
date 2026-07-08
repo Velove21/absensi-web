@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Guru;
 use App\Http\Controllers\Controller;
 use App\Models\Absensi;
 use App\Models\Kelas;
-use App\Models\ScheduleTemplate;
+use App\Models\Schedule;
 use App\Models\Siswa;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -61,8 +61,8 @@ class AbsensiController extends Controller
                     });
             }
 
-            $template = ScheduleTemplate::forDate($tanggal);
-            $schedules = $template ? $template->schedules : collect();
+            $dayName = Schedule::indonesianDayName($tanggal);
+            $schedules = Schedule::where('hari', $dayName)->orderBy('urutan')->get();
         }
 
         return Inertia::render('guru/absensi/index', [

@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid, Users, UserCircle, GraduationCap, School, ClipboardList, History, ListOrdered, Clock, KeyRound, FileSpreadsheet, CalendarDays, Calendar, CalendarClock } from 'lucide-react';
+import { BookOpen, FolderGit2, LayoutGrid, Users, UserCircle, GraduationCap, School, ClipboardList, History, ListOrdered, Clock, KeyRound, FileSpreadsheet, CalendarDays } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -15,11 +15,8 @@ import {
 } from '@/components/ui/sidebar';
 import * as routes from '@/routes';
 import admin from '@/routes/admin';
-import adminSchedule from '@/routes/admin/schedule';
-import adminScheduleTemplate from '@/routes/admin/schedule-template';
-import adminCalendarOverride from '@/routes/admin/calendar-override';
+import adminSchedule from '@/routes/admin/jadwal-pelajaran';
 import guruRoutes from '@/routes/guru/absensi';
-import absensiData from '@/routes/guru/data-absensi';
 import exportAbsensi from '@/routes/guru/export';
 import { dashboard as siswaDashboard } from '@/routes/siswa';
 import type { NavItem, SharedData } from '@/types';
@@ -51,16 +48,6 @@ export function AppSidebar() {
                 title: 'Jadwal Pelajaran',
                 href: adminSchedule.index.url(),
                 icon: CalendarDays,
-            },
-            {
-                title: 'Template Jadwal',
-                href: adminScheduleTemplate.index.url(),
-                icon: Calendar,
-            },
-            {
-                title: 'Jadwal Khusus',
-                href: adminCalendarOverride.index.url(),
-                icon: CalendarClock,
             },
             {
                 title: 'Kelas',
@@ -99,11 +86,6 @@ export function AppSidebar() {
                 title: 'Input Absensi',
                 href: guruRoutes.index.url(),
                 icon: ClipboardList,
-            },
-            {
-                title: 'Lihat Data Absensi',
-                href: absensiData.index.url(),
-                icon: BookOpen,
             },
             {
                 title: 'Export Absensi',

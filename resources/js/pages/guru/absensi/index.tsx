@@ -68,7 +68,6 @@ interface Siswa {
 
 interface Schedule {
     id: number;
-    nama: string;
     waktu_mulai: string;
     waktu_selesai: string;
     urutan: number;
@@ -131,17 +130,6 @@ export default function GuruAbsensiIndex({
 
     useEffect(() => {
         if (!jamKeInput || !filters.tanggal || !schedules.length) return;
-
-        const normalizedInput = jamKeInput.toLowerCase();
-
-        if (normalizedInput === 'upacara') {
-            const upacara = schedules.find(s => s.nama.toLowerCase() === 'upacara');
-            if (upacara) {
-                setWaktuMulaiInput(upacara.waktu_mulai);
-                setWaktuSelesaiInput(upacara.waktu_selesai);
-            }
-            return;
-        }
 
         const jamParts = jamKeInput.match(/\d+/g);
         if (!jamParts || jamParts.length === 0) return;
@@ -408,7 +396,7 @@ export default function GuruAbsensiIndex({
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Kelas</label>
                                     <SearchableSelect
-                                        value={filters.kelas_id || undefined}
+                                        value={filters.kelas_id || ''}
                                         onValueChange={(val) =>
                                             handleFilterChange('kelas_id', val)
                                         }
@@ -424,7 +412,7 @@ export default function GuruAbsensiIndex({
                                     <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-150">
                                         <label className="text-sm font-medium">Mata Pelajaran</label>
                                         <Select
-                                            value={filters.mapel_id || undefined}
+                                            value={filters.mapel_id || ''}
                                             onValueChange={(val) =>
                                                 handleFilterChange('mapel_id', val)
                                             }
@@ -466,7 +454,7 @@ export default function GuruAbsensiIndex({
                                     />
                                     <p className="text-[10px] text-muted-foreground">
                                         {schedules.length > 0
-                                            ? `Jadwal aktif: ${schedules.map(s => s.nama).join(', ')}`
+                                            ? `Jadwal aktif: ${schedules.map(s => 'Jam ' + s.urutan).join(', ')}`
                                             : 'Tidak ada jadwal untuk tanggal ini.'}
                                     </p>
                                 </div>
@@ -507,17 +495,7 @@ export default function GuruAbsensiIndex({
                                                 ))}
                                             </div>
                                         )}
-                                        {schedules.some(s => s.nama.toLowerCase() === 'upacara') && (
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                className="h-6 text-[10px] px-2 py-0 border-amber-400 text-amber-700 hover:bg-amber-50 dark:border-amber-600 dark:text-amber-400"
-                                                onClick={() => setJamKeInput('Upacara')}
-                                            >
-                                                Upacara
-                                            </Button>
-                                        )}
+
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-2">

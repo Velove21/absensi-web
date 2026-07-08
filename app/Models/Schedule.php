@@ -4,15 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Carbon;
 
-#[Fillable(['nama', 'waktu_mulai', 'waktu_selesai', 'urutan'])]
+#[Fillable(['hari', 'waktu_mulai', 'waktu_selesai', 'urutan'])]
 class Schedule extends Model
 {
-    public function templates(): BelongsToMany
+    public static function indonesianDayName(string $dateStr): string
     {
-        return $this->belongsToMany(ScheduleTemplate::class, 'template_schedules', 'schedule_id', 'template_id')
-            ->withPivot('urutan')
-            ->withTimestamps();
+        $days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+
+        return $days[(int) Carbon::parse($dateStr)->format('w')];
     }
 }

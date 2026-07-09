@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\ScheduleController;
 use App\Http\Controllers\Admin\SiswaController;
 use App\Http\Controllers\Export\AttendanceExportController;
 use App\Http\Controllers\Guru\AbsensiController;
+use App\Http\Controllers\Guru\DataAbsensiController;
 use App\Http\Controllers\Guru\DownloadBuktiController;
 use App\Http\Controllers\Guru\ExportPageController;
 use App\Http\Controllers\PasswordResetController;
@@ -56,6 +57,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('absensi', [AbsensiController::class, 'index'])->name('absensi.index');
             Route::post('absensi', [AbsensiController::class, 'store'])->name('absensi.store');
             Route::delete('absensi/{absensi}', [AbsensiController::class, 'destroy'])->name('absensi.destroy');
+            Route::get('data-absensi', [DataAbsensiController::class, 'index'])->name('data-absensi.index');
             Route::get('ubah-sandi', [PasswordResetController::class, 'showChange'])->name('ubah-sandi.show');
             Route::post('ubah-sandi', [PasswordResetController::class, 'updateChange'])->name('ubah-sandi.update');
             // Export

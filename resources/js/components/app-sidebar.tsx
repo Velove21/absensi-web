@@ -17,6 +17,7 @@ import * as routes from '@/routes';
 import admin from '@/routes/admin';
 import adminSchedule from '@/routes/admin/jadwal-pelajaran';
 import guruRoutes from '@/routes/guru/absensi';
+import absensiData from '@/routes/guru/data-absensi';
 import exportAbsensi from '@/routes/guru/export';
 import { dashboard as siswaDashboard } from '@/routes/siswa';
 import type { NavItem, SharedData } from '@/types';
@@ -86,6 +87,11 @@ export function AppSidebar() {
                 title: 'Input Absensi',
                 href: guruRoutes.index.url(),
                 icon: ClipboardList,
+            },
+            {
+                title: 'Lihat Data Absensi',
+                href: absensiData.index.url(),
+                icon: BookOpen,
             },
             {
                 title: 'Export Absensi',

@@ -732,9 +732,7 @@ export default function GuruAbsensiIndex({
                                     <span className="text-sm text-muted-foreground">
                                         Klik untuk pilih foto
                                     </span>
-                                    <span className="text-[10px] text-muted-foreground mt-1">
-                                        JPG, JPEG, PNG, WebP (max. 2MB)
-                                    </span>
+
                                     <input
                                         type="file"
                                         accept="image/jpeg,image/png,image/webp"

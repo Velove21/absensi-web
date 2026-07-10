@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Guru;
 
 use App\Http\Controllers\Controller;
 use App\Models\Absensi;
+use App\Models\AbsensiPhoto;
 use App\Models\Kelas;
 use App\Models\Schedule;
 use App\Models\Siswa;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class AbsensiController extends Controller
@@ -92,7 +95,7 @@ class AbsensiController extends Controller
             'waktu_selesai' => 'nullable|string|max:10',
             'status' => 'required|in:hadir,sakit,izin,alpha,dispensasi',
             'keterangan' => 'nullable|string|max:255',
-            'bukti' => 'nullable|file|mimes:jpg,jpeg,png,webp|max:2048',
+            'bukti' => 'nullable|file|mimes:jpg,jpeg,png,webp|max:10240',
         ];
 
         $existingAny = Absensi::where([
@@ -103,7 +106,7 @@ class AbsensiController extends Controller
         ])->first();
 
         if (in_array($request->input('status'), ['sakit', 'izin', 'dispensasi']) && ! $existingAny) {
-            $rules['bukti'] = 'required|file|mimes:jpg,jpeg,png,webp|max:2048';
+            $rules['bukti'] = 'required|file|mimes:jpg,jpeg,png,webp|max:10240';
         }
 
         $validated = $request->validate($rules);
@@ -130,15 +133,25 @@ class AbsensiController extends Controller
             'keterangan' => $validated['keterangan'] ?? null,
         ];
 
-        if ($request->hasFile('bukti')) {
-            $data['bukti'] = $request->file('bukti')->store('bukti', 'public');
+        $hasBukti = $request->hasFile('bukti');
+        if ($hasBukti) {
+            $file = $request->file('bukti');
+            $originalName = $file->getClientOriginalName();
+            $originalSize = $file->getSize();
+            $mimeType = $file->getMimeType();
+
+            if ($originalSize > 2 * 1024 * 1024) {
+                $data['bukti'] = $this->compressImage($file, 'bukti');
+            } else {
+                $data['bukti'] = $file->store('bukti', 'public');
+            }
         }
 
         if ($myDispensasi && $validated['status'] !== 'dispensasi') {
             $myDispensasi->delete();
         }
 
-        Absensi::updateOrCreate(
+        $absensi = Absensi::updateOrCreate(
             [
                 'siswa_id' => $validated['siswa_id'],
                 'mapel_id' => $validated['mapel_id'],
@@ -149,7 +162,112 @@ class AbsensiController extends Controller
             $data
         );
 
+        if ($hasBukti) {
+            $file = $request->file('bukti');
+            $absensi->photos()->create([
+                'file_path' => $data['bukti'],
+                'original_name' => $originalName ?? $file->getClientOriginalName(),
+                'file_size' => $originalSize ?? $file->getSize(),
+                'mime_type' => $mimeType ?? $file->getMimeType(),
+                'compressed' => $originalSize > 2 * 1024 * 1024,
+                'compressed_size' => $originalSize > 2 * 1024 * 1024 ? Storage::disk('public')->size($data['bukti']) : null,
+            ]);
+        }
+
         return back()->with('success', 'Status kehadiran berhasil disimpan.');
+    }
+
+    private function compressImage(UploadedFile $file, string $directory): string
+    {
+        $sourceImage = match ($file->getClientOriginalExtension()) {
+            'jpg', 'jpeg' => @imagecreatefromjpeg($file->getRealPath()),
+            'png' => @imagecreatefrompng($file->getRealPath()),
+            'webp' => @imagecreatefromwebp($file->getRealPath()),
+            default => null,
+        };
+
+        if (! $sourceImage) {
+            return $file->store($directory, 'public');
+        }
+
+        $maxWidth = 1920;
+        $origWidth = imagesx($sourceImage);
+        $origHeight = imagesy($sourceImage);
+
+        if ($origWidth <= $maxWidth) {
+            $compressedPath = $file->store($directory, 'public');
+
+            if (Storage::disk('public')->exists($compressedPath)) {
+                $fullPath = Storage::disk('public')->path($compressedPath);
+                $this->recompressExisting($fullPath, $file->getClientOriginalExtension());
+            }
+
+            imagedestroy($sourceImage);
+
+            return $compressedPath;
+        }
+
+        $ratio = $maxWidth / $origWidth;
+        $newWidth = $maxWidth;
+        $newHeight = (int) round($origHeight * $ratio);
+
+        $resizedImage = imagecreatetruecolor($newWidth, $newHeight);
+
+        if ($file->getClientOriginalExtension() === 'png') {
+            imagealphablending($resizedImage, false);
+            imagesavealpha($resizedImage, true);
+        }
+
+        imagecopyresampled($resizedImage, $sourceImage, 0, 0, 0, 0, $newWidth, $newHeight, $origWidth, $origHeight);
+
+        $tempPath = tempnam(sys_get_temp_dir(), 'absensi_') . '.' . $file->getClientOriginalExtension();
+
+        match ($file->getClientOriginalExtension()) {
+            'jpg', 'jpeg' => imagejpeg($resizedImage, $tempPath, 80),
+            'png' => imagepng($resizedImage, $tempPath, 8),
+            'webp' => imagewebp($resizedImage, $tempPath, 80),
+            default => null,
+        };
+
+        imagedestroy($sourceImage);
+        imagedestroy($resizedImage);
+
+        $uploadedFile = new UploadedFile(
+            $tempPath,
+            $file->getClientOriginalName(),
+            $file->getClientMimeType(),
+            UPLOAD_ERR_OK,
+            true
+        );
+
+        $storedPath = $uploadedFile->store($directory, 'public');
+
+        @unlink($tempPath);
+
+        return $storedPath;
+    }
+
+    private function recompressExisting(string $filePath, string $extension): void
+    {
+        $image = match ($extension) {
+            'jpg', 'jpeg' => @imagecreatefromjpeg($filePath),
+            'png' => @imagecreatefrompng($filePath),
+            'webp' => @imagecreatefromwebp($filePath),
+            default => null,
+        };
+
+        if (! $image) {
+            return;
+        }
+
+        match ($extension) {
+            'jpg', 'jpeg' => imagejpeg($image, $filePath, 80),
+            'png' => imagepng($image, $filePath, 8),
+            'webp' => imagewebp($image, $filePath, 80),
+            default => null,
+        };
+
+        imagedestroy($image);
     }
 
     public function destroy(string $id)

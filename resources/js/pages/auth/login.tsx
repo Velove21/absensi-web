@@ -6,25 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { store } from '@/routes/login';
-import { Shield, BookOpen, GraduationCap, KeyRound } from 'lucide-react';
-import { useState } from 'react';
 
 type Props = {
     status?: string;
 };
 
 export default function Login({ status }: Props) {
-    const [loginAs, setLoginAs] = useState<'admin' | 'guru' | 'siswa'>('admin');
-
-    const roles: { key: 'admin' | 'guru' | 'siswa'; label: string; icon: React.ElementType }[] = [
-        { key: 'admin', label: 'Admin', icon: Shield },
-        { key: 'guru', label: 'Guru', icon: BookOpen },
-        { key: 'siswa', label: 'Siswa', icon: GraduationCap },
-    ];
-
-    const isSiswa = loginAs === 'siswa';
-    const isAdmin = loginAs === 'admin';
-
     return (
         <>
             <Head title="Login Portal - Absensi SMKN 2 SURAKARTA" />
@@ -41,7 +28,7 @@ export default function Login({ status }: Props) {
                 {/* Heading */}
                 <div className="relative z-10 mb-15 text-center space-y-3">
                     <h1 className="text-4xl font-bold tracking-tight text-white md:text-5xl lg:text-5xl">
-                        Selamat Datang, SCOSEN
+                        Selamat Datang
                     </h1>
                     <p className="text-4xl font-bold tracking-tight text-white md:text-5xl lg:text-5xl">
                         Silahkan Akses Absensi{' '}
@@ -54,30 +41,11 @@ export default function Login({ status }: Props) {
                     {/* Card Header */}
                     <div className="mb-6 text-center">
                         <h2 className="text-lg font-bold tracking-widest text-white uppercase">
-                            Portal SCOSEN
+                            Portal Login
                         </h2>
                         <p className="mt-1 text-xs text-blue-200/70">
                             Masuk kedalam absensi SMKN 2 Surakarta
                         </p>
-                    </div>
-
-                    {/* Toggle Role Login */}
-                    <div className="mb-6 flex rounded-xl bg-white/5 p-1 border border-white/10">
-                        {roles.map(({ key, label, icon: Icon }) => (
-                            <button
-                                key={key}
-                                type="button"
-                                onClick={() => setLoginAs(key)}
-                                className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-all duration-200 ${
-                                    loginAs === key
-                                        ? 'bg-[#0ea5e9] text-white shadow-md'
-                                        : 'text-blue-200/60 hover:text-blue-100'
-                                }`}
-                            >
-                                <Icon className="h-3.5 w-3.5" />
-                                {label}
-                            </button>
-                        ))}
                     </div>
 
                     <Form
@@ -86,22 +54,19 @@ export default function Login({ status }: Props) {
                     >
                         {({ processing, errors }) => (
                             <div className="grid gap-4">
-                                <input type="hidden" name="role" value={loginAs} />
                                 <div className="grid gap-1.5">
                                     <Label htmlFor="login" className="text-sm text-blue-100/90 font-medium">
-                                        {isSiswa ? 'Nomor Induk Siswa (NIS)' : isAdmin ? 'Email' : 'NIP'}
+                                        NIP / NIS / Email
                                     </Label>
                                     <Input
                                         id="login"
-                                        type={isAdmin ? 'email' : 'text'}
+                                        type="text"
                                         name="login"
                                         required
                                         autoFocus
                                         tabIndex={1}
-                                        autoComplete={isAdmin ? 'email' : 'off'}
-                                        placeholder={isSiswa ? 'Masukkan NIS' : isAdmin ? 'Masukkan Email' : 'Masukkan NIP'}
-                                        inputMode={isAdmin ? undefined : 'numeric'}
-                                        maxLength={isAdmin ? undefined : isSiswa ? 9 : 18}
+                                        autoComplete="username"
+                                        placeholder="Masukkan NIP / NIS / Email"
                                         className="h-11 border-white/20 bg-white/10 text-white placeholder:text-blue-200/40 focus:border-[#0ea5e9] focus:ring-[#0ea5e9]/20"
                                     />
                                     <InputError message={errors.login} />
@@ -120,12 +85,6 @@ export default function Login({ status }: Props) {
                                         className="h-11 border-white/20 bg-white/10 text-white placeholder:text-blue-200/40 focus:border-[#0ea5e9] focus:ring-[#0ea5e9]/20"
                                     />
                                     <InputError message={errors.password} />
-                                    {isSiswa && (
-                                        <p className="text-xs text-blue-200/60 mt-1 flex items-center gap-1">
-                                            <KeyRound className="h-3 w-3" />
-                                            Lupa sandi? Hubungi admin. Setelah login, Anda bisa ubah sandi.
-                                        </p>
-                                    )}
                                 </div>
 
                                 <Button

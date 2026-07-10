@@ -10,7 +10,6 @@ export default function AppLogo() {
                 <span className="mb-0.5 truncate leading-tight font-bold">
                     SMKN 2 SURAKARTA
                 </span>
-                <span className="truncate text-xs text-muted-foreground font-medium">scosen</span>
             </div>
         </>
     );

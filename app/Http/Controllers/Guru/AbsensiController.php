@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Guru;
 
 use App\Http\Controllers\Controller;
 use App\Models\Absensi;
-use App\Models\AbsensiPhoto;
 use App\Models\Kelas;
 use App\Models\Schedule;
 use App\Models\Siswa;
@@ -220,7 +219,7 @@ class AbsensiController extends Controller
 
         imagecopyresampled($resizedImage, $sourceImage, 0, 0, 0, 0, $newWidth, $newHeight, $origWidth, $origHeight);
 
-        $tempPath = tempnam(sys_get_temp_dir(), 'absensi_') . '.' . $file->getClientOriginalExtension();
+        $tempPath = tempnam(sys_get_temp_dir(), 'absensi_').'.'.$file->getClientOriginalExtension();
 
         match ($file->getClientOriginalExtension()) {
             'jpg', 'jpeg' => imagejpeg($resizedImage, $tempPath, 80),

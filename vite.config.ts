@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react';
 import laravel from 'laravel-vite-plugin';
 import { bunny } from 'laravel-vite-plugin/fonts';
 import { defineConfig } from 'vite';
+import path from 'path';
 
 export default defineConfig({
     plugins: [
@@ -28,4 +29,10 @@ export default defineConfig({
             formVariants: true,
         }),
     ],
+    resolve: {
+        alias: {
+            // <-- 2. Ganti konfigurasi alias Anda menjadi tepat seperti di bawah ini:
+            '@': path.resolve(__dirname, './resources/js'),
+        },
+    },
 });

@@ -6,7 +6,7 @@ Replace Nixpacks deployment with a custom, multi-stage Dockerfile using Node 22 
 ## Proposed Design
 1. Delete `nixpacks.toml`.
 2. Create `Dockerfile` in the project root containing:
-   - Frontend builder using `node:22-alpine`
-   - Production container using `serversideup/php:8.3-fpm-nginx`
-   - Production dependencies via Composer and npm compilation of assets.
-3. Migrate and seed are configured externally (e.g., via Coolify pre-start / post-deployment commands) rather than inside the Docker build process.
+   - Stage 1: Composer dependencies (`composer:2`).
+   - Stage 2: Frontend builder using `node:22-alpine` with PHP 8.3 installed to support `php artisan wayfinder:generate` during `npm run build`.
+   - Stage 3: Production runner using `serversideup/php:8.3-fpm-nginx`.
+3. Restore `vite.config.ts` to run Wayfinder normally in all environments (since PHP is now available in the build stage).

@@ -1,5 +1,3 @@
-[providers]
-# Tambahkan "node" ke dalam providers agar Nixpacks tahu ini project hybrid (Laravel + Vite/Mix)
 providers = ["php", "node"]
 
 [variables]

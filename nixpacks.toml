@@ -1,0 +1,26 @@
+providers = ["php", "node"]
+
+[variables]
+NIXPACKS_NODE_VERSION = "20"
+NIXPACKS_PHP_ROOT_DIR = "/app/public"
+
+[phases.setup]
+nixPkgs = ["nodejs", "php83"]
+
+[phases.install]
+cmds = [
+  "composer install --no-interaction --no-dev --optimize-autoloader",
+  "npm install"
+]
+
+[phases.build]
+cmds = [
+  "npm run build"
+]
+
+[phases.postbuild]
+cmds = [
+  "php artisan config:cache",
+  "php artisan route:cache",
+  "php artisan view:cache"
+]

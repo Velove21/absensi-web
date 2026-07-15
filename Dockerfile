@@ -22,7 +22,7 @@ COPY . .
 
 # Salin folder vendor dari Tahap 1 agar bootstrap Laravel jalan saat build
 COPY --from=composer-builder /app/vendor ./vendor
-RUN npm run build
+RUN NODE_OPTIONS="--max-old-space-size=1024" npm run build
 
 # ==========================================
 # Tahap 3: Aplikasi Produksi (Nginx + PHP)

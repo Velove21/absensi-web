@@ -7,6 +7,6 @@ Replace Nixpacks deployment with a custom, multi-stage Dockerfile using Node 22 
 1. Delete `nixpacks.toml`.
 2. Create `Dockerfile` in the project root containing:
    - Stage 1: Composer dependencies (`composer:2`).
-   - Stage 2: Frontend builder using `node:22-alpine` with PHP 8.4 installed to support `php artisan wayfinder:generate` during `npm run build`.
+   - Stage 2: Frontend builder using `node:22-alpine` with PHP 8.4 installed to support `php artisan wayfinder:generate` during `npm run build`. Limit Node's memory to 1024MB using `NODE_OPTIONS="--max-old-space-size=1024"` to prevent Out of Memory (OOM) failures on low-resource hosts.
    - Stage 3: Production runner using `serversideup/php:8.4-fpm-nginx`.
 3. Restore `vite.config.ts` to run Wayfinder normally in all environments (since PHP is now available in the build stage).

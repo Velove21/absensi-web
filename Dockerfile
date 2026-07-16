@@ -7,25 +7,26 @@ COPY composer.json composer.lock ./
 RUN composer install --no-interaction --no-dev --optimize-autoloader --no-scripts
 
 # ==========================================
-# Tahap 2: Build Frontend Assets (Menggunakan Serversideup yang sudah ada PHP + Node)
+# Tahap 2: Build Frontend Assets (Node Murni + Pinjam PHP Lokal)
 # ==========================================
-FROM serversideup/php:8.4-fpm-nginx AS frontend-builder
+FROM node:22-alpine AS frontend-builder
 WORKDIR /app
 
-# Pindah ke user root sementara agar bisa menjalankan instalasi npm global jika dibutuhkan
-USER root
+# Mengambil biner PHP langsung dari container Composer secara LOKAL
+# Langkah ini 100% bypass error TLS/SSL internet VPS kamu!
+COPY --from=composer-builder /usr/bin/php /usr/bin/php
+COPY --from=composer-builder /usr/lib /usr/lib
+COPY --from=composer-builder /etc/php* /etc/php/
 
-# Salin manifest frontend
+# Salin berkas frontend & install package
 COPY package.json package-lock.json* ./
 RUN npm install
-
-# Salin seluruh kode aplikasi
 COPY . .
 
-# Salin folder vendor dari Tahap 1 agar 'php artisan' Wayfinder bisa jalan saat build
+# Salin folder vendor agar perintah 'php artisan wayfinder' bisa booting
 COPY --from=composer-builder /app/vendor ./vendor
 
-# Jalankan build frontend (Pasti aman karena PHP 8.4 & Node sudah ada di dalam image ini!)
+# Jalankan build frontend
 RUN NODE_OPTIONS="--max-old-space-size=1024" npm run build
 
 # ==========================================
@@ -34,7 +35,7 @@ RUN NODE_OPTIONS="--max-old-space-size=1024" npm run build
 FROM serversideup/php:8.4-fpm-nginx
 WORKDIR /var/www/html
 
-# Salin seluruh kode aplikasi dari repositori
+# Salin seluruh kode aplikasi
 COPY --chown=www-data:www-data . .
 
 # Salin vendor hasil install Composer dari Tahap 1

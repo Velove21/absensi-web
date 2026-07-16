@@ -7,16 +7,25 @@ COPY composer.json composer.lock ./
 RUN composer install --no-interaction --no-dev --optimize-autoloader --no-scripts
 
 # ==========================================
-# Tahap 2: Build Frontend Assets
+# Tahap 2: Build Frontend Assets (Butuh Node + PHP untuk Wayfinder)
 # ==========================================
-FROM node:22-alpine AS frontend-builder
+FROM php:8.4-fpm-alpine AS frontend-builder
 WORKDIR /app
 
+# Pasang Node.js & npm di dalam image PHP standar (Bebas Error TLS Alpine)
+RUN apk add --no-cache nodejs npm
+
+# Salin manifest frontend
 COPY package.json package-lock.json* ./
 RUN npm install
+
+# Salin seluruh kode aplikasi
 COPY . .
 
-# Build assets (menghasilkan folder public/build) tanpa butuh PHP backend
+# Salin folder vendor dari Tahap 1 agar 'php artisan' Wayfinder bisa booting saat build
+COPY --from=composer-builder /app/vendor ./vendor
+
+# Jalankan build frontend (Sekarang aman karena PHP sudah tersedia!)
 RUN NODE_OPTIONS="--max-old-space-size=1024" npm run build
 
 # ==========================================

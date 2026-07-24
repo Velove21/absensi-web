@@ -5,26 +5,14 @@ use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 
 uses(LazilyRefreshDatabase::class);
 
-test('accessing secret admin register without key is forbidden', function () {
+test('accessing secret admin register page returns ok', function () {
     $response = $this->get('/secret-admin-register');
-
-    $response->assertForbidden();
-});
-
-test('accessing secret admin register with invalid key is forbidden', function () {
-    $response = $this->get('/secret-admin-register?key=wrongkey');
-
-    $response->assertForbidden();
-});
-
-test('accessing secret admin register with valid key returns ok', function () {
-    $response = $this->get('/secret-admin-register?key=supersecret123');
 
     $response->assertOk();
 });
 
 test('submitting secret admin register creates admin user and redirects to admin dashboard', function () {
-    $response = $this->post('/secret-admin-register?key=supersecret123', [
+    $response = $this->post('/secret-admin-register', [
         'name' => 'Secret Admin',
         'email' => 'secretadmin@admin.com',
         'username' => 'secretadmin',

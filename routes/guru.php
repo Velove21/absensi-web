@@ -5,6 +5,7 @@ use App\Http\Controllers\Guru\AbsensiController;
 use App\Http\Controllers\Guru\DataAbsensiController;
 use App\Http\Controllers\Guru\DownloadBuktiController;
 use App\Http\Controllers\Guru\ExportPageController;
+use App\Http\Controllers\Guru\GuruAbsensiController;
 use App\Http\Controllers\PasswordResetController;
 use Illuminate\Support\Facades\Route;
 
@@ -12,6 +13,9 @@ Route::middleware(['web', 'auth', 'role:guru', 'check.password.status'])->prefix
     Route::get('absensi', [AbsensiController::class, 'index'])->name('absensi.index');
     Route::post('absensi', [AbsensiController::class, 'store'])->name('absensi.store');
     Route::delete('absensi/{absensi}', [AbsensiController::class, 'destroy'])->name('absensi.destroy');
+
+    Route::get('absensi-guru', [GuruAbsensiController::class, 'index'])->name('absensi-guru.index');
+    Route::post('absensi-guru', [GuruAbsensiController::class, 'store'])->name('absensi-guru.store');
 
     Route::get('data-absensi', [DataAbsensiController::class, 'index'])->name('data-absensi.index');
 

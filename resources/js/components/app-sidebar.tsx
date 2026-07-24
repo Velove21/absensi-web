@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid, Users, UserCircle, GraduationCap, School, ClipboardList, History, ListOrdered, Clock, KeyRound, FileSpreadsheet, CalendarDays } from 'lucide-react';
+import { BookOpen, FolderGit2, LayoutGrid, Users, UserCircle, GraduationCap, School, ClipboardList, History, ListOrdered, Clock, KeyRound, FileSpreadsheet, CalendarDays, UserCheck } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -17,6 +17,7 @@ import * as routes from '@/routes';
 import admin from '@/routes/admin';
 import adminSchedule from '@/routes/admin/jadwal-pelajaran';
 import guruRoutes from '@/routes/guru/absensi';
+import guruAbsensiGuru from '@/routes/guru/absensi-guru';
 import absensiData from '@/routes/guru/data-absensi';
 import exportAbsensi from '@/routes/guru/export';
 import { dashboard as siswaDashboard } from '@/routes/siswa';
@@ -76,6 +77,11 @@ export function AppSidebar() {
                 icon: UserCircle,
             },
             {
+                title: 'Rekap Absensi Guru',
+                href: admin.rekapAbsensiGuru.index.url(),
+                icon: UserCheck,
+            },
+            {
                 title: 'Ubah Sandi',
                 href: '/admin/ubah-sandi',
                 icon: KeyRound,
@@ -83,6 +89,11 @@ export function AppSidebar() {
         ];
     } else if (userRole === 'guru') {
         mainNavItems = [
+            {
+                title: 'Absensi Guru',
+                href: guruAbsensiGuru.index.url(),
+                icon: UserCheck,
+            },
             {
                 title: 'Input Absensi',
                 href: guruRoutes.index.url(),

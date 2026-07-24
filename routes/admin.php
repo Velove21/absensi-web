@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DurasiPembelajaranController;
+use App\Http\Controllers\Admin\GuruAbsensiRekapController;
 use App\Http\Controllers\Admin\GuruController;
 use App\Http\Controllers\Admin\JenjangKelasController;
 use App\Http\Controllers\Admin\JurusanController;
@@ -23,6 +24,8 @@ Route::middleware(['web', 'auth', 'role:admin', 'check.password.status'])->prefi
     Route::put('guru/{guru}', [GuruController::class, 'update'])->name('guru.update');
     Route::delete('guru/{guru}', [GuruController::class, 'destroy'])->name('guru.destroy');
     Route::post('guru/{guru}/reset-password', [ResetPasswordController::class, 'resetGuru'])->name('guru.resetPassword');
+
+    Route::get('rekap-absensi-guru', [GuruAbsensiRekapController::class, 'index'])->name('rekap-absensi-guru.index');
 
     Route::get('siswa', [SiswaController::class, 'index'])->name('siswa.index');
     Route::post('siswa', [SiswaController::class, 'store'])->name('siswa.store');

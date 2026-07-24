@@ -8,7 +8,7 @@ use App\Http\Controllers\Guru\ExportPageController;
 use App\Http\Controllers\PasswordResetController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'role:guru', 'check.password.status'])->prefix('guru')->name('guru.')->group(function () {
+Route::middleware(['web', 'auth', 'role:guru', 'check.password.status'])->prefix('guru')->name('guru.')->group(function () {
     Route::get('absensi', [AbsensiController::class, 'index'])->name('absensi.index');
     Route::post('absensi', [AbsensiController::class, 'store'])->name('absensi.store');
     Route::delete('absensi/{absensi}', [AbsensiController::class, 'destroy'])->name('absensi.destroy');

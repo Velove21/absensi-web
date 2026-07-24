@@ -15,16 +15,20 @@ class LoginResponse implements LoginResponseContract
      */
     public function toResponse($request): Response
     {
-        $role = $request->user()->role;
+        $role = $request->user()?->role;
 
-        if ($role === 'admin') {
-            return redirect()->route('admin.dashboard');
-        } elseif ($role === 'guru') {
-            return redirect()->route('guru.absensi.index');
-        } elseif ($role === 'siswa') {
-            return redirect()->route('siswa.dashboard');
+        $target = match ($role) {
+            'admin' => route('admin.dashboard'),
+            'guru' => route('guru.absensi.index'),
+            'siswa' => route('siswa.dashboard'),
+            default => config('fortify.home'),
+        };
+
+        $intended = session()->get('url.intended');
+        if ($intended && (str_ends_with(parse_url($intended, PHP_URL_PATH) ?? '', '/login') || $intended === url('/'))) {
+            session()->forget('url.intended');
         }
 
-        return redirect()->intended(config('fortify.home'));
+        return redirect()->intended($target);
     }
 }

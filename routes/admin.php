@@ -15,7 +15,7 @@ use App\Http\Controllers\Export\AttendanceExportController;
 use App\Http\Controllers\PasswordResetController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'role:admin', 'check.password.status'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['web', 'auth', 'role:admin', 'check.password.status'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
     Route::get('guru', [GuruController::class, 'index'])->name('guru.index');

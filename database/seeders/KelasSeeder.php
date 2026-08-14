@@ -96,8 +96,20 @@ class KelasSeeder extends Seeder
 
             // Find or create JenjangKelas
             if (! isset($jenjangMap[$tingkat])) {
+                $urutanMap = [
+                    'X' => 1,
+                    'XI' => 2,
+                    'XII' => 3,
+                    'XIII' => 4,
+                    '1' => 1,
+                    '2' => 2,
+                    '3' => 3,
+                    '4' => 4,
+                ];
                 $jenjang = JenjangKelas::firstOrCreate([
                     'nama_jenjang' => $tingkat,
+                ], [
+                    'urutan' => $urutanMap[$tingkat] ?? null,
                 ]);
                 $jenjangMap[$tingkat] = $jenjang->id;
             }

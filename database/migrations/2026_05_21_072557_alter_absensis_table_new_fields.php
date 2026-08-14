@@ -19,7 +19,9 @@ return new class extends Migration
             $table->string('status')->default('hadir')->change();
 
             // Drop unique constraint
+            $table->dropForeign(['siswa_id']);
             $table->dropUnique(['siswa_id', 'tanggal']);
+            $table->foreign('siswa_id')->references('id')->on('siswas')->onDelete('cascade');
         });
     }
 
@@ -29,7 +31,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('absensis', function (Blueprint $table) {
+            $table->dropForeign(['siswa_id']);
             $table->unique(['siswa_id', 'tanggal']);
+            $table->foreign('siswa_id')->references('id')->on('siswas')->onDelete('cascade');
             $table->enum('status', ['hadir', 'sakit', 'izin', 'alpha'])->change();
             $table->dropColumn(['mapel_id', 'jam_ke', 'waktu_mulai', 'waktu_selesai']);
         });

@@ -49,7 +49,7 @@ export default function Login({ status }: Props) {
                     </div>
 
                     <Form
-                        {...store.form()}
+                        action={store()}
                         resetOnSuccess={['password']}
                     >
                         {({ processing, errors }) => (

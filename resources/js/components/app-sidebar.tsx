@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid, Users, UserCircle, GraduationCap, School, ClipboardList, History, ListOrdered, Clock, KeyRound, FileSpreadsheet, CalendarDays } from 'lucide-react';
+import { BookOpen, FolderGit2, LayoutGrid, Users, UserCircle, GraduationCap, School, ClipboardList, History, ListOrdered, Clock, KeyRound, FileSpreadsheet, CalendarDays, Calendar } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -16,6 +16,7 @@ import {
 import * as routes from '@/routes';
 import admin from '@/routes/admin';
 import adminSchedule from '@/routes/admin/jadwal-pelajaran';
+import adminTahunAjaran from '@/routes/admin/tahun-ajaran';
 import guruRoutes from '@/routes/guru/absensi';
 import absensiData from '@/routes/guru/data-absensi';
 import exportAbsensi from '@/routes/guru/export';
@@ -36,6 +37,11 @@ export function AppSidebar() {
                 icon: LayoutGrid,
             },
             {
+                title: 'Tahun Ajaran',
+                href: adminTahunAjaran.index.url(),
+                icon: Calendar,
+            },
+            {
                 title: 'Jurusan',
                 href: admin.jurusan.index.url(),
                 icon: School,
@@ -44,6 +50,11 @@ export function AppSidebar() {
                 title: 'Jenjang Kelas',
                 href: admin.jenjangKelas.index.url(),
                 icon: ListOrdered,
+            },
+            {
+                title: 'Durasi Pembelajaran',
+                href: admin.durasiPembelajaran.index.url(),
+                icon: Clock,
             },
             {
                 title: 'Jadwal Pelajaran',

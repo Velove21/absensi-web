@@ -19,6 +19,7 @@ Route::middleware(['web', 'auth', 'role:guru', 'check.password.status'])->prefix
 
     Route::get('download-bukti/{absensi}', [DownloadBuktiController::class, 'download'])->name('download-bukti');
 
+    Route::get('ubah-sandi', [PasswordResetController::class, 'showChange'])->name('password.change.show');
     Route::post('ubah-sandi', [PasswordResetController::class, 'updateChange'])->name('password.change');
 
     Route::get('export-absensi', [AttendanceExportController::class, 'export'])->name('export-absensi');

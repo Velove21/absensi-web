@@ -139,7 +139,7 @@ export default function SiswaIndex({
 
     const executeResetPassword = () => {
         if (!resettingPasswordSiswaId) return;
-        router.post(`/admin/siswa/${resettingPasswordSiswaId}/reset-password`, {}, {
+        router.post(adminSiswa.resetPassword.url({ siswa: resettingPasswordSiswaId }), {}, {
             preserveScroll: true,
             onSuccess: () => {
                 toast.success('Password siswa berhasil direset ke default (password)');

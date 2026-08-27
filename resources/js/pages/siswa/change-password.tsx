@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { dashboard as siswaDashboard } from '@/routes/siswa';
+import siswaPassword from '@/routes/siswa/password';
 import { Lock, KeyRound, ShieldCheck } from 'lucide-react';
 
 export default function ChangePassword() {
@@ -17,7 +18,7 @@ export default function ChangePassword() {
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        post('/siswa/ubah-sandi', {
+        post(siswaPassword.change.url(), {
             preserveScroll: true,
             onSuccess: () => {
                 reset('current_password', 'password', 'password_confirmation');
@@ -130,7 +131,7 @@ export default function ChangePassword() {
 
 ChangePassword.layout = {
     breadcrumbs: [
-        { title: 'Dashboard', href: '/siswa/dashboard' },
-        { title: 'Ubah Sandi', href: '/siswa/ubah-sandi' },
+        { title: 'Dashboard', href: siswaDashboard.url() },
+        { title: 'Ubah Sandi', href: siswaPassword.change.url() },
     ],
 };

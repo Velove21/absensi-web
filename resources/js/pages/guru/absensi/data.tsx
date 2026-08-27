@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import absensiData from '@/routes/guru/data-absensi';
+import { exportAbsensi as guruExportAbsensi, downloadBukti as guruDownloadBukti } from '@/routes/guru';
 import {
     Select,
     SelectContent,
@@ -91,7 +92,7 @@ export default function GuruDataAbsensi({
         params.set('mapel_id', filters.mapel_id);
         if (exportStartDate) params.set('start_date', exportStartDate);
         if (exportEndDate) params.set('end_date', exportEndDate);
-        window.open('/guru/export-absensi?' + params.toString(), '_blank');
+        window.open(guruExportAbsensi.url() + '?' + params.toString(), '_blank');
     };
 
     const handleFilterChange = (key: keyof Props['filters'], value: string) => {
@@ -491,7 +492,7 @@ export default function GuruDataAbsensi({
                             </div>
                             <div className="flex justify-center">
                                 <a
-                                    href={`/guru/download-bukti/${previewBukti.id}`}
+                                    href={guruDownloadBukti.url({ absensi: previewBukti.id })}
                                     className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
                                 >
                                     <Download className="h-4 w-4" /> Download

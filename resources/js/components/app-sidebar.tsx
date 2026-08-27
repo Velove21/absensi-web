@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid, Users, UserCircle, GraduationCap, School, ClipboardList, History, ListOrdered, Clock, KeyRound, FileSpreadsheet, CalendarDays, Calendar } from 'lucide-react';
+import { BookOpen, FolderGit2, LayoutGrid, Users, UserCircle, GraduationCap, School, ClipboardList, History, ListOrdered, Clock, KeyRound, FileSpreadsheet, Calendar } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -15,12 +15,14 @@ import {
 } from '@/components/ui/sidebar';
 import * as routes from '@/routes';
 import admin from '@/routes/admin';
-import adminSchedule from '@/routes/admin/jadwal-pelajaran';
+import adminPassword from '@/routes/admin/password';
 import adminTahunAjaran from '@/routes/admin/tahun-ajaran';
 import guruRoutes from '@/routes/guru/absensi';
 import absensiData from '@/routes/guru/data-absensi';
 import exportAbsensi from '@/routes/guru/export';
+import guruPassword from '@/routes/guru/password';
 import { dashboard as siswaDashboard } from '@/routes/siswa';
+import siswaPassword from '@/routes/siswa/password';
 import type { NavItem, SharedData } from '@/types';
 
 export function AppSidebar() {
@@ -57,11 +59,6 @@ export function AppSidebar() {
                 icon: Clock,
             },
             {
-                title: 'Jadwal Pelajaran',
-                href: adminSchedule.index.url(),
-                icon: CalendarDays,
-            },
-            {
                 title: 'Kelas',
                 href: admin.kelas.index.url(),
                 icon: GraduationCap,
@@ -88,7 +85,7 @@ export function AppSidebar() {
             },
             {
                 title: 'Ubah Sandi',
-                href: '/admin/ubah-sandi',
+                href: adminPassword.change.url(),
                 icon: KeyRound,
             },
         ];
@@ -111,7 +108,7 @@ export function AppSidebar() {
             },
             {
                 title: 'Ubah Sandi',
-                href: '/guru/ubah-sandi',
+                href: guruPassword.change.url(),
                 icon: KeyRound,
             },
         ];
@@ -124,7 +121,7 @@ export function AppSidebar() {
             },
             {
                 title: 'Ubah Sandi',
-                href: '/siswa/ubah-sandi',
+                href: siswaPassword.change.url(),
                 icon: KeyRound,
             },
         ];

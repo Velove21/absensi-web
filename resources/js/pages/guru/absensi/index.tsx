@@ -70,7 +70,7 @@ interface Schedule {
     id: number;
     waktu_mulai: string;
     waktu_selesai: string;
-    urutan: number;
+    jam_ke: number;
 }
 
 interface Props {
@@ -138,8 +138,8 @@ export default function GuruAbsensiIndex({
         const minJam = Math.min(...jams);
         const maxJam = Math.max(...jams);
 
-        const startSchedule = schedules.find(s => s.urutan === minJam);
-        const endSchedule = schedules.find(s => s.urutan === maxJam);
+        const startSchedule = schedules.find(s => s.jam_ke === minJam);
+        const endSchedule = schedules.find(s => s.jam_ke === maxJam);
 
         if (startSchedule) {
             setWaktuMulaiInput(startSchedule.waktu_mulai);
@@ -157,7 +157,7 @@ export default function GuruAbsensiIndex({
         }
 
         const trimmed = jamKeInput.trim();
-        const maxUrutan = Math.max(...schedules.map(s => s.urutan));
+        const maxUrutan = Math.max(...schedules.map(s => s.jam_ke));
 
         if (/^\d+$/.test(trimmed)) {
             const num = parseInt(trimmed, 10);
@@ -454,7 +454,7 @@ export default function GuruAbsensiIndex({
                                     />
                                     <p className="text-[10px] text-muted-foreground">
                                         {schedules.length > 0
-                                            ? `Jadwal aktif: ${schedules.map(s => 'Jam ' + s.urutan).join(', ')}`
+                                            ? `Jadwal aktif: ${schedules.map(s => 'Jam ' + s.jam_ke).join(', ')}`
                                             : 'Tidak ada jadwal untuk tanggal ini.'}
                                     </p>
                                 </div>

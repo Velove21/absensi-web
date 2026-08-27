@@ -1,9 +1,10 @@
 import { Head } from '@inertiajs/react';
 import { useState } from 'react';
-import { FileSpreadsheet, Search, ChevronDown } from 'lucide-react';
+import { FileSpreadsheet, Search, ChevronDown, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { exportAbsensi as guruExportAbsensi } from '@/routes/guru';
 
 interface Kelas {
     id: number;
@@ -33,6 +34,7 @@ export default function GuruExportAbsensi({ kelasList, mataPelajarans }: Props) 
     const [kelasSearch, setKelasSearch] = useState('');
     const [mapelOpen, setMapelOpen] = useState(false);
     const [kelasOpen, setKelasOpen] = useState(false);
+    const [exporting, setExporting] = useState(false);
 
     const allMapelSelected = mapelIds.length === mataPelajarans.length && mataPelajarans.length > 0;
     const allKelasSelected = kelasIds.length === kelasList.length && kelasList.length > 0;
@@ -73,7 +75,7 @@ export default function GuruExportAbsensi({ kelasList, mataPelajarans }: Props) 
         (k.full_nama_kelas ?? k.nama_kelas).toLowerCase().includes(kelasSearch.toLowerCase())
     );
 
-    const handleExport = () => {
+    const handleExport = async () => {
         if (mapelIds.length === 0) {
             toast.error('Silakan pilih Mata Pelajaran.');
             return;
@@ -83,7 +85,32 @@ export default function GuruExportAbsensi({ kelasList, mataPelajarans }: Props) 
         kelasIds.forEach(id => params.append('kelas_ids[]', id));
         if (startDate) params.set('start_date', startDate);
         if (endDate) params.set('end_date', endDate);
-        window.open('/guru/export-absensi?' + params.toString(), '_blank');
+
+        setExporting(true);
+        try {
+            const response = await fetch(guruExportAbsensi.url() + '?' + params.toString());
+            if (!response.ok) {
+                toast.error('Gagal mengunduh file export.');
+                return;
+            }
+            const blob = await response.blob();
+            const disposition = response.headers.get('Content-Disposition') || '';
+            const filenameMatch = disposition.match(/filename="?([^";\n]+)"?/);
+            const filename = filenameMatch ? filenameMatch[1] : 'rekap-absensi.xls';
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+            toast.success('File export berhasil diunduh.');
+        } catch {
+            toast.error('Terjadi kesalahan saat export.');
+        } finally {
+            setExporting(false);
+        }
     };
 
     return (
@@ -249,8 +276,12 @@ export default function GuruExportAbsensi({ kelasList, mataPelajarans }: Props) 
                             />
                         </div>
 
-                        <Button onClick={handleExport} className="h-9 gap-1.5">
-                            <FileSpreadsheet className="h-4 w-4" /> Export Excel
+                        <Button type="button" onClick={handleExport} disabled={exporting} className="h-9 gap-1.5">
+                            {exporting ? (
+                                <><Loader2 className="h-4 w-4 animate-spin" /> Mengunduh...</>
+                            ) : (
+                                <><FileSpreadsheet className="h-4 w-4" /> Export Excel</>
+                            )}
                         </Button>
                     </div>
                 </div>

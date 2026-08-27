@@ -45,7 +45,7 @@ export default function Welcome() {
 
                     {/* Login Form */}
                     <Form
-                        action={store()}
+                        {...store.form()}
                         resetOnSuccess={['password']}
                     >
                         {({ processing, errors }) => (

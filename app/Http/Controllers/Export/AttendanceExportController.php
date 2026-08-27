@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Export;
 
 use App\Http\Controllers\Controller;
 use App\Models\Absensi;
+use App\Models\DurasiPembelajaran;
 use App\Models\Guru;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
-use App\Models\Schedule;
 use App\Models\Siswa;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -52,10 +52,10 @@ class AttendanceExportController extends Controller
     private function getScheduleInfo(string $jamKe, $allSchedules): array
     {
         if (is_numeric($jamKe)) {
-            $schedule = $allSchedules->firstWhere('urutan', (int) $jamKe);
+            $schedule = $allSchedules->firstWhere('jam_ke', (int) $jamKe);
             if ($schedule) {
                 return [
-                    'label' => $schedule->nama,
+                    'label' => $schedule->nama ?? $jamKe,
                     'waktu' => substr($schedule->waktu_mulai, 0, 5).' - '.substr($schedule->waktu_selesai, 0, 5),
                 ];
             }
@@ -74,7 +74,7 @@ class AttendanceExportController extends Controller
 
     private function generateExcel(Guru $guru, $mapels, $kelasIds, $startDate, $endDate): string
     {
-        $allSchedules = Schedule::orderBy('urutan')->get();
+        $allSchedules = DurasiPembelajaran::orderBy('jam_ke')->get();
 
         $html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
         $html .= '<head><meta charset="UTF-8">';

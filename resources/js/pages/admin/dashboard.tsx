@@ -1,7 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import { Shield, Users, BookOpen, GraduationCap, Activity, PieChart as PieChartIcon, CheckCircle, Clock, FileWarning, XCircle, Award, ImageUp, FileSpreadsheet, Search, ChevronDown } from 'lucide-react';
-import { dashboard as adminDashboard } from '@/routes/admin';
+import { dashboard as adminDashboard, exportAbsensi as adminExportAbsensi } from '@/routes/admin';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from '@/components/ui/chart';
@@ -179,7 +179,7 @@ export default function AdminDashboard({
         exportKelasIds.forEach(id => params.append('kelas_ids[]', id));
         if (exportStartDate) params.set('start_date', exportStartDate);
         if (exportEndDate) params.set('end_date', exportEndDate);
-        window.open('/admin/export-absensi?' + params.toString(), '_blank');
+        window.open(adminExportAbsensi.url() + '?' + params.toString(), '_blank');
     };
 
     // Statistik detail state

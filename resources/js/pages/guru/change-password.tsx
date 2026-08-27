@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import guruRoutes from '@/routes/guru/absensi';
+import guruPassword from '@/routes/guru/password';
 import { Lock, KeyRound, ShieldCheck } from 'lucide-react';
 
 export default function ChangePassword() {
@@ -16,7 +18,7 @@ export default function ChangePassword() {
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        post('/guru/ubah-sandi', {
+        post(guruPassword.change.url(), {
             preserveScroll: true,
             onSuccess: () => {
                 reset('current_password', 'password', 'password_confirmation');
@@ -129,7 +131,7 @@ export default function ChangePassword() {
 
 ChangePassword.layout = {
     breadcrumbs: [
-        { title: 'Dashboard', href: '/guru/absensi' },
-        { title: 'Ubah Sandi', href: '/guru/ubah-sandi' },
+        { title: 'Dashboard', href: guruRoutes.index.url() },
+        { title: 'Ubah Sandi', href: guruPassword.change.url() },
     ],
 };

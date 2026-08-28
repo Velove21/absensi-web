@@ -9,7 +9,9 @@ interface Props {
 }
 
 export default function Pagination({ links }: Props) {
-    if (links.length <= 3) return null;
+    if (links.length <= 3) {
+return null;
+}
 
     return (
         <div className="mt-6 flex flex-wrap items-center justify-center gap-1">

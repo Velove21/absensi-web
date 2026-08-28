@@ -1,17 +1,6 @@
-import React, { useState, useEffect } from 'react';
 import { Head, router } from '@inertiajs/react';
-import absensi from '@/routes/guru/absensi';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import SearchableSelect from '@/components/ui/searchable-select';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { CheckCircle, XCircle, Clock, FileWarning, Trash2, UserCircle, BookOpen, Clock3, Calendar, Award, ImageUp, Loader2 } from 'lucide-react';
+import React, { useState } from 'react';
 import { toast } from 'sonner';
 import {
     AlertDialog,
@@ -23,6 +12,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -31,6 +21,16 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import SearchableSelect from '@/components/ui/searchable-select';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import absensi from '@/routes/guru/absensi';
 
 interface Jurusan {
     id: number;
@@ -88,6 +88,20 @@ interface Props {
     schedules: Schedule[];
 }
 
+function getInitialKeterangans(siswasList: Siswa[]): Record<number, string> {
+    const initialKeterangans: Record<number, string> = {};
+
+    if (siswasList && Array.isArray(siswasList)) {
+        siswasList.forEach((s) => {
+            if (s.absensi?.keterangan) {
+                initialKeterangans[s.id] = s.absensi.keterangan;
+            }
+        });
+    }
+
+    return initialKeterangans;
+}
+
 export default function GuruAbsensiIndex({
     kelasList,
     mataPelajarans = [],
@@ -95,7 +109,16 @@ export default function GuruAbsensiIndex({
     siswas = [],
     schedules = [],
 }: Props) {
-    const [keterangans, setKeterangans] = useState<Record<number, string>>({});
+    const [prevSiswas, setPrevSiswas] = useState(siswas);
+    const [keterangans, setKeterangans] = useState<Record<number, string>>(() =>
+        getInitialKeterangans(siswas)
+    );
+
+    if (prevSiswas !== siswas) {
+        setPrevSiswas(siswas);
+        setKeterangans(getInitialKeterangans(siswas));
+    }
+
     const [deletingAbsensiId, setDeletingAbsensiId] = useState<number | null>(null);
 
     const [showBuktiModal, setShowBuktiModal] = useState(false);
@@ -105,75 +128,49 @@ export default function GuruAbsensiIndex({
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [buktiLoading, setBuktiLoading] = useState(false);
 
+    const [prevJamKe, setPrevJamKe] = useState(filters.jam_ke);
     const [jamKeInput, setJamKeInput] = useState(filters.jam_ke || '');
-    const [waktuMulaiInput, setWaktuMulaiInput] = useState(filters.waktu_mulai || '');
-    const [waktuSelesaiInput, setWaktuSelesaiInput] = useState(filters.waktu_selesai || '');
-    const [recommendations, setRecommendations] = useState<string[]>([]);
 
-    useEffect(() => {
-        const initialKeterangans: Record<number, string> = {};
-        if (siswas && Array.isArray(siswas)) {
-            siswas.forEach((s) => {
-                if (s.absensi?.keterangan) {
-                    initialKeterangans[s.id] = s.absensi.keterangan;
-                }
-            });
-        }
-        setKeterangans(initialKeterangans);
-    }, [siswas]);
-
-    useEffect(() => {
+    if (prevJamKe !== filters.jam_ke) {
+        setPrevJamKe(filters.jam_ke);
         setJamKeInput(filters.jam_ke || '');
-        setWaktuMulaiInput(filters.waktu_mulai || '');
-        setWaktuSelesaiInput(filters.waktu_selesai || '');
-    }, [filters.jam_ke, filters.waktu_mulai, filters.waktu_selesai]);
+    }
 
-    useEffect(() => {
-        if (!jamKeInput || !filters.tanggal || !schedules.length) return;
+    const jamParts = jamKeInput.match(/\d+/g);
+    const jams = jamParts ? jamParts.map(Number) : [];
+    const minJam = jams.length > 0 ? Math.min(...jams) : null;
+    const maxJam = jams.length > 0 ? Math.max(...jams) : null;
 
-        const jamParts = jamKeInput.match(/\d+/g);
-        if (!jamParts || jamParts.length === 0) return;
+    const startSchedule = minJam !== null ? schedules.find((s) => s.jam_ke === minJam) : null;
+    const endSchedule = maxJam !== null ? schedules.find((s) => s.jam_ke === maxJam) : null;
 
-        const jams = jamParts.map(Number);
-        const minJam = Math.min(...jams);
-        const maxJam = Math.max(...jams);
+    const waktuMulaiInput = startSchedule?.waktu_mulai || filters.waktu_mulai || '';
+    const waktuSelesaiInput = endSchedule?.waktu_selesai || filters.waktu_selesai || '';
 
-        const startSchedule = schedules.find(s => s.jam_ke === minJam);
-        const endSchedule = schedules.find(s => s.jam_ke === maxJam);
-
-        if (startSchedule) {
-            setWaktuMulaiInput(startSchedule.waktu_mulai);
-        }
-
-        if (endSchedule) {
-            setWaktuSelesaiInput(endSchedule.waktu_selesai);
-        }
-    }, [jamKeInput, filters.tanggal, schedules]);
-
-    useEffect(() => {
+    const recommendations = (() => {
         if (!jamKeInput || !filters.tanggal || !schedules.length) {
-            setRecommendations([]);
-            return;
+            return [];
         }
 
         const trimmed = jamKeInput.trim();
-        const maxUrutan = Math.max(...schedules.map(s => s.jam_ke));
+        const maxUrutan = Math.max(...schedules.map((s) => s.jam_ke));
 
         if (/^\d+$/.test(trimmed)) {
             const num = parseInt(trimmed, 10);
+
             if (num >= 1 && num < maxUrutan) {
                 const recs: string[] = [];
+
                 for (let i = num + 1; i <= maxUrutan; i++) {
                     recs.push(`${num}-${i}`);
                 }
-                setRecommendations(recs);
-            } else {
-                setRecommendations([]);
+
+                return recs;
             }
-        } else {
-            setRecommendations([]);
         }
-    }, [jamKeInput, filters.tanggal, schedules]);
+
+        return [];
+    })();
 
     const handleFilterChange = (key: keyof Props['filters'], value: string) => {
         const newFilters = { ...filters, [key]: value };
@@ -193,10 +190,13 @@ export default function GuruAbsensiIndex({
     const applyTeachingDetails = () => {
         if (!filters.kelas_id || !filters.mapel_id) {
             toast.error('Silakan pilih Kelas dan Mata Pelajaran terlebih dahulu.');
+
             return;
         }
+
         if (!jamKeInput.trim()) {
             toast.error('Silakan isi Jam Pembelajaran (contoh: 1-2).');
+
             return;
         }
 
@@ -219,14 +219,19 @@ export default function GuruAbsensiIndex({
     const handleStatusClick = (siswaId: number, status: string) => {
         if (!filters.tanggal) {
             toast.error('Silakan pilih tanggal terlebih dahulu.');
+
             return;
         }
+
         if (!filters.mapel_id) {
             toast.error('Silakan pilih Mata Pelajaran.');
+
             return;
         }
+
         if (!filters.jam_ke) {
             toast.error('Silakan terapkan Jam Pembelajaran.');
+
             return;
         }
 
@@ -236,6 +241,7 @@ export default function GuruAbsensiIndex({
             setBuktiFile(null);
             setPreviewUrl(null);
             setShowBuktiModal(true);
+
             return;
         }
 
@@ -245,6 +251,7 @@ export default function GuruAbsensiIndex({
     const handleBuktiFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] || null;
         setBuktiFile(file);
+
         if (file) {
             const url = URL.createObjectURL(file);
             setPreviewUrl(url);
@@ -254,11 +261,16 @@ export default function GuruAbsensiIndex({
     };
 
     const handleBuktiSubmit = () => {
-        if (!pendingSiswaId || !pendingStatus) return;
+        if (!pendingSiswaId || !pendingStatus) {
+return;
+}
+
         if (!buktiFile) {
             toast.error('Silakan pilih foto bukti terlebih dahulu.');
+
             return;
         }
+
         setBuktiLoading(true);
 
         const formData = new FormData();
@@ -345,7 +357,10 @@ export default function GuruAbsensiIndex({
     };
 
     const executeReset = () => {
-        if (!deletingAbsensiId) return;
+        if (!deletingAbsensiId) {
+return;
+}
+
         router.delete(
             absensi.destroy.url({ absensi: deletingAbsensiId }),
             {
@@ -361,12 +376,22 @@ export default function GuruAbsensiIndex({
     };
 
     const formatKelasName = (k: Kelas) => {
-        if (k.full_nama_kelas) return k.full_nama_kelas;
+        if (k.full_nama_kelas) {
+return k.full_nama_kelas;
+}
 
         const parts: string[] = [];
-        if (k.tingkat) parts.push(k.tingkat);
-        if (k.jurusan?.singkatan) parts.push(k.jurusan.singkatan);
+
+        if (k.tingkat) {
+parts.push(k.tingkat);
+}
+
+        if (k.jurusan?.singkatan) {
+parts.push(k.jurusan.singkatan);
+}
+
         parts.push(k.nama_kelas);
+
         return parts.join(' ');
     };
 
@@ -695,7 +720,11 @@ export default function GuruAbsensiIndex({
                 </AlertDialogContent>
             </AlertDialog>
 
-            <Dialog open={showBuktiModal} onOpenChange={(open) => { if (!open) handleBuktiCancel(); }}>
+            <Dialog open={showBuktiModal} onOpenChange={(open) => {
+ if (!open) {
+handleBuktiCancel();
+} 
+}}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle>Upload Bukti Foto</DialogTitle>

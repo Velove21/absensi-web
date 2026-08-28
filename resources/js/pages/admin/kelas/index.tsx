@@ -1,12 +1,8 @@
-import { useState } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
-import adminKelas from '@/routes/admin/kelas';
-import { dashboard as adminDashboard } from '@/routes/admin';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
 import { Edit2, Trash2, X, Plus, Save, Layers } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import Pagination from '@/components/pagination';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -17,7 +13,11 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import Pagination from '@/components/pagination';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { dashboard as adminDashboard } from '@/routes/admin';
+import adminKelas from '@/routes/admin/kelas';
 
 interface Jurusan {
     id: number;
@@ -69,6 +69,7 @@ export default function KelasIndex({
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
+
         if (editingKelas) {
             put(adminKelas.update.url({ kela: editingKelas.id }), {
                 preserveScroll: true,
@@ -105,7 +106,10 @@ export default function KelasIndex({
     };
 
     const executeDelete = () => {
-        if (!deletingKelasId) return;
+        if (!deletingKelasId) {
+return;
+}
+
         router.delete(adminKelas.destroy.url({ kela: deletingKelasId }), {
             preserveScroll: true,
             onSuccess: () => {

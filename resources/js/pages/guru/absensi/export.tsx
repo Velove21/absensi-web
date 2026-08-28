@@ -1,9 +1,9 @@
 import { Head } from '@inertiajs/react';
-import { useState } from 'react';
 import { FileSpreadsheet, Search, ChevronDown, Loader2 } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { useState } from 'react';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { exportAbsensi as guruExportAbsensi } from '@/routes/guru';
 
 interface Kelas {
@@ -78,21 +78,33 @@ export default function GuruExportAbsensi({ kelasList, mataPelajarans }: Props) 
     const handleExport = async () => {
         if (mapelIds.length === 0) {
             toast.error('Silakan pilih Mata Pelajaran.');
+
             return;
         }
+
         const params = new URLSearchParams();
         mapelIds.forEach(id => params.append('mapel_ids[]', id));
         kelasIds.forEach(id => params.append('kelas_ids[]', id));
-        if (startDate) params.set('start_date', startDate);
-        if (endDate) params.set('end_date', endDate);
+
+        if (startDate) {
+params.set('start_date', startDate);
+}
+
+        if (endDate) {
+params.set('end_date', endDate);
+}
 
         setExporting(true);
+
         try {
             const response = await fetch(guruExportAbsensi.url() + '?' + params.toString());
+
             if (!response.ok) {
                 toast.error('Gagal mengunduh file export.');
+
                 return;
             }
+
             const blob = await response.blob();
             const disposition = response.headers.get('Content-Disposition') || '';
             const filenameMatch = disposition.match(/filename="?([^";\n]+)"?/);
@@ -135,7 +147,9 @@ export default function GuruExportAbsensi({ kelasList, mataPelajarans }: Props) 
                             <div className="relative">
                                 <button
                                     type="button"
-                                    onClick={() => { setMapelOpen(!mapelOpen); setKelasOpen(false); }}
+                                    onClick={() => {
+ setMapelOpen(!mapelOpen); setKelasOpen(false); 
+}}
                                     className="flex h-9 w-[220px] items-center justify-between gap-2 rounded-md border border-input bg-muted/30 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
                                 >
                                     <span className="line-clamp-1 flex-1 text-left">
@@ -198,7 +212,9 @@ export default function GuruExportAbsensi({ kelasList, mataPelajarans }: Props) 
                             <div className="relative">
                                 <button
                                     type="button"
-                                    onClick={() => { setKelasOpen(!kelasOpen); setMapelOpen(false); }}
+                                    onClick={() => {
+ setKelasOpen(!kelasOpen); setMapelOpen(false); 
+}}
                                     className="flex h-9 w-[220px] items-center justify-between gap-2 rounded-md border border-input bg-muted/30 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
                                 >
                                     <span className="line-clamp-1 flex-1 text-left">

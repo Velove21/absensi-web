@@ -1,14 +1,12 @@
 import { Head, router } from '@inertiajs/react';
-import { useState } from 'react';
 import { Shield, Users, BookOpen, GraduationCap, Activity, PieChart as PieChartIcon, CheckCircle, Clock, FileWarning, XCircle, Award, ImageUp, FileSpreadsheet, Search, ChevronDown } from 'lucide-react';
-import { dashboard as adminDashboard, exportAbsensi as adminExportAbsensi } from '@/routes/admin';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from '@/components/ui/chart';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import SearchableSelect from '@/components/ui/searchable-select';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import type { ChartConfig } from '@/components/ui/chart';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import {
     Dialog,
     DialogContent,
@@ -16,6 +14,9 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import SearchableSelect from '@/components/ui/searchable-select';
+import { dashboard as adminDashboard, exportAbsensi as adminExportAbsensi } from '@/routes/admin';
 
 interface Stats {
     total_jurusan: number;
@@ -106,7 +107,6 @@ export default function AdminDashboard({
     attendanceToday, 
     studentsPerJurusan,
     filters,
-    detailedAttendance,
     gurus = [],
 }: AdminDashboardProps) {
     const [previewBukti, setPreviewBukti] = useState<string | null>(null);
@@ -167,18 +167,29 @@ export default function AdminDashboard({
     const handleExport = () => {
         if (!exportGuruId) {
             toast.error('Silakan pilih Guru.');
+
             return;
         }
+
         if (exportMapelIds.length === 0) {
             toast.error('Silakan pilih Mata Pelajaran.');
+
             return;
         }
+
         const params = new URLSearchParams();
         params.set('guru_id', exportGuruId);
         exportMapelIds.forEach(id => params.append('mapel_ids[]', id));
         exportKelasIds.forEach(id => params.append('kelas_ids[]', id));
-        if (exportStartDate) params.set('start_date', exportStartDate);
-        if (exportEndDate) params.set('end_date', exportEndDate);
+
+        if (exportStartDate) {
+params.set('start_date', exportStartDate);
+}
+
+        if (exportEndDate) {
+params.set('end_date', exportEndDate);
+}
+
         window.open(adminExportAbsensi.url() + '?' + params.toString(), '_blank');
     };
 
@@ -215,7 +226,11 @@ export default function AdminDashboard({
                     const data = (page.props as any).detailedAttendance as DetailedAttendance[];
                     const singlePerDay = data.reduce<DetailedAttendance[]>((acc, curr) => {
                         const exists = acc.find(a => a.siswa.nis === curr.siswa.nis);
-                        if (!exists) acc.push(curr);
+
+                        if (!exists) {
+acc.push(curr);
+}
+
                         return acc;
                     }, []);
                     setStatDetail(singlePerDay);
@@ -238,9 +253,17 @@ export default function AdminDashboard({
 
     const formatKelasName = (k: Kelas) => {
         const parts = [];
-        if (k.tingkat) parts.push(k.tingkat);
-        if (k.jurusan?.singkatan) parts.push(k.jurusan.singkatan);
+
+        if (k.tingkat) {
+parts.push(k.tingkat);
+}
+
+        if (k.jurusan?.singkatan) {
+parts.push(k.jurusan.singkatan);
+}
+
         parts.push(k.nama_kelas);
+
         return parts.join(' ');
     };
 
@@ -358,7 +381,9 @@ export default function AdminDashboard({
                                 <button
                                     type="button"
                                     disabled={!exportGuruId}
-                                    onClick={() => { setExportMapelOpen(!exportMapelOpen); setExportKelasOpen(false); }}
+                                    onClick={() => {
+ setExportMapelOpen(!exportMapelOpen); setExportKelasOpen(false); 
+}}
                                     className="flex h-9 w-[220px] items-center justify-between gap-2 rounded-md border border-input bg-muted/30 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50"
                                 >
                                     <span className="line-clamp-1 flex-1 text-left">
@@ -422,7 +447,9 @@ export default function AdminDashboard({
                                 <button
                                     type="button"
                                     disabled={!exportGuruId}
-                                    onClick={() => { setExportKelasOpen(!exportKelasOpen); setExportMapelOpen(false); }}
+                                    onClick={() => {
+ setExportKelasOpen(!exportKelasOpen); setExportMapelOpen(false); 
+}}
                                     className="flex h-9 w-[220px] items-center justify-between gap-2 rounded-md border border-input bg-muted/30 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50"
                                 >
                                     <span className="line-clamp-1 flex-1 text-left">
@@ -614,7 +641,11 @@ export default function AdminDashboard({
                 </div>
 
                 {/* Statistik Detail Dialog */}
-                <Dialog open={statDialogOpen} onOpenChange={(open) => { if (!open) setStatDialogOpen(false); }}>
+                <Dialog open={statDialogOpen} onOpenChange={(open) => {
+ if (!open) {
+setStatDialogOpen(false);
+} 
+}}>
                     <DialogContent className="sm:max-w-4xl max-h-[80vh] flex flex-col">
                         <DialogHeader>
                             <DialogTitle className="capitalize">Detail Absensi: {selectedStatus}</DialogTitle>
@@ -673,7 +704,11 @@ export default function AdminDashboard({
                 </Dialog>
             </div>
 
-            <Dialog open={previewBukti !== null} onOpenChange={(open) => { if (!open) setPreviewBukti(null); }}>
+            <Dialog open={previewBukti !== null} onOpenChange={(open) => {
+ if (!open) {
+setPreviewBukti(null);
+} 
+}}>
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
                         <DialogTitle>Bukti Absensi</DialogTitle>

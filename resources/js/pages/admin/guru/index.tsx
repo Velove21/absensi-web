@@ -1,12 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
-import adminGuru from '@/routes/admin/guru';
-import { dashboard as adminDashboard } from '@/routes/admin';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
 import { Edit2, Trash2, X, Plus, Save, Users, BookOpen, KeyRound, Search } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { toast } from 'sonner';
+import Pagination from '@/components/pagination';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -17,7 +13,11 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import Pagination from '@/components/pagination';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { dashboard as adminDashboard } from '@/routes/admin';
+import adminGuru from '@/routes/admin/guru';
 
 interface Kelas {
     id: number;
@@ -68,7 +68,15 @@ export default function GuruIndex({
     const [deletingGuruId, setDeletingGuruId] = useState<number | null>(null);
     const [resettingPasswordGuruId, setResettingPasswordGuruId] = useState<number | null>(null);
 
-    const [search, setSearch] = useState('');
+    const [search, setSearch] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+
+            return params.get('search') || '';
+        }
+
+        return '';
+    });
     const searchTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
@@ -78,11 +86,6 @@ export default function GuruIndex({
         kelas_ids: [] as number[],
         mata_pelajaran_ids: [] as number[],
     });
-
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        setSearch(params.get('search') || '');
-    }, []);
 
     const handleSearch = (value: string) => {
         setSearch(value);
@@ -101,6 +104,7 @@ export default function GuruIndex({
 
         if (data.nip.length !== 18) {
             toast.error('NIP harus terdiri dari 18 karakter');
+
             return;
         }
 
@@ -145,6 +149,7 @@ export default function GuruIndex({
 
     const handleKelasToggle = (kelasId: number) => {
         const isSelected = data.kelas_ids.includes(kelasId);
+
         if (isSelected) {
             setData('kelas_ids', data.kelas_ids.filter(id => id !== kelasId));
         } else {
@@ -154,6 +159,7 @@ export default function GuruIndex({
 
     const handleMataPelajaranToggle = (mapelId: number) => {
         const isSelected = data.mata_pelajaran_ids.includes(mapelId);
+
         if (isSelected) {
             setData('mata_pelajaran_ids', data.mata_pelajaran_ids.filter(id => id !== mapelId));
         } else {
@@ -162,7 +168,10 @@ export default function GuruIndex({
     };
 
     const executeDelete = () => {
-        if (!deletingGuruId) return;
+        if (!deletingGuruId) {
+return;
+}
+
         router.delete(adminGuru.destroy.url({ guru: deletingGuruId }), {
             preserveScroll: true,
             onSuccess: () => {
@@ -174,7 +183,10 @@ export default function GuruIndex({
     };
 
     const executeResetPassword = () => {
-        if (!resettingPasswordGuruId) return;
+        if (!resettingPasswordGuruId) {
+return;
+}
+
         router.post(adminGuru.resetPassword.url({ guru: resettingPasswordGuruId }), {}, {
             preserveScroll: true,
             onSuccess: () => {

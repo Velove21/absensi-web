@@ -1,12 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
-import adminSiswa from '@/routes/admin/siswa';
-import { dashboard as adminDashboard } from '@/routes/admin';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Edit2, Trash2, X, Plus, Save, UserCircle, KeyRound, Search } from 'lucide-react';
+import { useState, useRef } from 'react';
 import { toast } from 'sonner';
-import { Edit2, Trash2, X, Plus, Save, UserCircle, Users, KeyRound, Search } from 'lucide-react';
+import Pagination from '@/components/pagination';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -17,7 +13,11 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import Pagination from '@/components/pagination';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { dashboard as adminDashboard } from '@/routes/admin';
+import adminSiswa from '@/routes/admin/siswa';
 
 interface Kelas {
     id: number;
@@ -58,7 +58,15 @@ export default function SiswaIndex({
     const [editingSiswa, setEditingSiswa] = useState<Siswa | null>(null);
     const [deletingSiswaId, setDeletingSiswaId] = useState<number | null>(null);
     const [resettingPasswordSiswaId, setResettingPasswordSiswaId] = useState<number | null>(null);
-    const [search, setSearch] = useState('');
+    const [search, setSearch] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+
+            return params.get('search') || '';
+        }
+
+        return '';
+    });
     const searchTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
@@ -67,11 +75,6 @@ export default function SiswaIndex({
         kelas_id: '',
         password: '',
     });
-
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        setSearch(params.get('search') || '');
-    }, []);
 
     const handleSearch = (value: string) => {
         setSearch(value);
@@ -87,6 +90,7 @@ export default function SiswaIndex({
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
+
         if (editingSiswa) {
             put(adminSiswa.update.url({ siswa: editingSiswa.id }), {
                 preserveScroll: true,
@@ -126,7 +130,10 @@ export default function SiswaIndex({
     };
 
     const executeDelete = () => {
-        if (!deletingSiswaId) return;
+        if (!deletingSiswaId) {
+return;
+}
+
         router.delete(adminSiswa.destroy.url({ siswa: deletingSiswaId }), {
             preserveScroll: true,
             onSuccess: () => {
@@ -138,7 +145,10 @@ export default function SiswaIndex({
     };
 
     const executeResetPassword = () => {
-        if (!resettingPasswordSiswaId) return;
+        if (!resettingPasswordSiswaId) {
+return;
+}
+
         router.post(adminSiswa.resetPassword.url({ siswa: resettingPasswordSiswaId }), {}, {
             preserveScroll: true,
             onSuccess: () => {

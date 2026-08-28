@@ -1,12 +1,8 @@
-import { useState } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
-import adminMataPelajaran from '@/routes/admin/matapelajaran';
-import { dashboard as adminDashboard } from '@/routes/admin';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
 import { Edit2, Trash2, X, Plus, Save, BookOpen } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import Pagination from '@/components/pagination';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -17,7 +13,11 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import Pagination from '@/components/pagination';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { dashboard as adminDashboard } from '@/routes/admin';
+import adminMataPelajaran from '@/routes/admin/matapelajaran';
 
 interface KategoriPembelajaran {
     id: number;
@@ -94,7 +94,10 @@ export default function MataPelajaranIndex({
     };
 
     const executeDelete = () => {
-        if (!deletingMapelId) return;
+        if (!deletingMapelId) {
+return;
+}
+
         router.delete(adminMataPelajaran.destroy.url({ matapelajaran: deletingMapelId }), {
             preserveScroll: true,
             onSuccess: () => {

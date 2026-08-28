@@ -1,4 +1,5 @@
 import { Head, useForm } from '@inertiajs/react';
+import { Lock, KeyRound, ShieldCheck } from 'lucide-react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,6 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import password from '@/routes/admin/password';
-import { Lock, KeyRound, ShieldCheck } from 'lucide-react';
 
 export default function ChangePassword() {
     const { data, setData, post, processing, errors, recentlySuccessful, reset } = useForm({

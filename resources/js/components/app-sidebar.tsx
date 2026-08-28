@@ -1,7 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid, Users, UserCircle, GraduationCap, School, ClipboardList, History, ListOrdered, Clock, KeyRound, FileSpreadsheet, Calendar } from 'lucide-react';
+import { BookOpen, LayoutGrid, Users, UserCircle, GraduationCap, School, ClipboardList, History, ListOrdered, Clock, KeyRound, FileSpreadsheet, Calendar } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
-import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -127,25 +126,24 @@ export function AppSidebar() {
         ];
     }
 
-    const footerNavItems: NavItem[] = [
-        {
-            title: 'Repository',
-            href: 'https://github.com/laravel/react-starter-kit',
-            icon: FolderGit2,
-        },
-        {
-            title: 'Documentation',
-            href: 'https://laravel.com/docs/starter-kits#react',
-            icon: BookOpen,
-        },
-    ];
+
 
     const getHeaderHref = () => {
-        if (userRole === 'admin') return admin.dashboard.url();
-        if (userRole === 'guru') return guruRoutes.index.url();
-        if (userRole === 'siswa') return siswaDashboard.url();
+        if (userRole === 'admin') {
+return admin.dashboard.url();
+}
+
+        if (userRole === 'guru') {
+return guruRoutes.index.url();
+}
+
+        if (userRole === 'siswa') {
+return siswaDashboard.url();
+}
+
         return routes.dashboard.url();
     };
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>

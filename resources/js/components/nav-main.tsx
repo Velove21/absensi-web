@@ -19,6 +19,7 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
             <SidebarMenu>
                 {items.map((item) => {
                     const active = isCurrentUrl(item.href);
+
                     return (
                         <SidebarMenuItem key={item.title}>
                             <SidebarMenuButton

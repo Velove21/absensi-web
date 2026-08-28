@@ -1,11 +1,11 @@
 import { Head, useForm } from '@inertiajs/react';
+import { ShieldAlert, Lock } from 'lucide-react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { update } from '@/routes/password/change';
-import { ShieldAlert, Lock } from 'lucide-react';
 
 export default function ForceChangePassword() {
     const { data, setData, post, processing, errors } = useForm({

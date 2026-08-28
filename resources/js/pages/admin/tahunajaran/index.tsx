@@ -1,12 +1,8 @@
-import { useState } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
-import adminTahunAjaran from '@/routes/admin/tahun-ajaran';
-import { dashboard as adminDashboard } from '@/routes/admin';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
 import { Calendar, Edit2, Trash2, X, Plus, Save, CheckCircle2, ArrowUp } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import Pagination from '@/components/pagination';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -17,6 +13,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -26,7 +23,10 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
-import Pagination from '@/components/pagination';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { dashboard as adminDashboard } from '@/routes/admin';
+import adminTahunAjaran from '@/routes/admin/tahun-ajaran';
 
 interface TahunAjaran {
     id: number;
@@ -62,6 +62,7 @@ export default function TahunAjaranIndex({
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
+
         if (editingTahun) {
             put(adminTahunAjaran.update.url({ tahun_ajaran: editingTahun.id }), {
                 preserveScroll: true,
@@ -97,7 +98,10 @@ export default function TahunAjaranIndex({
     };
 
     const executeDelete = () => {
-        if (!deletingTahunId) return;
+        if (!deletingTahunId) {
+return;
+}
+
         router.delete(adminTahunAjaran.destroy.url({ tahun_ajaran: deletingTahunId }), {
             preserveScroll: true,
             onSuccess: () => {
@@ -105,7 +109,10 @@ export default function TahunAjaranIndex({
                 setDeletingTahunId(null);
             },
             onError: (errors) => {
-                if (errors.active) toast.error(errors.active);
+                if (errors.active) {
+toast.error(errors.active);
+}
+
                 setDeletingTahunId(null);
             },
         });
@@ -127,7 +134,10 @@ export default function TahunAjaranIndex({
             },
             onError: (errors) => {
                 setNaikKelasOpen(false);
-                if (errors.naik_kelas) toast.error(errors.naik_kelas);
+
+                if (errors.naik_kelas) {
+toast.error(errors.naik_kelas);
+}
             },
         });
     };

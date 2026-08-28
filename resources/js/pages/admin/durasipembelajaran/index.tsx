@@ -1,13 +1,13 @@
-import { useState } from 'react';
 import { Head, useForm } from '@inertiajs/react';
-import adminDurasiPembelajaran from '@/routes/admin/durasi-pembelajaran';
-import { dashboard as adminDashboard } from '@/routes/admin';
+import { Edit2, X, Plus, Save, Clock } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import Pagination from '@/components/pagination';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
-import { Edit2, X, Plus, Save, Clock } from 'lucide-react';
-import Pagination from '@/components/pagination';
+import { dashboard as adminDashboard } from '@/routes/admin';
+import adminDurasiPembelajaran from '@/routes/admin/durasi-pembelajaran';
 
 interface DurasiPembelajaran {
     id: number;
@@ -49,6 +49,7 @@ export default function DurasiPembelajaranIndex({
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
+
         if (editingDurasi) {
             put(adminDurasiPembelajaran.update.url({ durasi_pembelajaran: editingDurasi.id }), {
                 preserveScroll: true,

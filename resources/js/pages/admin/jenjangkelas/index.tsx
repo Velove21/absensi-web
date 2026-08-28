@@ -1,12 +1,8 @@
-import { useState } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
-import adminJenjangKelas from '@/routes/admin/jenjang-kelas';
-import { dashboard as adminDashboard } from '@/routes/admin';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
 import { Edit2, Trash2, X, Plus, Save, ListOrdered } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import Pagination from '@/components/pagination';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -17,7 +13,11 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import Pagination from '@/components/pagination';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { dashboard as adminDashboard } from '@/routes/admin';
+import adminJenjangKelas from '@/routes/admin/jenjang-kelas';
 
 interface JenjangKelas {
     id: number;
@@ -47,6 +47,7 @@ export default function JenjangKelasIndex({
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
+
         if (editingJenjang) {
             put(adminJenjangKelas.update.url({ jenjang_kela: editingJenjang.id }), {
                 preserveScroll: true,
@@ -79,7 +80,10 @@ export default function JenjangKelasIndex({
     };
 
     const executeDelete = () => {
-        if (!deletingJenjangId) return;
+        if (!deletingJenjangId) {
+return;
+}
+
         router.delete(adminJenjangKelas.destroy.url({ jenjang_kela: deletingJenjangId }), {
             preserveScroll: true,
             onSuccess: () => {

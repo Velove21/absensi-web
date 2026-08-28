@@ -1,18 +1,7 @@
-import React, { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
-import absensiData from '@/routes/guru/data-absensi';
-import { exportAbsensi as guruExportAbsensi, downloadBukti as guruDownloadBukti } from '@/routes/guru';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import SearchableSelect from '@/components/ui/searchable-select';
-import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
 import { BookOpen, Calendar, Users, TableProperties, CheckCircle, Clock, FileWarning, XCircle, Award, ImageUp, Download, FileSpreadsheet } from 'lucide-react';
+import React, { useState } from 'react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -22,6 +11,17 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import SearchableSelect from '@/components/ui/searchable-select';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { exportAbsensi as guruExportAbsensi, downloadBukti as guruDownloadBukti } from '@/routes/guru';
+import absensiData from '@/routes/guru/data-absensi';
 
 interface Jurusan {
     id: number;
@@ -86,12 +86,21 @@ export default function GuruDataAbsensi({
     const handleExport = () => {
         if (!filters.mapel_id) {
             toast.error('Silakan pilih Mata Pelajaran terlebih dahulu.');
+
             return;
         }
+
         const params = new URLSearchParams();
         params.set('mapel_id', filters.mapel_id);
-        if (exportStartDate) params.set('start_date', exportStartDate);
-        if (exportEndDate) params.set('end_date', exportEndDate);
+
+        if (exportStartDate) {
+params.set('start_date', exportStartDate);
+}
+
+        if (exportEndDate) {
+params.set('end_date', exportEndDate);
+}
+
         window.open(guruExportAbsensi.url() + '?' + params.toString(), '_blank');
     };
 
@@ -124,12 +133,22 @@ export default function GuruDataAbsensi({
     };
 
     const formatKelasName = (k: Kelas) => {
-        if (k.full_nama_kelas) return k.full_nama_kelas;
+        if (k.full_nama_kelas) {
+return k.full_nama_kelas;
+}
         
         const parts = [];
-        if (k.tingkat) parts.push(k.tingkat);
-        if (k.jurusan?.singkatan) parts.push(k.jurusan.singkatan);
+
+        if (k.tingkat) {
+parts.push(k.tingkat);
+}
+
+        if (k.jurusan?.singkatan) {
+parts.push(k.jurusan.singkatan);
+}
+
         parts.push(k.nama_kelas);
+
         return parts.join(' ');
     };
 
@@ -473,7 +492,11 @@ export default function GuruDataAbsensi({
                 </div>
             </div>
 
-            <Dialog open={previewBukti !== null} onOpenChange={(open) => { if (!open) setPreviewBukti(null); }}>
+            <Dialog open={previewBukti !== null} onOpenChange={(open) => {
+ if (!open) {
+setPreviewBukti(null);
+} 
+}}>
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
                         <DialogTitle>Surat Absensi</DialogTitle>

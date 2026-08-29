@@ -1,5 +1,5 @@
 import { Link, router } from '@inertiajs/react';
-import { LogOut } from 'lucide-react';
+import { CircleUserRound, LogOut } from 'lucide-react';
 import {
     DropdownMenuItem,
     DropdownMenuLabel,
@@ -8,6 +8,8 @@ import {
 import { UserInfo } from '@/components/user-info';
 import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
 import { logout } from '@/routes';
+import { profil as guruProfil } from '@/routes/guru';
+import { profil as siswaProfil } from '@/routes/siswa';
 import type { User } from '@/types';
 
 type Props = {
@@ -22,6 +24,13 @@ export function UserMenuContent({ user }: Props) {
         router.flushAll();
     };
 
+    const profileHref =
+        user.role === 'guru'
+            ? guruProfil.url()
+            : user.role === 'siswa'
+              ? siswaProfil.url()
+              : null;
+
     return (
         <>
             <DropdownMenuLabel className="p-0 font-normal">
@@ -30,6 +39,17 @@ export function UserMenuContent({ user }: Props) {
                 </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            {profileHref && (
+                <>
+                    <DropdownMenuItem asChild>
+                        <Link href={profileHref} className="block w-full cursor-pointer">
+                            <CircleUserRound className="mr-2" />
+                            Profil
+                        </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                </>
+            )}
             <DropdownMenuItem asChild>
                 <Link
                     className="block w-full cursor-pointer"

@@ -1,31 +1,39 @@
-import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid, Users, UserCircle, GraduationCap, School, ClipboardList, History, ListOrdered, Clock, KeyRound, FileSpreadsheet, CalendarDays, UserCheck } from 'lucide-react';
-import AppLogo from '@/components/app-logo';
-import { NavFooter } from '@/components/nav-footer';
+import { usePage, Link } from '@inertiajs/react';
+import { BookOpen, LayoutGrid, Users, UserCircle, GraduationCap, School, ClipboardList, History, ListOrdered, Clock, KeyRound, FileSpreadsheet, Calendar } from 'lucide-react';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
     Sidebar,
     SidebarContent,
     SidebarFooter,
     SidebarHeader,
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import * as routes from '@/routes';
+import { useInitials } from '@/hooks/use-initials';
 import admin from '@/routes/admin';
-import adminSchedule from '@/routes/admin/jadwal-pelajaran';
+import adminPassword from '@/routes/admin/password';
+import adminTahunAjaran from '@/routes/admin/tahun-ajaran';
+import { profil as guruProfil } from '@/routes/guru';
 import guruRoutes from '@/routes/guru/absensi';
-import guruAbsensiGuru from '@/routes/guru/absensi-guru';
 import absensiData from '@/routes/guru/data-absensi';
 import exportAbsensi from '@/routes/guru/export';
+import guruPassword from '@/routes/guru/password';
 import { dashboard as siswaDashboard } from '@/routes/siswa';
+import { profil as siswaProfil } from '@/routes/siswa';
+import siswaPassword from '@/routes/siswa/password';
 import type { NavItem, SharedData } from '@/types';
 
 export function AppSidebar() {
     const { auth } = usePage<SharedData>().props;
     const userRole = auth.user.role;
+    const getInitials = useInitials();
+
+    const profileHref =
+        userRole === 'guru'
+            ? guruProfil.url()
+            : userRole === 'siswa'
+              ? siswaProfil.url()
+              : null;
 
     let mainNavItems: NavItem[] = [];
 
@@ -35,6 +43,11 @@ export function AppSidebar() {
                 title: 'Dashboard',
                 href: admin.dashboard.url(),
                 icon: LayoutGrid,
+            },
+            {
+                title: 'Tahun Ajaran',
+                href: adminTahunAjaran.index.url(),
+                icon: Calendar,
             },
             {
                 title: 'Jurusan',
@@ -47,9 +60,9 @@ export function AppSidebar() {
                 icon: ListOrdered,
             },
             {
-                title: 'Jadwal Pelajaran',
-                href: adminSchedule.index.url(),
-                icon: CalendarDays,
+                title: 'Durasi Pembelajaran',
+                href: admin.durasiPembelajaran.index.url(),
+                icon: Clock,
             },
             {
                 title: 'Kelas',
@@ -77,23 +90,13 @@ export function AppSidebar() {
                 icon: UserCircle,
             },
             {
-                title: 'Rekap Absensi Guru',
-                href: admin.rekapAbsensiGuru.index.url(),
-                icon: UserCheck,
-            },
-            {
                 title: 'Ubah Sandi',
-                href: '/admin/ubah-sandi',
+                href: adminPassword.change.url(),
                 icon: KeyRound,
             },
         ];
     } else if (userRole === 'guru') {
         mainNavItems = [
-            {
-                title: 'Absensi Guru',
-                href: guruAbsensiGuru.index.url(),
-                icon: UserCheck,
-            },
             {
                 title: 'Input Absensi',
                 href: guruRoutes.index.url(),
@@ -111,7 +114,7 @@ export function AppSidebar() {
             },
             {
                 title: 'Ubah Sandi',
-                href: '/guru/ubah-sandi',
+                href: guruPassword.change.url(),
                 icon: KeyRound,
             },
         ];
@@ -124,43 +127,29 @@ export function AppSidebar() {
             },
             {
                 title: 'Ubah Sandi',
-                href: '/siswa/ubah-sandi',
+                href: siswaPassword.change.url(),
                 icon: KeyRound,
             },
         ];
     }
 
-    const footerNavItems: NavItem[] = [
-        {
-            title: 'Repository',
-            href: 'https://github.com/laravel/react-starter-kit',
-            icon: FolderGit2,
-        },
-        {
-            title: 'Documentation',
-            href: 'https://laravel.com/docs/starter-kits#react',
-            icon: BookOpen,
-        },
-    ];
 
-    const getHeaderHref = () => {
-        if (userRole === 'admin') return admin.dashboard.url();
-        if (userRole === 'guru') return guruRoutes.index.url();
-        if (userRole === 'siswa') return siswaDashboard.url();
-        return routes.dashboard.url();
-    };
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
-                            <Link href={getHeaderHref()} prefetch>
-                                <AppLogo />
-                            </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                </SidebarMenu>
+                {profileHref ? (
+                    <Link
+                        href={profileHref}
+                        className="flex items-center gap-3 rounded-md px-2 py-2 transition-colors hover:bg-accent group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+                    >
+                        <ProfileHeaderInfo userRole={userRole} getInitials={getInitials} auth={auth} />
+                    </Link>
+                ) : (
+                    <div className="flex items-center gap-3 rounded-md px-2 py-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+                        <ProfileHeaderInfo userRole={userRole} getInitials={getInitials} auth={auth} />
+                    </div>
+                )}
             </SidebarHeader>
 
             <SidebarContent>
@@ -172,5 +161,59 @@ export function AppSidebar() {
                 <NavUser />
             </SidebarFooter>
         </Sidebar>
+    );
+}
+
+function ProfileHeaderInfo({
+    userRole,
+    getInitials,
+    auth,
+}: {
+    userRole: 'admin' | 'guru' | 'siswa';
+    getInitials: (name: string) => string;
+    auth: SharedData['auth'];
+}) {
+    return (
+        <>
+            <Avatar className="size-10 shrink-0 overflow-hidden rounded-full">
+                <AvatarImage src={auth.user?.avatar} alt={auth.user?.name} />
+                <AvatarFallback className="bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white">
+                    {getInitials(auth.user?.name ?? '')}
+                </AvatarFallback>
+            </Avatar>
+            <div className="grid flex-1 text-left leading-tight group-data-[collapsible=icon]:hidden">
+                <span
+                    className="truncate text-sm font-bold capitalize"
+                    style={{ fontFamily: "'Poppins', sans-serif", color: '#002399' }}
+                >
+                    {userRole}
+                </span>
+                {userRole === 'guru' || userRole === 'siswa' ? (
+                    <>
+                        <span
+                            className="truncate text-xs font-normal text-black"
+                            style={{ fontFamily: "'Poppins', sans-serif" }}
+                        >
+                            {auth.user?.name}
+                        </span>
+                        <span
+                            className="truncate text-xs font-normal text-black"
+                            style={{ fontFamily: "'Poppins', sans-serif" }}
+                        >
+                            {userRole === 'guru'
+                                ? `NIP: ${auth.user?.guru?.nip ?? '-'}`
+                                : `NIS: ${auth.user?.siswa?.nis ?? '-'}`}
+                        </span>
+                    </>
+                ) : (
+                    <span
+                        className="truncate text-xs font-normal text-black"
+                        style={{ fontFamily: "'Poppins', sans-serif" }}
+                    >
+                        {auth.user?.email}
+                    </span>
+                )}
+            </div>
+        </>
     );
 }

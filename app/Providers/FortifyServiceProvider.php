@@ -8,12 +8,12 @@ use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Laravel\Fortify\Contracts\LoginResponse;
-use Laravel\Fortify\Contracts\RegisterResponse;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\Http\Requests\LoginRequest;
@@ -28,11 +28,6 @@ class FortifyServiceProvider extends ServiceProvider
         $this->app->bind(
             LoginRequest::class,
             \App\Http\Requests\Auth\LoginRequest::class
-        );
-
-        $this->app->singleton(
-            RegisterResponse::class,
-            \App\Http\Responses\RegisterResponse::class
         );
     }
 
@@ -64,7 +59,18 @@ class FortifyServiceProvider extends ServiceProvider
                 ->orWhereHas('siswa', fn ($q) => $q->where('nis', $rawLogin)->orWhereRaw('LOWER(nis) = ?', [$login]))
                 ->first();
 
-            if ($user && Hash::check($request->password, $user->password)) {
+            $isPasswordValid = $user ? Hash::check($request->password, $user->password) : false;
+
+            $logData = [
+                'login_input' => $request->login,
+                'user_found' => $user ? ['id' => $user->id, 'email' => $user->email, 'username' => $user->username, 'role' => $user->role] : null,
+                'password_valid' => $isPasswordValid,
+            ];
+
+            Log::info('[FORTIFY AUTH DEBUG]', $logData);
+            error_log('[FORTIFY AUTH DEBUG] '.json_encode($logData));
+
+            if ($user && $isPasswordValid) {
                 return $user;
             }
         });

@@ -10,36 +10,44 @@ import { store } from '@/routes/login';
 export default function Welcome() {
     return (
         <>
-            <Head title="Selamat Datang - Absensi KlikHadir." />
-            <div className="relative flex min-h-screen flex-col items-center justify-center p-6 font-sans lg:p-8 overflow-hidden">
-                {/* Background */}
-                <div
-                    className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                    style={{ backgroundImage: "url('/images/background.jpg')" }}
+            <Head title="Selamat Datang - KlikHadir" />
+            <div
+                className="relative flex min-h-screen flex-col items-center justify-center p-6 lg:p-8 overflow-hidden"
+                style={{ backgroundColor: '#093ff9', fontFamily: "'Poppins', sans-serif" }}
+            >
+                {/* Wave background */}
+                <svg
+                    className="absolute bottom-0 left-0 right-0 w-full"
+                    viewBox="0 0 1440 320"
+                    preserveAspectRatio="none"
                 >
-                    <div className="absolute inset-0 bg-gradient-to-br from-[#0a192f]/90 via-[#112240]/85 to-[#1a365d]/90 backdrop-blur-[2px]" />
-                </div>
+                    <path
+                        fill="#3864f9"
+                        d="M0,224L60,213.3C120,203,240,181,360,181.3C480,181,600,203,720,224C840,245,960,267,1080,261.3C1200,256,1320,224,1380,208L1440,192L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z"
+                    />
+                    <path
+                        fill="#3864f9"
+                        d="M0,96L80,117.3C160,139,320,181,480,186.7C640,192,800,160,960,149.3C1120,139,1280,149,1360,154.7L1440,160L1440,320L0,320Z"
+                        opacity="0.4"
+                    />
+                </svg>
 
-                {/* Heading */}
-                <div className="relative z-10 mb-15 text-center space-y-3">
-                    <h1 className="text-4xl font-bold tracking-tight text-white md:text-5xl lg:text-5xl">
-                        Selamat Datang
-                    </h1>
-                    <p className="text-4xl font-bold tracking-tight text-white md:text-5xl lg:text-5xl">
-                        Silahkan Akses Absensi{' '}
-                        <span className="font-semibold text-[#0ea5e9]">KlikHadir.</span>
-                    </p>
+                {/* Brand */}
+                <div className="relative z-10 mb-10 flex items-center gap-3">
+                    <span className="text-3xl font-bold tracking-tight text-white">
+                        Selamat datang pengguna
+                    </span>
                 </div>
 
                 {/* Portal Card */}
-                <div className="relative z-10 w-full max-w-sm rounded-2xl border border-white/20 bg-white/10 p-8 shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] backdrop-blur-md">
+                <div className="relative z-10 w-full max-w-sm rounded-3xl bg-white p-8 shadow-[0_16px_48px_0_rgba(0,0,0,0.35)]">
                     {/* Card Header */}
-                    <div className="mb-6 text-center">
-                        <h2 className="text-lg font-bold tracking-widest text-white uppercase">
-                            Portal Login
-                        </h2>
-                        <p className="mt-1 text-xs text-blue-200/70">
-                            Masuk kedalam absensi KlikHadir.
+                    <div className="mb-7 text-center">
+                        <h1 className="text-2xl font-bold text-[#093ff9]">
+                            Panel Login
+                        </h1>
+                        <p className="mt-2 text-sm text-gray-500">
+                            Masuk kedalam absensi KlikHadir
                         </p>
                     </div>
 
@@ -51,10 +59,7 @@ export default function Welcome() {
                         {({ processing, errors }) => (
                             <div className="grid gap-4">
                                 <div className="grid gap-1.5">
-                                    <Label
-                                        htmlFor="login"
-                                        className="text-sm text-blue-100/90 font-medium"
-                                    >
+                                    <Label htmlFor="login" className="text-sm font-medium text-[#093ff9]">
                                         NIP / NIS / Email
                                     </Label>
                                     <Input
@@ -66,16 +71,13 @@ export default function Welcome() {
                                         tabIndex={1}
                                         autoComplete="username"
                                         placeholder="Masukkan NIP / NIS / Email"
-                                        className="h-11 border-white/20 bg-white/10 text-white placeholder:text-blue-200/40 focus:border-[#0ea5e9] focus:ring-[#0ea5e9]/20"
+                                        className="h-11 border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 focus:border-[#093ff9] focus:ring-[#093ff9]/20"
                                     />
                                     <InputError message={errors.login} />
                                 </div>
 
                                 <div className="grid gap-1.5">
-                                    <Label
-                                        htmlFor="password"
-                                        className="text-sm text-blue-100/90 font-medium"
-                                    >
+                                    <Label htmlFor="password" className="text-sm font-medium text-[#093ff9]">
                                         Password
                                     </Label>
                                     <PasswordInput
@@ -85,7 +87,7 @@ export default function Welcome() {
                                         tabIndex={2}
                                         autoComplete="current-password"
                                         placeholder="Masukkan password"
-                                        className="h-11 border-white/20 bg-white/10 text-white placeholder:text-blue-200/40 focus:border-[#0ea5e9] focus:ring-[#0ea5e9]/20"
+                                        className="h-11 border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 focus:border-[#093ff9] focus:ring-[#093ff9]/20"
                                     />
                                     <InputError message={errors.password} />
                                 </div>
@@ -95,7 +97,7 @@ export default function Welcome() {
                                     tabIndex={3}
                                     disabled={processing}
                                     data-test="login-button"
-                                    className="mt-2 h-11 w-full bg-gradient-to-r from-[#0ea5e9] to-blue-600 text-base font-semibold text-white shadow-[0_4px_14px_0_rgba(14,165,233,0.4)] transition-all duration-300 hover:from-[#0284c7] hover:to-blue-700 hover:shadow-[0_6px_20px_rgba(14,165,233,0.35)]"
+                                    className="mt-2 h-11 w-full bg-[#093ff9] text-base font-semibold text-white shadow-[0_4px_14px_0_rgba(9,63,249,0.4)] transition-all duration-300 hover:bg-[#0730c8] hover:shadow-[0_6px_20px_rgba(9,63,249,0.35)]"
                                 >
                                     {processing ? (
                                         <><Spinner className="mr-2" /> Memproses...</>

@@ -1,20 +1,4 @@
 import { Head } from '@inertiajs/react';
-import { useState } from 'react';
-import { dashboard as siswaDashboard } from '@/routes/siswa';
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import {
     CheckCircle,
     XCircle,
@@ -24,7 +8,14 @@ import {
     Award,
     ImageUp,
 } from 'lucide-react';
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -32,6 +23,15 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
+import { dashboard as siswaDashboard } from '@/routes/siswa';
 
 interface Absensi {
     id: number;
@@ -284,7 +284,11 @@ export default function SiswaDashboard({ siswa, stats, history }: Props) {
                 </Card>
             </div>
 
-            <Dialog open={previewBukti !== null} onOpenChange={(open) => { if (!open) setPreviewBukti(null); }}>
+            <Dialog open={previewBukti !== null} onOpenChange={(open) => {
+ if (!open) {
+setPreviewBukti(null);
+} 
+}}>
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
                         <DialogTitle>Bukti Absensi</DialogTitle>

@@ -26,9 +26,12 @@ export default function AuthCardLayout({
                     href={home()}
                     className="flex items-center gap-2 self-center font-medium"
                 >
-                    <div className="flex h-12 w-12 items-center justify-center">
-                        <img src="/images/logo.png" className="size-12 object-contain" alt="KlikHadir." />
-                    </div>
+                    <span
+                        className="text-lg font-bold tracking-widest uppercase"
+                        style={{ fontFamily: "'Poppins', sans-serif" }}
+                    >
+                        KlikHadir
+                    </span>
                 </Link>
 
                 <div className="flex flex-col gap-6">

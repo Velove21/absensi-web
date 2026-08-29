@@ -1,4 +1,5 @@
 import { createInertiaApp } from '@inertiajs/react';
+import SplashScreen from '@/components/splash-screen';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
@@ -13,6 +14,8 @@ createInertiaApp({
     layout: (name) => {
         switch (true) {
             case name === 'welcome':
+                return null;
+            case name === 'auth/secret-admin-register':
                 return null;
             case name === 'auth/force-change-password':
                 return null;
@@ -30,6 +33,7 @@ createInertiaApp({
             <TooltipProvider delayDuration={0}>
                 {app}
                 <Toaster />
+                <SplashScreen />
             </TooltipProvider>
         );
     },

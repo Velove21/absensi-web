@@ -1,12 +1,8 @@
-import { useState } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
-import adminKategoriPembelajaran from '@/routes/admin/kategori-pembelajaran';
-import { dashboard as adminDashboard } from '@/routes/admin';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
 import { Edit2, Trash2, X, Plus, Save, Library } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import Pagination from '@/components/pagination';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -17,7 +13,11 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import Pagination from '@/components/pagination';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { dashboard as adminDashboard } from '@/routes/admin';
+import adminKategoriPembelajaran from '@/routes/admin/kategori-pembelajaran';
 
 interface KategoriPembelajaran {
     id: number;
@@ -49,6 +49,7 @@ export default function KategoriPembelajaranIndex({
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
+
         if (editingKategori) {
             put(adminKategoriPembelajaran.update.url({ kategori_pembelajaran: editingKategori.id }), {
                 preserveScroll: true,
@@ -84,7 +85,10 @@ export default function KategoriPembelajaranIndex({
     };
 
     const executeDelete = () => {
-        if (!deletingKategoriId) return;
+        if (!deletingKategoriId) {
+return;
+}
+
         router.delete(adminKategoriPembelajaran.destroy.url({ kategori_pembelajaran: deletingKategoriId }), {
             preserveScroll: true,
             onSuccess: () => {

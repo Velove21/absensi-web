@@ -15,7 +15,14 @@ class LoginResponse implements LoginResponseContract
      */
     public function toResponse($request): Response
     {
-        $target = $this->redirectTarget($request);
+        $role = $request->user()?->role;
+
+        $target = match ($role) {
+            'admin' => route('admin.dashboard'),
+            'guru' => route('guru.absensi.index'),
+            'siswa' => route('siswa.dashboard'),
+            default => config('fortify.home'),
+        };
 
         $intended = session()->get('url.intended');
         if ($intended && (str_ends_with(parse_url($intended, PHP_URL_PATH) ?? '', '/login') || $intended === url('/'))) {
@@ -23,17 +30,5 @@ class LoginResponse implements LoginResponseContract
         }
 
         return redirect()->intended($target);
-    }
-
-    public static function redirectTarget(Request $request): string
-    {
-        $role = $request->user()?->role;
-
-        return match ($role) {
-            'admin' => route('admin.dashboard'),
-            'guru' => route('guru.absensi.index'),
-            'siswa' => route('siswa.dashboard'),
-            default => config('fortify.home'),
-        };
     }
 }

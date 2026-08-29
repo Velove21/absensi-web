@@ -8,6 +8,21 @@ export type User = {
     created_at: string;
     updated_at: string;
     role: 'admin' | 'guru' | 'siswa';
+    guru?: {
+        nama: string;
+        nip?: string;
+        jenis_kelamin?: 'laki-laki' | 'perempuan' | null;
+        foto_url?: string | null;
+    } | null;
+    siswa?: {
+        nama: string;
+        nis?: string;
+        jenis_kelamin?: 'laki-laki' | 'perempuan' | null;
+        foto_url?: string | null;
+        kelas?: {
+            full_nama_kelas: string;
+        } | null;
+    } | null;
     [key: string]: unknown;
 };
 

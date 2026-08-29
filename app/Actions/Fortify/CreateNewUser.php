@@ -3,13 +3,14 @@
 namespace App\Actions\Fortify;
 
 use App\Concerns\PasswordValidationRules;
+use App\Concerns\ProfileValidationRules;
 use App\Models\User;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 
 class CreateNewUser implements CreatesNewUsers
 {
-    use PasswordValidationRules;
+    use PasswordValidationRules, ProfileValidationRules;
 
     /**
      * Validate and create a newly registered user.
@@ -19,15 +20,15 @@ class CreateNewUser implements CreatesNewUsers
     public function create(array $input): User
     {
         Validator::make($input, [
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            ...$this->profileRules(),
             'password' => $this->passwordRules(),
         ])->validate();
 
         return User::create([
-            'name' => strstr($input['email'], '@', true) ?: $input['email'],
+            'name' => $input['name'],
             'email' => $input['email'],
             'password' => $input['password'],
-            'role' => 'admin',
+            'password_default' => true,
         ]);
     }
 }

@@ -3,13 +3,17 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 
-#[Fillable(['user_id', 'kelas_id', 'nis', 'nama'])]
+#[Fillable(['user_id', 'kelas_id', 'nis', 'nama', 'jenis_kelamin'])]
 class Siswa extends Model
 {
+    protected $appends = ['foto_url'];
+
     /**
      * Get the user that owns the siswa.
      */
@@ -32,5 +36,29 @@ class Siswa extends Model
     public function absensis(): HasMany
     {
         return $this->hasMany(Absensi::class);
+    }
+
+    /**
+     * Get the profile foto of the siswa.
+     */
+    public function foto(): MorphOne
+    {
+        return $this->morphOne(Foto::class, 'fotoable');
+    }
+
+    /**
+     * Get the generated public URL of the profile foto.
+     */
+    public function fotoUrl(): Attribute
+    {
+        return Attribute::get(function (): ?string {
+            if (! $this->relationLoaded('foto')) {
+                return null;
+            }
+
+            return $this->foto?->file_path
+                ? '/storage/'.ltrim($this->foto->file_path, '/')
+                : null;
+        });
     }
 }

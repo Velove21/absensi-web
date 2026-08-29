@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -35,13 +36,38 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+
+        if ($user) {
+            if ($user->role === 'guru') {
+                $user->load('guru.foto');
+            } elseif ($user->role === 'siswa') {
+                $user->load(['siswa.foto', 'siswa.kelas.jurusan', 'siswa.kelas.jenjangKelas']);
+            }
+
+            $user->setAttribute('avatar', $this->profileAvatar($user));
+        }
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
+    }
+
+    /**
+     * Derive the profile foto URL of the authenticated user from the linked
+     * guru/siswa record, falling back to the stored avatar column.
+     */
+    protected function profileAvatar(User $user): ?string
+    {
+        return match ($user->role) {
+            'guru' => $user->guru?->foto_url,
+            'siswa' => $user->siswa?->foto_url,
+            default => $user->avatar,
+        };
     }
 }

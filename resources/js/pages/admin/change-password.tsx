@@ -1,4 +1,5 @@
 import { Head, useForm } from '@inertiajs/react';
+import { Lock, KeyRound, ShieldCheck } from 'lucide-react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { dashboard as adminDashboard } from '@/routes/admin';
-import { Lock, KeyRound, ShieldCheck } from 'lucide-react';
+import password from '@/routes/admin/password';
 
 export default function ChangePassword() {
     const { data, setData, post, processing, errors, recentlySuccessful, reset } = useForm({
@@ -17,7 +18,7 @@ export default function ChangePassword() {
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        post('/admin/ubah-sandi', {
+        post(password.change.url(), {
             preserveScroll: true,
             onSuccess: () => {
                 reset('current_password', 'password', 'password_confirmation');
@@ -131,6 +132,6 @@ export default function ChangePassword() {
 ChangePassword.layout = {
     breadcrumbs: [
         { title: 'Admin Dashboard', href: adminDashboard.url() },
-        { title: 'Ubah Sandi', href: '/admin/ubah-sandi' },
+        { title: 'Ubah Sandi', href: password.change.url() },
     ],
 };

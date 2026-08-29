@@ -1,13 +1,7 @@
-import { useState } from 'react';
 import { Head, router, useForm } from '@inertiajs/react';
-import adminSchedule from '@/routes/admin/jadwal-pelajaran';
-import { dashboard as adminDashboard } from '@/routes/admin';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from 'sonner';
 import { Edit2, X, Plus, Save, Clock, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -18,6 +12,12 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { dashboard as adminDashboard } from '@/routes/admin';
+import adminSchedule from '@/routes/admin/jadwal-pelajaran';
 
 const DAYS = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 
@@ -42,6 +42,7 @@ export default function SchedulesIndex({ schedules }: { schedules: Schedule[] })
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
+
         if (editingSchedule) {
             put(adminSchedule.update.url(editingSchedule.id), {
                 preserveScroll: true,
@@ -82,7 +83,9 @@ export default function SchedulesIndex({ schedules }: { schedules: Schedule[] })
     };
 
     const handleDelete = () => {
-        if (!deletingSchedule) return;
+        if (!deletingSchedule) {
+return;
+}
 
         router.delete(adminSchedule.destroy.url({ jadwal_pelajaran: deletingSchedule.id }), {
             preserveScroll: true,

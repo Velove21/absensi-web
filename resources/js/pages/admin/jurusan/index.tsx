@@ -1,12 +1,8 @@
-import { useState } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
-import adminJurusan from '@/routes/admin/jurusan';
-import { dashboard as adminDashboard } from '@/routes/admin';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
 import { Edit2, Trash2, X, Plus, Save, School } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import Pagination from '@/components/pagination';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -17,7 +13,11 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import Pagination from '@/components/pagination';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { dashboard as adminDashboard } from '@/routes/admin';
+import adminJurusan from '@/routes/admin/jurusan';
 
 interface Jurusan {
     id: number;
@@ -45,6 +45,7 @@ export default function JurusanIndex({ jurusans }: { jurusans: PaginatedData<Jur
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
+
         if (editingJurusan) {
             put(adminJurusan.update.url({ jurusan: editingJurusan.id }), {
                 preserveScroll: true,
@@ -80,7 +81,10 @@ export default function JurusanIndex({ jurusans }: { jurusans: PaginatedData<Jur
     };
 
     const executeDelete = () => {
-        if (!deletingJurusanId) return;
+        if (!deletingJurusanId) {
+return;
+}
+
         router.delete(adminJurusan.destroy.url({ jurusan: deletingJurusanId }), {
             preserveScroll: true,
             onSuccess: () => {

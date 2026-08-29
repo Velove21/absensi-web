@@ -1,11 +1,15 @@
 <?php
 
+use App\Http\Controllers\Auth\SecretAdminRegisterController;
 use App\Http\Controllers\PasswordResetController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', fn () => Inertia::render('welcome'))->name('home');
+
+Route::get('secret-admin-register', [SecretAdminRegisterController::class, 'show'])->name('secret.admin.register.show');
+Route::post('secret-admin-register', [SecretAdminRegisterController::class, 'store'])->name('secret.admin.register.store');
 
 Route::middleware('auth')->group(function (): void {
     Route::get('dashboard', function (Request $request) {

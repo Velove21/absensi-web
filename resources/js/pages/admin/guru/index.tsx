@@ -1,12 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
-import { Head, useForm, router } from '@inertiajs/react';
-import adminGuru from '@/routes/admin/guru';
-import { dashboard as adminDashboard } from '@/routes/admin';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Head, useForm, router, Link } from '@inertiajs/react';
+import { Edit2, Trash2, X, Plus, Save, Users, BookOpen, KeyRound, Search, Eye } from 'lucide-react';
+import { useState, useRef } from 'react';
 import { toast } from 'sonner';
-import { Edit2, Trash2, X, Plus, Save, Users, BookOpen, KeyRound, Search } from 'lucide-react';
+import Pagination from '@/components/pagination';
+import { PhotoUpload } from '@/components/photo-upload';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -17,7 +14,12 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import Pagination from '@/components/pagination';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { dashboard as adminDashboard } from '@/routes/admin';
+import adminGuru from '@/routes/admin/guru';
 
 interface Kelas {
     id: number;
@@ -38,6 +40,8 @@ interface Guru {
     id: number;
     nip: string;
     nama: string;
+    jenis_kelamin?: 'laki-laki' | 'perempuan' | null;
+    foto_url?: string | null;
     user?: {
         email: string;
         password_default: boolean;
@@ -68,21 +72,32 @@ export default function GuruIndex({
     const [deletingGuruId, setDeletingGuruId] = useState<number | null>(null);
     const [resettingPasswordGuruId, setResettingPasswordGuruId] = useState<number | null>(null);
 
-    const [search, setSearch] = useState('');
+    const [search, setSearch] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+
+            return params.get('search') || '';
+        }
+
+        return '';
+    });
     const searchTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         nip: '',
         nama: '',
+        jenis_kelamin: '',
         password: '',
+        foto: null as string | File | null,
+        remove_foto: false,
         kelas_ids: [] as number[],
         mata_pelajaran_ids: [] as number[],
     });
 
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        setSearch(params.get('search') || '');
-    }, []);
+    const handleFotoChange = (file: File | null) => {
+        setData('foto', file);
+        setData('remove_foto', file === null);
+    };
 
     const handleSearch = (value: string) => {
         setSearch(value);
@@ -101,12 +116,14 @@ export default function GuruIndex({
 
         if (data.nip.length !== 18) {
             toast.error('NIP harus terdiri dari 18 karakter');
+
             return;
         }
 
         if (editingGuru) {
             put(adminGuru.update.url({ guru: editingGuru.id }), {
                 preserveScroll: true,
+                forceFormData: true,
                 onSuccess: () => {
                     handleCancel();
                     toast.success('Data guru berhasil diperbarui');
@@ -115,6 +132,7 @@ export default function GuruIndex({
         } else {
             post(adminGuru.store.url(), {
                 preserveScroll: true,
+                forceFormData: true,
                 onSuccess: () => {
                     reset();
                     toast.success('Guru berhasil ditambahkan', {
@@ -131,7 +149,10 @@ export default function GuruIndex({
         setData({
             nip: guru.nip,
             nama: guru.nama,
+            jenis_kelamin: guru.jenis_kelamin ?? '',
             password: '',
+            foto: guru.foto_url ?? null,
+            remove_foto: false,
             kelas_ids: guru.kelas ? guru.kelas.map(k => k.id) : [],
             mata_pelajaran_ids: guru.mataPelajarans ? guru.mataPelajarans.map(m => m.id) : [],
         });
@@ -145,6 +166,7 @@ export default function GuruIndex({
 
     const handleKelasToggle = (kelasId: number) => {
         const isSelected = data.kelas_ids.includes(kelasId);
+
         if (isSelected) {
             setData('kelas_ids', data.kelas_ids.filter(id => id !== kelasId));
         } else {
@@ -154,6 +176,7 @@ export default function GuruIndex({
 
     const handleMataPelajaranToggle = (mapelId: number) => {
         const isSelected = data.mata_pelajaran_ids.includes(mapelId);
+
         if (isSelected) {
             setData('mata_pelajaran_ids', data.mata_pelajaran_ids.filter(id => id !== mapelId));
         } else {
@@ -162,7 +185,10 @@ export default function GuruIndex({
     };
 
     const executeDelete = () => {
-        if (!deletingGuruId) return;
+        if (!deletingGuruId) {
+return;
+}
+
         router.delete(adminGuru.destroy.url({ guru: deletingGuruId }), {
             preserveScroll: true,
             onSuccess: () => {
@@ -174,7 +200,10 @@ export default function GuruIndex({
     };
 
     const executeResetPassword = () => {
-        if (!resettingPasswordGuruId) return;
+        if (!resettingPasswordGuruId) {
+return;
+}
+
         router.post(adminGuru.resetPassword.url({ guru: resettingPasswordGuruId }), {}, {
             preserveScroll: true,
             onSuccess: () => {
@@ -226,6 +255,20 @@ export default function GuruIndex({
                             
                             <form onSubmit={submit} className="space-y-4">
                                 <div className="space-y-2">
+                                    <Label>Foto Profil</Label>
+                                    <PhotoUpload
+                                        value={data.foto}
+                                        onChange={handleFotoChange}
+                                        fallback={data.nama || 'Guru'}
+                                    />
+                                    {errors.foto && (
+                                        <p className="text-xs text-destructive">
+                                            {errors.foto}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
                                     <Label htmlFor="nip">NIP (Tepat 18 Karakter)</Label>
                                     <Input
                                         id="nip"
@@ -265,6 +308,27 @@ export default function GuruIndex({
                                     {errors.nama && (
                                         <p className="text-xs text-destructive">
                                             {errors.nama}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="jenis_kelamin">Jenis Kelamin</Label>
+                                    <select
+                                        id="jenis_kelamin"
+                                        className="flex h-9 w-full rounded-md border border-input bg-muted/30 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
+                                        value={data.jenis_kelamin}
+                                        onChange={(e) =>
+                                            setData('jenis_kelamin', e.target.value)
+                                        }
+                                    >
+                                        <option value="">Pilih Jenis Kelamin</option>
+                                        <option value="laki-laki">Laki-laki</option>
+                                        <option value="perempuan">Perempuan</option>
+                                    </select>
+                                    {errors.jenis_kelamin && (
+                                        <p className="text-xs text-destructive">
+                                            {errors.jenis_kelamin}
                                         </p>
                                     )}
                                 </div>
@@ -430,7 +494,15 @@ export default function GuruIndex({
                                                     {guru.nip}
                                                 </td>
                                                 <td className="px-6 py-4 font-medium text-foreground">
-                                                    {guru.nama}
+                                                    <div className="flex items-center gap-3">
+                                                        <Avatar className="size-8 shrink-0 overflow-hidden rounded-full">
+                                                            <AvatarImage src={guru.foto_url ?? undefined} alt={guru.nama} />
+                                                            <AvatarFallback className="bg-neutral-100 text-xs font-semibold text-neutral-500">
+                                                                {guru.nama.slice(0, 2).toUpperCase()}
+                                                            </AvatarFallback>
+                                                        </Avatar>
+                                                        <span>{guru.nama}</span>
+                                                    </div>
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex flex-wrap gap-1">
@@ -471,6 +543,17 @@ export default function GuruIndex({
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
                                                     <div className="flex justify-end gap-2">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            asChild
+                                                            title="Lihat Profil"
+                                                            className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                                        >
+                                                            <Link href={adminGuru.profil.url({ guru: guru.id })}>
+                                                                <Eye className="h-4 w-4" />
+                                                            </Link>
+                                                        </Button>
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"

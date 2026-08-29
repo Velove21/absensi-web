@@ -1,12 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
-import { Head, useForm, router } from '@inertiajs/react';
-import adminSiswa from '@/routes/admin/siswa';
-import { dashboard as adminDashboard } from '@/routes/admin';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Head, useForm, router, Link } from '@inertiajs/react';
+import { Edit2, Trash2, X, Plus, Save, UserCircle, KeyRound, Search, Eye } from 'lucide-react';
+import { useState, useRef } from 'react';
 import { toast } from 'sonner';
-import { Edit2, Trash2, X, Plus, Save, UserCircle, Users, KeyRound, Search } from 'lucide-react';
+import Pagination from '@/components/pagination';
+import { PhotoUpload } from '@/components/photo-upload';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -17,7 +14,12 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import Pagination from '@/components/pagination';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { dashboard as adminDashboard } from '@/routes/admin';
+import adminSiswa from '@/routes/admin/siswa';
 
 interface Kelas {
     id: number;
@@ -32,6 +34,8 @@ interface Siswa {
     id: number;
     nis: string;
     nama: string;
+    jenis_kelamin?: 'laki-laki' | 'perempuan' | null;
+    foto_url?: string | null;
     kelas_id: number;
     kelas?: Kelas;
     user?: {
@@ -58,20 +62,31 @@ export default function SiswaIndex({
     const [editingSiswa, setEditingSiswa] = useState<Siswa | null>(null);
     const [deletingSiswaId, setDeletingSiswaId] = useState<number | null>(null);
     const [resettingPasswordSiswaId, setResettingPasswordSiswaId] = useState<number | null>(null);
-    const [search, setSearch] = useState('');
+    const [search, setSearch] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+
+            return params.get('search') || '';
+        }
+
+        return '';
+    });
     const searchTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         nis: '',
         nama: '',
+        jenis_kelamin: '',
         kelas_id: '',
         password: '',
+        foto: null as string | File | null,
+        remove_foto: false,
     });
 
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        setSearch(params.get('search') || '');
-    }, []);
+    const handleFotoChange = (file: File | null) => {
+        setData('foto', file);
+        setData('remove_foto', file === null);
+    };
 
     const handleSearch = (value: string) => {
         setSearch(value);
@@ -87,9 +102,11 @@ export default function SiswaIndex({
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
+
         if (editingSiswa) {
             put(adminSiswa.update.url({ siswa: editingSiswa.id }), {
                 preserveScroll: true,
+                forceFormData: true,
                 onSuccess: () => {
                     handleCancel();
                     toast.success('Data siswa berhasil diperbarui');
@@ -98,6 +115,7 @@ export default function SiswaIndex({
         } else {
             post(adminSiswa.store.url(), {
                 preserveScroll: true,
+                forceFormData: true,
                 onSuccess: () => {
                     reset();
                     toast.success('Siswa berhasil ditambahkan', {
@@ -114,8 +132,11 @@ export default function SiswaIndex({
         setData({
             nis: siswa.nis,
             nama: siswa.nama,
+            jenis_kelamin: siswa.jenis_kelamin ?? '',
             kelas_id: siswa.kelas_id.toString(),
             password: '',
+            foto: siswa.foto_url ?? null,
+            remove_foto: false,
         });
     };
 
@@ -126,7 +147,10 @@ export default function SiswaIndex({
     };
 
     const executeDelete = () => {
-        if (!deletingSiswaId) return;
+        if (!deletingSiswaId) {
+return;
+}
+
         router.delete(adminSiswa.destroy.url({ siswa: deletingSiswaId }), {
             preserveScroll: true,
             onSuccess: () => {
@@ -138,8 +162,11 @@ export default function SiswaIndex({
     };
 
     const executeResetPassword = () => {
-        if (!resettingPasswordSiswaId) return;
-        router.post(`/admin/siswa/${resettingPasswordSiswaId}/reset-password`, {}, {
+        if (!resettingPasswordSiswaId) {
+return;
+}
+
+        router.post(adminSiswa.resetPassword.url({ siswa: resettingPasswordSiswaId }), {}, {
             preserveScroll: true,
             onSuccess: () => {
                 toast.success('Password siswa berhasil direset ke default (password)');
@@ -190,16 +217,40 @@ export default function SiswaIndex({
                             
                             <form onSubmit={submit} className="space-y-4">
                                 <div className="space-y-2">
+                                    <Label>Foto Profil</Label>
+                                    <PhotoUpload
+                                        value={data.foto}
+                                        onChange={handleFotoChange}
+                                        fallback={data.nama || 'Siswa'}
+                                    />
+                                    {errors.foto && (
+                                        <p className="text-xs text-destructive">
+                                            {errors.foto}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
                                     <Label htmlFor="nis">NIS</Label>
                                     <Input
                                         id="nis"
                                         value={data.nis}
-                                        onChange={(e) =>
-                                            setData('nis', e.target.value)
-                                        }
-                                        placeholder="Format: XX.XXXX"
-                                        className="bg-muted/30"
+                                        onChange={(e) => {
+                                            const digits = e.target.value.replace(/[^0-9]/g, '').slice(0, 8);
+                                            const formatted = digits.length > 2
+                                                ? `${digits.slice(0, 2)}.${digits.slice(2)}`
+                                                : digits;
+                                            setData('nis', formatted);
+                                        }}
+                                        placeholder="Format: XX.XXXXXX (misal 24.012505)"
+                                        maxLength={9}
+                                        className={`bg-muted/30 ${data.nis.length > 0 && !/^[0-9]{2}\.[0-9]{6}$/.test(data.nis) ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                                     />
+                                    {data.nis.length > 0 && !/^[0-9]{2}\.[0-9]{6}$/.test(data.nis) && (
+                                        <p className="text-[11px] text-destructive">
+                                            Format NIS: 2 digit + titik + 6 digit (contoh: 24.012505)
+                                        </p>
+                                    )}
                                     {errors.nis && (
                                         <p className="text-xs text-destructive">
                                             {errors.nis}
@@ -221,6 +272,27 @@ export default function SiswaIndex({
                                     {errors.nama && (
                                         <p className="text-xs text-destructive">
                                             {errors.nama}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="jenis_kelamin">Jenis Kelamin</Label>
+                                    <select
+                                        id="jenis_kelamin"
+                                        className="flex h-9 w-full rounded-md border border-input bg-muted/30 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
+                                        value={data.jenis_kelamin}
+                                        onChange={(e) =>
+                                            setData('jenis_kelamin', e.target.value)
+                                        }
+                                    >
+                                        <option value="">Pilih Jenis Kelamin</option>
+                                        <option value="laki-laki">Laki-laki</option>
+                                        <option value="perempuan">Perempuan</option>
+                                    </select>
+                                    {errors.jenis_kelamin && (
+                                        <p className="text-xs text-destructive">
+                                            {errors.jenis_kelamin}
                                         </p>
                                     )}
                                 </div>
@@ -347,7 +419,15 @@ export default function SiswaIndex({
                                                     {siswa.nis}
                                                 </td>
                                                 <td className="px-6 py-4 font-medium text-foreground">
-                                                    {siswa.nama}
+                                                    <div className="flex items-center gap-3">
+                                                        <Avatar className="size-8 shrink-0 overflow-hidden rounded-full">
+                                                            <AvatarImage src={siswa.foto_url ?? undefined} alt={siswa.nama} />
+                                                            <AvatarFallback className="bg-neutral-100 text-xs font-semibold text-neutral-500">
+                                                                {siswa.nama.slice(0, 2).toUpperCase()}
+                                                            </AvatarFallback>
+                                                        </Avatar>
+                                                        <span>{siswa.nama}</span>
+                                                    </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-muted-foreground">
                                                     {siswa.kelas?.full_nama_kelas}
@@ -365,6 +445,17 @@ export default function SiswaIndex({
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
                                                     <div className="flex justify-end gap-2">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            asChild
+                                                            title="Lihat Profil"
+                                                            className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                                        >
+                                                            <Link href={adminSiswa.profil.url({ siswa: siswa.id })}>
+                                                                <Eye className="h-4 w-4" />
+                                                            </Link>
+                                                        </Button>
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"

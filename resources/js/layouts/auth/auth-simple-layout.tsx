@@ -1,8 +1,8 @@
 import { Link } from '@inertiajs/react';
-import { home } from '@/routes';
-import type { AuthLayoutProps } from '@/types';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { home } from '@/routes';
+import type { AuthLayoutProps } from '@/types';
 
 export default function AuthSimpleLayout({
     children,
@@ -36,10 +36,12 @@ export default function AuthSimpleLayout({
                             href={home()}
                             className="flex flex-col items-center gap-2 font-medium transition-transform hover:scale-105"
                         >
-                            <div className="mb-1 flex items-center justify-center rounded-md">
-                                <img src="/images/logo.png" className="size-16 md:size-20 object-contain" alt="KlikHadir." />
-                            </div>
-                            <span className="sr-only">Absensi KlikHadir.</span>
+                            <span
+                                className="text-lg font-bold tracking-widest uppercase"
+                                style={{ fontFamily: "'Poppins', sans-serif" }}
+                            >
+                                KlikHadir
+                            </span>
                         </Link>
                         
                         {(title || description) && (

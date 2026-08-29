@@ -36,6 +36,10 @@
 
         @fonts
 
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
         @viteReactRefresh
         @vite(['resources/css/app.css', 'resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
         <x-inertia::head>
@@ -43,6 +47,9 @@
         </x-inertia::head>
     </head>
     <body class="font-sans antialiased">
+        <div id="initial-splash" style="position:fixed; top:0; right:0; bottom:0; left:0; z-index:99999; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#013ffb;">
+            <img src="/images/P.png" alt="KlikHadir" style="max-width:70%; max-height:60%; object-fit:contain;">
+        </div>
         <x-inertia::app />
     </body>
 </html>

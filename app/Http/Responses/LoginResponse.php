@@ -24,11 +24,8 @@ class LoginResponse implements LoginResponseContract
             default => config('fortify.home'),
         };
 
-        $intended = session()->get('url.intended');
-        if ($intended && (str_ends_with(parse_url($intended, PHP_URL_PATH) ?? '', '/login') || $intended === url('/'))) {
-            session()->forget('url.intended');
-        }
+        session()->forget('url.intended');
 
-        return redirect()->intended($target);
+        return redirect($target);
     }
 }

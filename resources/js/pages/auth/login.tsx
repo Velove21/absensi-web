@@ -40,7 +40,8 @@ export default function Login({ status }: Props) {
                 {/* Brand */}
                 <div className="relative z-10 mb-10 flex items-center gap-3">
                     <span className="text-3xl tracking-tight text-white">
-                        Selamat datang
+                        <span className="font-light">Selamat Datang</span>{' '}
+                        <strong className="font-bold">Pengguna!</strong>
                     </span>
                 </div>
 

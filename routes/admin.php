@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Admin\ArsipController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DurasiPembelajaranController;
 use App\Http\Controllers\Admin\GuruController;
@@ -49,6 +50,10 @@ Route::middleware(['web', 'auth', 'role:admin', 'check.password.status'])->prefi
     Route::delete('tahun-ajaran/{tahun_ajaran}', [TahunAjaranController::class, 'destroy'])->name('tahun-ajaran.destroy');
     Route::post('tahun-ajaran/{tahun_ajaran}/activate', [TahunAjaranController::class, 'activate'])->name('tahun-ajaran.activate');
     Route::post('tahun-ajaran/naik-kelas', [TahunAjaranController::class, 'naikKelas'])->name('tahun-ajaran.naik-kelas');
+    Route::get('tahun-ajaran/{tahunAjaran}/arsip', [ArsipController::class, 'tingkat'])->name('tahun-ajaran.arsip');
+    Route::get('tahun-ajaran/{tahunAjaran}/arsip/{jenjang}/{jurusan}', [ArsipController::class, 'kelas'])->name('tahun-ajaran.arsip.kelas');
+    Route::get('tahun-ajaran/{tahunAjaran}/arsip/{kelas}/detail', [ArsipController::class, 'detail'])->name('tahun-ajaran.arsip.detail');
+    Route::get('tahun-ajaran/{tahunAjaran}/arsip/{kelas}/export', [ArsipController::class, 'export'])->name('tahun-ajaran.arsip.export');
 
     Route::get('jurusan', [JurusanController::class, 'index'])->name('jurusan.index');
     Route::post('jurusan', [JurusanController::class, 'store'])->name('jurusan.store');

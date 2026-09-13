@@ -30,6 +30,8 @@ export function useAutoRefresh(enabled: boolean, intervalMs = 5000, only?: strin
             (router.reload as unknown as (opts: Record<string, unknown>) => void)(opts);
         };
 
+        // Immediate refresh on mount (fix deployed manual refresh needed)
+        const t0 = setTimeout(doReload, 350);
         intervalRef.current = setInterval(doReload, intervalMs);
 
         const onVisibility = (): void => {
@@ -38,13 +40,22 @@ export function useAutoRefresh(enabled: boolean, intervalMs = 5000, only?: strin
             }
         };
 
+        const onSuccess = () => {
+            setTimeout(doReload, 400);
+        };
+
         document.addEventListener('visibilitychange', onVisibility);
+        const offSuccess = router.on('success', onSuccess);
 
         return () => {
+            clearTimeout(t0);
             if (intervalRef.current) {
                 clearInterval(intervalRef.current);
             }
             document.removeEventListener('visibilitychange', onVisibility);
+            if (typeof offSuccess === 'function') {
+                (offSuccess as unknown as () => void)();
+            }
         };
     }, [enabled, intervalMs, only === undefined ? undefined : only.join(',')]);
 }

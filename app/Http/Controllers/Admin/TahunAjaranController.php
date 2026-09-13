@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Absensi;
+use App\Models\ArsipPresensi;
 use App\Models\JenjangKelas;
 use App\Models\Kelas;
+use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -78,7 +81,32 @@ class TahunAjaranController extends Controller
             return redirect()->back()->withErrors(['naik_kelas' => 'Jenjang kelas harus memiliki urutan yang valid.']);
         }
 
+        $active = TahunAjaran::where('is_active', true)->first();
+
+        if (! $active) {
+            $active = TahunAjaran::latest('id')->first() ?? TahunAjaran::create([
+                'tahun_awal' => date('Y'),
+                'tahun_akhir' => (string) (date('Y') + 1),
+            ]);
+        }
+
+        // Arsip rekap harian validasi guru terakhir per siswa per tanggal
+        $raw = Absensi::with(['siswa.kelas'])
+            ->orderBy('updated_at', 'desc')
+            ->get()
+            ->groupBy(fn ($a) => $a->siswa_id.'|'.$a->tanggal)
+            ->map(fn ($g) => $g->sortByDesc('updated_at')->first())
+            ->values();
+
+        foreach ($raw as $a) {
+            ArsipPresensi::firstOrCreate(
+                ['tahun_ajaran_id' => $active->id, 'siswa_id' => $a->siswa_id, 'tanggal' => $a->tanggal],
+                ['kelas_id' => $a->siswa?->kelas_id, 'guru_id' => $a->guru_id, 'mapel_id' => $a->mapel_id, 'jam_ke' => $a->jam_ke, 'status' => $a->status, 'keterangan' => $a->keterangan, 'bukti' => $a->bukti, 'is_alumni' => false]
+            );
+        }
+
         $nextJenjangMap = [];
+
         for ($i = 0; $i < $jenjangs->count() - 1; $i++) {
             $nextJenjangMap[$jenjangs[$i]->id] = $jenjangs[$i + 1]->id;
         }
@@ -92,7 +120,10 @@ class TahunAjaranController extends Controller
             $nextJenjangId = $nextJenjangMap[$kelas->jenjang_kelas_id] ?? null;
 
             if ($nextJenjangId === null) {
-                $graduatedCount += $kelas->siswas()->count();
+                $ids = $kelas->siswas()->pluck('id');
+                Siswa::whereIn('id', $ids)->update(['is_alumni' => true]);
+                ArsipPresensi::whereIn('siswa_id', $ids)->where('tahun_ajaran_id', $active->id)->update(['is_alumni' => true]);
+                $graduatedCount += $ids->count();
 
                 continue;
             }
@@ -110,8 +141,9 @@ class TahunAjaranController extends Controller
         }
 
         $message = "Naik kelas berhasil: {$movedCount} siswa dipindahkan.";
+
         if ($graduatedCount > 0) {
-            $message .= " {$graduatedCount} siswa lulus (jenjang tertinggi).";
+            $message .= " {$graduatedCount} siswa lulus (Alumni).";
         }
 
         return redirect()->back()->with('success', $message);

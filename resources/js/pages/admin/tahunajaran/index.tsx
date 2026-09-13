@@ -1,5 +1,5 @@
 import { Head, useForm, router } from '@inertiajs/react';
-import { Calendar, Edit2, Trash2, X, Plus, Save, CheckCircle2, ArrowUp } from 'lucide-react';
+import { Calendar, Edit2, Trash2, X, Plus, Save, CheckCircle2, ArrowUp, Archive } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import Pagination from '@/components/pagination';
@@ -344,6 +344,17 @@ toast.error(errors.naik_kelas);
                                                         >
                                                             <Edit2 className="h-4 w-4" />
                                                         </Button>
+                                                        {!tahun.is_active && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() => router.visit(`/admin/tahun-ajaran/${tahun.id}/arsip`)}
+                                                                className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                                                title="Lihat Arsip"
+                                                            >
+                                                                <Archive className="h-4 w-4" />
+                                                            </Button>
+                                                        )}
                                                         {!tahun.is_active && (
                                                             <Button
                                                                 variant="ghost"

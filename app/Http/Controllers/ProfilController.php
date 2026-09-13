@@ -17,8 +17,11 @@ class ProfilController extends Controller
 
         if ($user->role === 'guru') {
             $guru = $user->guru()
-                ->with(['foto', 'kelas.jurusan', 'kelas.jenjangKelas'])
+                ->with(['foto', 'kelas.jurusan', 'kelas.jenjangKelas', 'mataPelajarans.kategoriPembelajaran', 'user'])
                 ->firstOrFail();
+            $guru->setAttribute('mataPelajarans', $guru->getRelation('mataPelajarans') ?? collect());
+            $guru->getRelation('mataPelajarans')?->each(fn ($m) => $m->setAppends(['kategori']));
+            $guru->setAttribute('kelas', $guru->getRelation('kelas') ?? collect());
 
             return Inertia::render('guru/profil', [
                 'profil' => $guru,

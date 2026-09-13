@@ -47,7 +47,7 @@ export default function Welcome() {
                             Panel Login
                         </h1>
                         <p className="mt-2 text-sm text-gray-500">
-                            Masuk kedalam absensi KlikHadir
+                            Masuk kedalam presensi KlikHadir
                         </p>
                     </div>
 

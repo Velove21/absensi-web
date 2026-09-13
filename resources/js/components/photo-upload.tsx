@@ -57,16 +57,21 @@ export function PhotoUpload({ value, onChange, fallback, className }: PhotoUploa
                         </Button>
                     )}
                 </div>
-                <p className="text-[11px] text-muted-foreground">JPG / PNG / WEBP, maksimal 2 MB.</p>
+                <p className="text-[11px] text-muted-foreground">Format PNG/JPG, maksimal 5 MB.</p>
                 <input
                     ref={inputRef}
                     type="file"
-                    accept="image/jpeg,image/png,image/webp"
+                    accept="image/png,image/jpeg,image/jpg"
                     className="hidden"
                     onChange={(e) => {
                         const file = e.target.files?.[0];
 
                         if (file) {
+                            if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
+                                // Tetap izinkan tapi beri feedback jika bukan PNG/JPG
+                                onChange(file);
+                                return;
+                            }
                             onChange(file);
                         }
                     }}

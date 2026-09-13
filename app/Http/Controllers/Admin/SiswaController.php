@@ -19,12 +19,76 @@ class SiswaController extends Controller
     public function index(Request $request)
     {
         $search = $request->input('search');
+        $kelasId = $request->input('kelas_id');
 
-        $siswas = Siswa::with(['user', 'foto', 'kelas.jurusan'])
+        $siswas = Siswa::with(['user', 'foto', 'kelas.jurusan', 'kelas.jenjangKelas'])
+            ->when($kelasId, fn ($q) => $q->where('kelas_id', $kelasId))
             ->when($search, function ($query, $search) {
-                $query->where('nama', 'like', "%{$search}%")
-                    ->orWhere('nis', 'like', "%{$search}%")
-                    ->orWhereHas('kelas', fn ($q) => $q->where('nama_kelas', 'like', "%{$search}%"));
+                $searchTrim = trim($search);
+                $terms = array_filter(preg_split('/\s+/', $searchTrim));
+                // Alias inisial lama ke baru (user masih ketik RPL untuk PPLG, TKJ untuk TJKT, dsb)
+                $aliasMap = ['RPL' => 'PPLG', 'TKJ' => 'TJKT'];
+
+                $query->where(function ($q) use ($search, $searchTrim, $terms, $aliasMap) {
+                    // Cocok nama/nis langsung
+                    $q->where('nama', 'like', "%{$search}%")
+                        ->orWhere('nis', 'like', "%{$search}%")
+                        // Cocok kelas via komponen terpisah
+                        ->orWhereHas('kelas', fn ($kq) => $kq->where('nama_kelas', 'like', "%{$search}%"))
+                        ->orWhereHas('kelas.jurusan', fn ($jq) => $jq->where('singkatan', 'like', "%{$search}%")->orWhere('nama_jurusan', 'like', "%{$search}%"))
+                        ->orWhereHas('kelas.jenjangKelas', fn ($jq) => $jq->where('nama_jenjang', 'like', "%{$search}%"))
+                        // Cocok full_nama_kelas via concat (mis. "XII PPLG A")
+                        ->orWhereHas('kelas', function ($kq) use ($searchTrim) {
+                            $kq->whereRaw(
+                                "CONCAT_WS(' ', COALESCE((SELECT nama_jenjang FROM jenjang_kelas WHERE jenjang_kelas.id = kelas.jenjang_kelas_id), ''), COALESCE((SELECT singkatan FROM jurusans WHERE jurusans.id = kelas.jurusan_id), ''), COALESCE(kelas.nama_kelas, '')) LIKE ?",
+                                ["%{$searchTrim}%"]
+                            );
+                        });
+
+                    // Alias: jika user ketik RPL, anggap juga PPLG
+                    $upperSearch = strtoupper($searchTrim);
+                    if (isset($aliasMap[$upperSearch])) {
+                        $alias = $aliasMap[$upperSearch];
+                        $q->orWhereHas('kelas.jurusan', fn ($jq) => $jq->where('singkatan', 'like', "%{$alias}%"));
+                    }
+
+                    // Dukung pencarian inisial kelas per kata, tapi untuk multi-kata wajib semua kata ada di kelas yang sama (AND)
+                    if (count($terms) > 1) {
+                        $q->orWhereHas('kelas', function ($kq) use ($terms, $aliasMap) {
+                            foreach ($terms as $term) {
+                                $term = trim($term);
+                                if ($term === '') {
+                                    continue;
+                                }
+                                $upperTerm = strtoupper($term);
+                                $aliasTerm = $aliasMap[$upperTerm] ?? null;
+                                $kq->where(function ($sub) use ($term, $aliasTerm) {
+                                    $sub->where('nama_kelas', 'like', "%{$term}%")
+                                        ->orWhereHas('jurusan', function ($jq) use ($term, $aliasTerm) {
+                                            $jq->where('singkatan', 'like', "%{$term}%")
+                                                ->orWhere('nama_jurusan', 'like', "%{$term}%");
+                                            if ($aliasTerm) {
+                                                $jq->orWhere('singkatan', 'like', "%{$aliasTerm}%");
+                                            }
+                                        })
+                                        ->orWhereHas('jenjangKelas', fn ($jq) => $jq->where('nama_jenjang', 'like', "%{$term}%"));
+                                    if ($aliasTerm) {
+                                        $sub->orWhereHas('jurusan', fn ($jq) => $jq->where('singkatan', 'like', "%{$aliasTerm}%"));
+                                    }
+                                });
+                            }
+                        });
+                    } else {
+                        // Single term: sudah di-handle di atas, tapi tambahkan alias per term juga
+                        foreach ($terms as $term) {
+                            $upperTerm = strtoupper(trim($term));
+                            if (isset($aliasMap[$upperTerm]) && $upperTerm !== $upperSearch) {
+                                $alias = $aliasMap[$upperTerm];
+                                $q->orWhereHas('kelas.jurusan', fn ($jq) => $jq->where('singkatan', 'like', "%{$alias}%"));
+                            }
+                        }
+                    }
+                });
             })
             ->latest()
             ->paginate(10)
@@ -32,13 +96,14 @@ class SiswaController extends Controller
 
         return Inertia::render('admin/siswa/index', [
             'siswas' => $siswas,
-            'kelasList' => Kelas::with('jurusan')->get(),
+            'kelasList' => Kelas::with(['jurusan', 'jenjangKelas'])->orderByRaw("COALESCE((SELECT nama_jenjang FROM jenjang_kelas WHERE jenjang_kelas.id = kelas.jenjang_kelas_id), '')")->orderByRaw("COALESCE((SELECT singkatan FROM jurusans WHERE jurusans.id = kelas.jurusan_id), '')")->orderBy('nama_kelas')->get(),
+            'filters' => ['search' => $search, 'kelas_id' => $kelasId],
         ]);
     }
 
     public function show(string $id)
     {
-        $siswa = Siswa::with(['user', 'foto', 'kelas.jurusan'])
+        $siswa = Siswa::with(['user', 'foto', 'kelas.jurusan', 'kelas.jenjangKelas'])
             ->findOrFail($id);
 
         return Inertia::render('admin/siswa/profil', [
@@ -54,10 +119,12 @@ class SiswaController extends Controller
             'nis' => ['required', 'string', 'max:20', 'unique:siswas,nis', 'regex:/^[0-9]{2}\.[0-9]{6}$/'],
             'nama' => 'required|string|max:255',
             'jenis_kelamin' => 'nullable|in:laki-laki,perempuan',
-            'foto' => 'nullable|file|mimes:jpg,jpeg,png,webp|max:2048',
+            'foto' => 'nullable|file|mimes:png|max:5120',
             'kelas_id' => 'required|exists:kelas,id',
         ], [
             'nis.regex' => 'Format NIS harus berupa XX.XXXXXX (misal: 24.012505).',
+            'foto.mimes' => 'Foto harus format PNG.',
+            'foto.max' => 'Ukuran foto maksimal 5 MB.',
         ]);
 
         $user = User::create([
@@ -94,10 +161,12 @@ class SiswaController extends Controller
             'jenis_kelamin' => 'nullable|in:laki-laki,perempuan',
             'kelas_id' => 'required|exists:kelas,id',
             'password' => 'nullable|string|min:8',
-            'foto' => 'nullable|file|mimes:jpg,jpeg,png,webp|max:2048',
+            'foto' => 'nullable|file|mimes:png|max:5120',
             'remove_foto' => 'nullable|boolean',
         ], [
             'nis.regex' => 'Format NIS harus berupa XX.XXXXXX (misal: 24.012505).',
+            'foto.mimes' => 'Foto harus format PNG.',
+            'foto.max' => 'Ukuran foto maksimal 5 MB.',
         ]);
 
         $siswa->update([

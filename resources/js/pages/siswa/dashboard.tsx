@@ -2,6 +2,7 @@ import { Head } from '@inertiajs/react';
 import {
     CheckCircle,
     XCircle,
+    X,
     Clock,
     FileWarning,
     Calendar,
@@ -9,6 +10,8 @@ import {
     ImageUp,
 } from 'lucide-react';
 import { useState } from 'react';
+import { useAutoRefresh } from '@/hooks/use-auto-refresh';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
     Card,
@@ -49,6 +52,7 @@ interface Props {
         id: number;
         nis: string;
         nama: string;
+        foto_url?: string | null;
         kelas: {
             tingkat: string | null;
             nama_kelas: string;
@@ -69,7 +73,34 @@ interface Props {
 }
 
 export default function SiswaDashboard({ siswa, stats, history }: Props) {
-    const [previewBukti, setPreviewBukti] = useState<string | null>(null);
+    const [previewBukti, setPreviewBukti] = useState<{ url: string; status?: string; tanggal?: string } | null>(null);
+    useAutoRefresh(true, 6000, ['stats', 'history']);
+    const hasKeterangan = history.some((r) => r.keterangan != null && r.keterangan.toString().trim() !== '');
+    const hasSurat = history.some((r) => r.bukti != null && r.bukti.toString().trim() !== '');
+    const formatTanggal = (iso: string) => {
+        try {
+            const d = new Date(iso.replace(' ', 'T'));
+            if (isNaN(d.getTime())) return iso;
+            const dd = String(d.getDate()).padStart(2, '0');
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const yyyy = d.getFullYear();
+            return `${dd}-${mm}-${yyyy}`;
+        } catch { return iso; }
+    };
+    const formatHari = (iso: string) => {
+        try {
+            const d = new Date(iso.replace(' ', 'T'));
+            if (isNaN(d.getTime())) return '-';
+            return d.toLocaleDateString('id-ID', { weekday: 'long', timeZone: 'Asia/Jakarta' });
+        } catch { return '-'; }
+    };
+    const getSuratLabel = (status: string, tanggal?: string) => {
+        const jenis = status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Surat';
+        const nm = siswa.nama ? siswa.nama.toUpperCase().replace(/\s+/g, ' ').trim() : 'SISWA';
+        const kls = siswa.kelas.full_nama_kelas ?? [siswa.kelas.tingkat, siswa.kelas.jurusan?.singkatan, siswa.kelas.nama_kelas].filter(Boolean).join(' ') ?? '-';
+        const tgl = tanggal ?? '-';
+        return `${jenis}-${nm}-${kls}-${tgl}`;
+    };
     const getStatusBadge = (status: string) => {
         switch (status) {
             case 'hadir':
@@ -106,95 +137,59 @@ export default function SiswaDashboard({ siswa, stats, history }: Props) {
     return (
         <>
             <Head title="Dashboard Siswa" />
-            <div className="flex h-full flex-1 flex-col gap-6 p-6">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight">
-                        {siswa.nama} — {siswa.kelas.full_nama_kelas || [
-                            siswa.kelas.tingkat,
-                            siswa.kelas.jurusan?.singkatan,
-                            siswa.kelas.nama_kelas
-                        ].filter(Boolean).join(' ')}
-                    </h1>
+            <div className="flex h-full w-full flex-1 flex-col gap-6 p-8">
+                <div className="flex items-center gap-4">
+                    <Avatar className="size-14 shrink-0 overflow-hidden rounded-full ring-2 ring-sidebar-border/60">
+                        <AvatarImage src={siswa.foto_url ?? undefined} alt={siswa.nama} />
+                        <AvatarFallback className="bg-neutral-100 text-lg font-bold text-neutral-600">
+                            {siswa.nama.slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                    </Avatar>
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight">
+                            {siswa.nama} — {siswa.kelas.full_nama_kelas || [
+                                siswa.kelas.tingkat,
+                                siswa.kelas.jurusan?.singkatan,
+                                siswa.kelas.nama_kelas
+                            ].filter(Boolean).join(' ')}
+                        </h1>
+                        <p className="text-sm text-muted-foreground">NIS: {siswa.nis}</p>
+                    </div>
                 </div>
 
-                <div className="grid grid-cols-5 gap-1.5">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
                     <Card className="border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/20">
-                        <CardContent className="flex items-center gap-1 p-2">
-                            <div className="rounded-full bg-emerald-100 p-1 dark:bg-emerald-900/50">
-                                <CheckCircle className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
-                            </div>
-                            <div className="min-w-0">
-                                <p className="text-[10px] leading-tight font-medium text-emerald-600 dark:text-emerald-400 truncate">
-                                    Hadir
-                                </p>
-                                <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300">
-                                    {stats.hadir}
-                                </p>
-                            </div>
+                        <CardContent className="p-3 text-center">
+                            <p className="text-xs text-muted-foreground">Hadir</p>
+                            <p className="text-xl font-bold text-emerald-600">{stats.hadir}</p>
                         </CardContent>
                     </Card>
 
                     <Card className="border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/20">
-                        <CardContent className="flex items-center gap-1 p-2">
-                            <div className="rounded-full bg-blue-100 p-1 dark:bg-blue-900/50">
-                                <Clock className="h-3 w-3 text-blue-600 dark:text-blue-400" />
-                            </div>
-                            <div className="min-w-0">
-                                <p className="text-[10px] leading-tight font-medium text-blue-600 dark:text-blue-400 truncate">
-                                    Sakit
-                                </p>
-                                <p className="text-xs font-bold text-blue-700 dark:text-blue-300">
-                                    {stats.sakit}
-                                </p>
-                            </div>
+                        <CardContent className="p-3 text-center">
+                            <p className="text-xs text-muted-foreground">Sakit</p>
+                            <p className="text-xl font-bold text-blue-600">{stats.sakit}</p>
                         </CardContent>
                     </Card>
 
                     <Card className="border-orange-200 bg-orange-50 dark:border-orange-900 dark:bg-orange-950/20">
-                        <CardContent className="flex items-center gap-1 p-2">
-                            <div className="rounded-full bg-orange-100 p-1 dark:bg-orange-900/50">
-                                <FileWarning className="h-3 w-3 text-orange-600 dark:text-orange-400" />
-                            </div>
-                            <div className="min-w-0">
-                                <p className="text-[10px] leading-tight font-medium text-orange-600 dark:text-orange-400 truncate">
-                                    Izin
-                                </p>
-                                <p className="text-xs font-bold text-orange-700 dark:text-orange-300">
-                                    {stats.izin}
-                                </p>
-                            </div>
+                        <CardContent className="p-3 text-center">
+                            <p className="text-xs text-muted-foreground">Izin</p>
+                            <p className="text-xl font-bold text-orange-600">{stats.izin}</p>
                         </CardContent>
                     </Card>
 
                     <Card className="border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/20">
-                        <CardContent className="flex items-center gap-1 p-2">
-                            <div className="rounded-full bg-red-100 p-1 dark:bg-red-900/50">
-                                <XCircle className="h-3 w-3 text-red-600 dark:text-red-400" />
-                            </div>
-                            <div className="min-w-0">
-                                <p className="text-[10px] leading-tight font-medium text-red-600 dark:text-red-400 truncate">
-                                    Alfa
-                                </p>
-                                <p className="text-xs font-bold text-red-700 dark:text-red-300">
-                                    {stats.alpha}
-                                </p>
-                            </div>
+                        <CardContent className="p-3 text-center">
+                            <p className="text-xs text-muted-foreground">Alfa</p>
+                            <p className="text-xl font-bold text-red-600">{stats.alpha}</p>
                         </CardContent>
                     </Card>
 
                     <Card className="border-indigo-200 bg-indigo-50 dark:border-indigo-900 dark:bg-indigo-950/20">
-                        <CardContent className="flex items-center gap-1 p-2">
-                            <div className="rounded-full bg-indigo-100 p-1 dark:bg-indigo-900/50">
-                                <Award className="h-3 w-3 text-indigo-600 dark:text-indigo-400" />
-                            </div>
-                            <div className="min-w-0">
-                                <p className="text-[10px] leading-tight font-medium text-indigo-600 dark:text-indigo-400 truncate">
-                                    Dispensasi
-                                </p>
-                                <p className="text-xs font-bold text-indigo-700 dark:text-indigo-300">
-                                    {stats.dispensasi}
-                                </p>
-                            </div>
+                        <CardContent className="p-3 text-center">
+                            <p className="text-xs text-muted-foreground">Dispensasi</p>
+                            <p className="text-xl font-bold text-indigo-600">{stats.dispensasi}</p>
                         </CardContent>
                     </Card>
                 </div>
@@ -208,72 +203,53 @@ export default function SiswaDashboard({ siswa, stats, history }: Props) {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead className="w-[120px]">
-                                            Tanggal
-                                        </TableHead>
-                                        <TableHead className="w-[100px]">
-                                            Jam Ke-
-                                        </TableHead>
-                                        <TableHead className="w-[120px]">
-                                            Status
-                                        </TableHead>
-                                        <TableHead>Keterangan</TableHead>
-                                        <TableHead className="w-[80px]">
-                                            Bukti
-                                        </TableHead>
+                                        <TableHead className="w-[110px]">Hari</TableHead>
+                                        <TableHead className="w-[120px]">Tanggal</TableHead>
+                                        <TableHead className="w-[120px]">Status</TableHead>
+                                        {hasKeterangan && <TableHead>Keterangan</TableHead>}
+                                        {hasSurat && <TableHead className="w-[80px]">Surat</TableHead>}
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {history.length === 0 ? (
                                         <TableRow>
                                             <TableCell
-                                                colSpan={5}
+                                                colSpan={3 + (hasKeterangan ? 1 : 0) + (hasSurat ? 1 : 0)}
                                                 className="h-24 text-center"
                                             >
-                                                Belum ada data riwayat absensi.
+                                                Belum ada data riwayat presensi.
                                             </TableCell>
                                         </TableRow>
                                     ) : (
                                         history.map((record) => (
                                             <TableRow key={record.id}>
-                                                <TableCell className="font-medium">
+                                                <TableCell className="font-medium whitespace-nowrap">
                                                     <div className="flex items-center gap-2">
                                                         <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
-                                                        {record.tanggal}
+                                                        {formatHari(record.tanggal)}
                                                     </div>
                                                 </TableCell>
-                                                <TableCell className="font-mono text-xs">
-                                                    {record.status === 'dispensasi' && record.jam_ke ? (
-                                                        <span className="flex flex-col">
-                                                            <span>{record.jam_ke}</span>
-                                                            {record.waktu_mulai && (
-                                                                <span className="text-[10px] text-muted-foreground font-sans">
-                                                                    {record.waktu_mulai} - {record.waktu_selesai || 'Selesai'}
-                                                                </span>
-                                                            )}
-                                                        </span>
-                                                    ) : (
-                                                        '-'
-                                                    )}
-                                                </TableCell>
+                                                <TableCell className="font-mono text-xs whitespace-nowrap">{formatTanggal(record.tanggal)}</TableCell>
                                                 <TableCell>
                                                     {getStatusBadge(record.status)}
                                                 </TableCell>
-                                                <TableCell className="text-muted-foreground max-w-[200px] truncate">
-                                                    {record.keterangan || '-'}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {record.bukti ? (
-                                                        <button
-                                                            onClick={() => setPreviewBukti(`/storage/${record.bukti}`)}
-                                                            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 underline underline-offset-2"
-                                                        >
-                                                            <ImageUp className="h-3 w-3" /> Lihat
-                                                        </button>
-                                                    ) : (
-                                                        <span className="text-xs text-muted-foreground">-</span>
-                                                    )}
-                                                </TableCell>
+                                                {hasKeterangan && <TableCell className="text-muted-foreground max-w-[200px] truncate">{record.keterangan || '-'}</TableCell>}
+                                                {hasSurat && (
+                                                    <TableCell>
+                                                        {record.bukti ? (
+                                                            <button
+                                                                onClick={() => setPreviewBukti({ url: `/storage/${record.bukti}`, status: record.status, tanggal: record.tanggal })}
+                                                                className="group relative h-8 w-8 shrink-0 overflow-hidden rounded-md border bg-muted/20 shadow-sm hover:ring-2 hover:ring-primary/20 transition-all"
+                                                                title="Lihat surat"
+                                                            >
+                                                                <img src={`/storage/${record.bukti}`} alt={`Bukti ${record.status}`} className="h-full w-full object-cover" loading="lazy" decoding="async" onError={(e)=>{(e.currentTarget as HTMLImageElement).style.display='none'}} />
+                                                                <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/10"><ImageUp className="h-2.5 w-2.5 text-white opacity-0 group-hover:opacity-100" /></span>
+                                                            </button>
+                                                        ) : (
+                                                            <span className="text-xs text-muted-foreground">-</span>
+                                                        )}
+                                                    </TableCell>
+                                                )}
                                             </TableRow>
                                         ))
                                     )}
@@ -284,25 +260,20 @@ export default function SiswaDashboard({ siswa, stats, history }: Props) {
                 </Card>
             </div>
 
-            <Dialog open={previewBukti !== null} onOpenChange={(open) => {
- if (!open) {
-setPreviewBukti(null);
-} 
-}}>
-                <DialogContent className="sm:max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle>Bukti Absensi</DialogTitle>
-                        <DialogDescription>
-                            Foto bukti yang diunggah saat pencatatan absensi.
-                        </DialogDescription>
-                    </DialogHeader>
+            <Dialog open={previewBukti !== null} onOpenChange={(open) => { if (!open) setPreviewBukti(null); }}>
+                <DialogContent className="sm:max-w-[400px] w-auto max-h-[85vh] bg-transparent border-none shadow-none p-1 sm:p-2 [&>button]:hidden">
                     {previewBukti && (
-                        <div className="flex justify-center">
-                            <img
-                                src={previewBukti}
-                                alt="Bukti absensi"
-                                className="max-w-full max-h-[60vh] rounded-lg object-contain"
-                            />
+                        <div className="bg-card rounded-xl px-4 py-4 shadow-2xl flex flex-col gap-4 relative w-auto max-w-[400px] mx-auto">
+                            <button onClick={() => setPreviewBukti(null)} className="absolute left-4 top-4 h-8 w-8 rounded-full bg-muted hover:bg-accent flex items-center justify-center" aria-label="Tutup">
+                                <X className="h-4 w-4" />
+                            </button>
+                            <div className="text-center">
+                                <h3 className="text-base font-semibold">Surat {previewBukti.status ? previewBukti.status.charAt(0).toUpperCase()+previewBukti.status.slice(1) : 'Presensi'}</h3>
+                                <p className="text-xs text-muted-foreground mt-0.5 font-mono break-all">{getSuratLabel(previewBukti.status ?? 'surat', previewBukti.tanggal)}.</p>
+                            </div>
+                            <div className="flex justify-center">
+                                <img src={previewBukti.url} alt={`Surat ${previewBukti.status}`} className="max-w-full max-h-[50vh] rounded-lg object-contain" loading="eager" decoding="async" onError={(e)=>{(e.currentTarget as HTMLImageElement).style.display='none'}} />
+                            </div>
                         </div>
                     )}
                 </DialogContent>
@@ -312,5 +283,5 @@ setPreviewBukti(null);
 }
 
 SiswaDashboard.layout = {
-    breadcrumbs: [{ title: 'Dashboard', href: siswaDashboard.url() }],
+    breadcrumbs: [{ title: 'Siswa', href: siswaDashboard.url() }],
 };

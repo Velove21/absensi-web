@@ -1,34 +1,31 @@
 import { Head, router } from '@inertiajs/react';
-import { Shield, Users, BookOpen, GraduationCap, Activity, PieChart as PieChartIcon, CheckCircle, Clock, FileWarning, XCircle, Award, ImageUp, FileSpreadsheet, Search, ChevronDown } from 'lucide-react';
-import { useState } from 'react';
+import { Shield, ShieldCheck, Users, BookOpen, GraduationCap, Library, Activity, PieChart as PieChartIcon, CheckCircle, Clock, FileWarning, XCircle, Award, FileSpreadsheet, Search, ChevronDown, Loader2 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ChartConfig } from '@/components/ui/chart';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import SearchableSelect from '@/components/ui/searchable-select';
+import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 import { dashboard as adminDashboard, exportAbsensi as adminExportAbsensi } from '@/routes/admin';
 
 interface Stats {
-    total_jurusan: number;
-    total_kelas: number;
-    total_guru: number;
+    total_admin: number;
     total_siswa: number;
+    total_guru: number;
+    total_kelas: number;
+    total_jurusan: number;
+    total_mata_pelajaran: number;
 }
 
 interface Kelas {
     id: number;
     tingkat: string | null;
     nama_kelas: string;
+    full_nama_kelas?: string;
     jurusan: {
         singkatan: string;
     } | null;
@@ -58,6 +55,7 @@ interface MapelItem {
 interface KelasItem {
     id: number;
     nama_kelas: string;
+    full_nama_kelas?: string;
     tingkat: string | null;
     jurusan: { singkatan: string } | null;
 }
@@ -78,6 +76,7 @@ interface AdminDashboardProps {
         izin: number;
         alpha: number;
         dispensasi: number;
+        kelas: number;
     };
     studentsPerJurusan: {
         singkatan: string;
@@ -91,11 +90,12 @@ interface AdminDashboardProps {
 }
 
 const attendanceConfig = {
-    hadir: { label: 'Hadir', color: 'var(--chart-2)' }, // emerald/green
-    sakit: { label: 'Sakit', color: 'var(--chart-4)' }, // yellow/orange
-    izin: { label: 'Izin', color: 'var(--chart-1)' }, // blueish
-    alpha: { label: 'Alpha', color: 'var(--destructive)' }, // red
-    dispensasi: { label: 'Dispensasi', color: 'var(--chart-5)' }, // purple/indigo
+    hadir: { label: 'Hadir', color: 'var(--chart-2)' },
+    sakit: { label: 'Sakit', color: 'var(--chart-4)' },
+    izin: { label: 'Izin', color: 'var(--chart-1)' },
+    alpha: { label: 'Alpha', color: 'var(--destructive)' },
+    dispensasi: { label: 'Dispensasi', color: 'var(--chart-5)' },
+    kelas: { label: 'Kelas', color: 'var(--chart-3)' },
 } satisfies ChartConfig;
 
 const jurusanConfig = {
@@ -109,7 +109,6 @@ export default function AdminDashboard({
     filters,
     gurus = [],
 }: AdminDashboardProps) {
-    const [previewBukti, setPreviewBukti] = useState<string | null>(null);
     const attendanceData = [
         { status: 'hadir', count: attendanceToday.hadir, fill: 'var(--color-hadir)' },
         { status: 'sakit', count: attendanceToday.sakit, fill: 'var(--color-sakit)' },
@@ -117,6 +116,9 @@ export default function AdminDashboard({
         { status: 'alpha', count: attendanceToday.alpha, fill: 'var(--color-alpha)' },
         { status: 'dispensasi', count: attendanceToday.dispensasi, fill: 'var(--color-dispensasi)' },
     ];
+    const kelasSudahAbsen = (attendanceToday as unknown as { kelas: number }).kelas ?? 0;
+    const gridData = [...attendanceData, { status: 'kelas', count: kelasSudahAbsen, fill: 'var(--color-kelas)' }];
+    useAutoRefresh(true, 5000);
 
     // Export state
     const [exportGuruId, setExportGuruId] = useState('');
@@ -140,6 +142,7 @@ export default function AdminDashboard({
         setExportMapelIds(prev =>
             prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id]
         );
+        setExportMapelOpen(false);
     };
 
     const toggleAllMapel = () => {
@@ -148,12 +151,14 @@ export default function AdminDashboard({
         } else {
             setExportMapelIds(teacherMapels.map(m => m.id.toString()));
         }
+        setExportMapelOpen(false);
     };
 
     const toggleKelas = (id: string) => {
         setExportKelasIds(prev =>
             prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id]
         );
+        setExportKelasOpen(false);
     };
 
     const toggleAllKelas = () => {
@@ -162,43 +167,108 @@ export default function AdminDashboard({
         } else {
             setExportKelasIds(teacherKelas.map(k => k.id.toString()));
         }
+        setExportKelasOpen(false);
     };
 
-    const handleExport = () => {
+    const mapelDropdownRef = useRef<HTMLDivElement>(null);
+    const kelasDropdownRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (mapelDropdownRef.current && !mapelDropdownRef.current.contains(e.target as Node)) {
+                setExportMapelOpen(false);
+            }
+            if (kelasDropdownRef.current && !kelasDropdownRef.current.contains(e.target as Node)) {
+                setExportKelasOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const [exporting, setExporting] = useState(false);
+
+    const handleExport = async () => {
         if (!exportGuruId) {
             toast.error('Silakan pilih Guru.');
-
             return;
         }
-
         if (exportMapelIds.length === 0) {
             toast.error('Silakan pilih Mata Pelajaran.');
-
             return;
         }
-
         const params = new URLSearchParams();
         params.set('guru_id', exportGuruId);
         exportMapelIds.forEach(id => params.append('mapel_ids[]', id));
         exportKelasIds.forEach(id => params.append('kelas_ids[]', id));
+        if (exportStartDate) params.set('start_date', exportStartDate);
+        if (exportEndDate) params.set('end_date', exportEndDate);
 
-        if (exportStartDate) {
-params.set('start_date', exportStartDate);
-}
-
-        if (exportEndDate) {
-params.set('end_date', exportEndDate);
-}
-
-        window.open(adminExportAbsensi.url() + '?' + params.toString(), '_blank');
+        setExporting(true);
+        try {
+            const response = await fetch(adminExportAbsensi.url() + '?' + params.toString(), {
+                headers: { Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel, application/json, text/html, */*' },
+                credentials: 'same-origin',
+            });
+            if (!response.ok) {
+                let msg = 'Gagal export: periksa filter guru/mapel/kelas';
+                try {
+                    const ct = response.headers.get('Content-Type') || '';
+                    if (ct.includes('application/json')) {
+                        const j = await response.json();
+                        msg = j.message || j.error || msg;
+                    } else {
+                        const text = await response.text();
+                        // Coba extract pesan JSON di dalam text
+                        try {
+                            const j2 = JSON.parse(text);
+                            msg = j2.message || j2.error || msg;
+                        } catch {
+                            if (text.includes('error') || text.includes('Error')) {
+                                // tetap pakai msg generic biar tidak spill HTML panjang
+                            } else if (text.trim().length > 0 && text.trim().length < 300) {
+                                msg = text.trim().slice(0, 200);
+                            }
+                        }
+                    }
+                } catch {}
+                toast.error(msg);
+                return;
+            }
+            const contentType = response.headers.get('Content-Type') || '';
+            // Jika response adalah HTML redirect (bukan file), berarti error — XLSX asli: application/vnd.openxmlformats...
+            if (contentType.includes('text/html') && !contentType.includes('application/vnd.openxmlformats') && !contentType.includes('application/vnd.ms-excel')) {
+                const text = await response.text();
+                if (text.length < 5000 && text.includes('error')) {
+                    toast.error('Gagal export: ' + text.slice(0, 200));
+                    return;
+                }
+            }
+            const blob = await response.blob();
+            if (blob.size < 100) {
+                toast.error('Data kosong untuk filter ini. Pastikan guru telah mengabsen di beberapa kelas/hari.');
+                return;
+            }
+            const disposition = response.headers.get('Content-Disposition') || '';
+            const filenameMatch = disposition.match(/filename="?([^";\n]+)"?/);
+            const filename = filenameMatch ? filenameMatch[1] : `rekap-presensi-${exportGuruId}.xlsx`;
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+            toast.success('File export berhasil diunduh. Semua sesi absen per kelas & hari disertakan.');
+        } catch {
+            toast.error('Terjadi kesalahan saat export. Coba lagi.');
+        } finally {
+            setExporting(false);
+        }
     };
 
-    // Statistik detail state
     const [statDate, setStatDate] = useState(filters.tanggal);
-    const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
-    const [statDetail, setStatDetail] = useState<DetailedAttendance[]>([]);
-    const [statLoading, setStatLoading] = useState(false);
-    const [statDialogOpen, setStatDialogOpen] = useState(false);
 
     const handleStatDateChange = (newDate: string) => {
         setStatDate(newDate);
@@ -209,61 +279,26 @@ params.set('end_date', exportEndDate);
         );
     };
 
-    const fetchStatDetail = (status: string) => {
-        setSelectedStatus(status);
-        setStatLoading(true);
-        const params = new URLSearchParams();
-        params.set('tanggal', statDate);
-        params.set('status', status);
-        router.get(
-            adminDashboard.url() + '?' + params.toString(),
-            {},
-            {
-                preserveState: false,
-                preserveScroll: true,
-                only: ['detailedAttendance'],
-                onSuccess: (page) => {
-                    const data = (page.props as any).detailedAttendance as DetailedAttendance[];
-                    const singlePerDay = data.reduce<DetailedAttendance[]>((acc, curr) => {
-                        const exists = acc.find(a => a.siswa.nis === curr.siswa.nis);
-
-                        if (!exists) {
-acc.push(curr);
-}
-
-                        return acc;
-                    }, []);
-                    setStatDetail(singlePerDay);
-                    setStatLoading(false);
-                    setStatDialogOpen(true);
-                },
-                onError: () => {
-                    setStatLoading(false);
-                }
-            }
-        );
+    const openStatistik = (status: string) => {
+        // Buka halaman baru yang menampilkan data terbaru per siswa (seperti history siswa versi sekolah)
+        router.get(`/admin/statistik/${status}`, { tanggal: statDate }, { preserveState: false });
     };
 
     const filteredMapels = teacherMapels.filter(m =>
         m.nama_mapel.toLowerCase().includes(exportMapelSearch.toLowerCase())
     );
     const filteredKelas = teacherKelas.filter(k =>
-        k.nama_kelas.toLowerCase().includes(exportKelasSearch.toLowerCase())
+        (k.full_nama_kelas ?? k.nama_kelas).toLowerCase().includes(exportKelasSearch.toLowerCase())
     );
 
-    const formatKelasName = (k: Kelas) => {
-        const parts = [];
-
-        if (k.tingkat) {
-parts.push(k.tingkat);
-}
-
-        if (k.jurusan?.singkatan) {
-parts.push(k.jurusan.singkatan);
-}
-
+    const formatKelasName = (k: Kelas | KelasItem) => {
+        if ((k as unknown as { full_nama_kelas?: string }).full_nama_kelas) {
+            return (k as unknown as { full_nama_kelas: string }).full_nama_kelas;
+        }
+        const parts: string[] = [];
+        if (k.tingkat) parts.push(k.tingkat);
+        if (k.jurusan?.singkatan) parts.push(k.jurusan.singkatan);
         parts.push(k.nama_kelas);
-
         return parts.join(' ');
     };
 
@@ -287,62 +322,88 @@ parts.push(k.jurusan.singkatan);
     return (
         <>
             <Head title="Admin Dashboard" />
-            <div className="flex h-full flex-1 flex-col gap-6 p-6">
+            <div className="flex h-full w-full flex-1 flex-col gap-6 p-8">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">
                         Pusat Kendali Admin
                     </h1>
                     <p className="text-muted-foreground">
-                        Kelola data master sistem absensi KlikHadir.
+                        Kelola data master sistem presensi KlikHadir.
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="flex items-center gap-4 rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border">
-                        <div className="rounded-full bg-blue-100 p-3 dark:bg-blue-900/30">
-                            <BookOpen className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {/* Baris 1: Admin - Siswa - Guru */}
+                    <div className="flex items-center gap-3 rounded-xl border border-sidebar-border/70 bg-card p-4 shadow-sm dark:border-sidebar-border">
+                        <div className="rounded-full bg-slate-100 p-2.5 dark:bg-slate-800">
+                            <ShieldCheck className="h-5 w-5 text-slate-600 dark:text-slate-300" />
                         </div>
                         <div>
-                            <p className="text-sm font-medium text-muted-foreground">
-                                Total Jurusan
+                            <p className="text-xs font-medium text-muted-foreground">
+                                Total Admin
                             </p>
-                            <h3 className="text-2xl font-bold">{stats.total_jurusan}</h3>
+                            <h3 className="text-xl font-bold">{stats.total_admin}</h3>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-4 rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border">
-                        <div className="rounded-full bg-purple-100 p-3 dark:bg-purple-900/30">
-                            <Shield className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                    <div className="flex items-center gap-3 rounded-xl border border-sidebar-border/70 bg-card p-4 shadow-sm dark:border-sidebar-border">
+                        <div className="rounded-full bg-orange-100 p-2.5 dark:bg-orange-900/30">
+                            <GraduationCap className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                         </div>
                         <div>
-                            <p className="text-sm font-medium text-muted-foreground">
-                                Total Kelas
-                            </p>
-                            <h3 className="text-2xl font-bold">{stats.total_kelas}</h3>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-4 rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border">
-                        <div className="rounded-full bg-emerald-100 p-3 dark:bg-emerald-900/30">
-                            <Users className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
-                        </div>
-                        <div>
-                            <p className="text-sm font-medium text-muted-foreground">
-                                Total Guru
-                            </p>
-                            <h3 className="text-2xl font-bold">{stats.total_guru}</h3>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-4 rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border">
-                        <div className="rounded-full bg-orange-100 p-3 dark:bg-orange-900/30">
-                            <GraduationCap className="h-6 w-6 text-orange-600 dark:text-orange-400" />
-                        </div>
-                        <div>
-                            <p className="text-sm font-medium text-muted-foreground">
+                            <p className="text-xs font-medium text-muted-foreground">
                                 Total Siswa
                             </p>
-                            <h3 className="text-2xl font-bold">{stats.total_siswa}</h3>
+                            <h3 className="text-xl font-bold">{stats.total_siswa}</h3>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 rounded-xl border border-sidebar-border/70 bg-card p-4 shadow-sm dark:border-sidebar-border">
+                        <div className="rounded-full bg-emerald-100 p-2.5 dark:bg-emerald-900/30">
+                            <Users className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                        <div>
+                            <p className="text-xs font-medium text-muted-foreground">
+                                Total Guru
+                            </p>
+                            <h3 className="text-xl font-bold">{stats.total_guru}</h3>
+                        </div>
+                    </div>
+
+                    {/* Baris 2: Kelas - Jurusan - Mata Pelajaran */}
+                    <div className="flex items-center gap-3 rounded-xl border border-sidebar-border/70 bg-card p-4 shadow-sm dark:border-sidebar-border">
+                        <div className="rounded-full bg-purple-100 p-2.5 dark:bg-purple-900/30">
+                            <Shield className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                        </div>
+                        <div>
+                            <p className="text-xs font-medium text-muted-foreground">
+                                Total Kelas
+                            </p>
+                            <h3 className="text-xl font-bold">{stats.total_kelas}</h3>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 rounded-xl border border-sidebar-border/70 bg-card p-4 shadow-sm dark:border-sidebar-border">
+                        <div className="rounded-full bg-blue-100 p-2.5 dark:bg-blue-900/30">
+                            <BookOpen className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div>
+                            <p className="text-xs font-medium text-muted-foreground">
+                                Total Jurusan
+                            </p>
+                            <h3 className="text-xl font-bold">{stats.total_jurusan}</h3>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 rounded-xl border border-sidebar-border/70 bg-card p-4 shadow-sm dark:border-sidebar-border">
+                        <div className="rounded-full bg-indigo-100 p-2.5 dark:bg-indigo-900/30">
+                            <Library className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                        </div>
+                        <div>
+                            <p className="text-xs font-medium text-muted-foreground">
+                                Total Mata Pelajaran
+                            </p>
+                            <h3 className="text-xl font-bold">{stats.total_mata_pelajaran}</h3>
                         </div>
                     </div>
                 </div>
@@ -353,11 +414,11 @@ parts.push(k.jurusan.singkatan);
                 <div className="rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border">
                     <div className="flex items-center gap-2 mb-4">
                         <FileSpreadsheet className="h-5 w-5 text-emerald-600" />
-                        <h2 className="text-lg font-semibold">Export Rekap Absensi</h2>
+                        <h2 className="text-lg font-semibold">Ekspor Rekap Presensi</h2>
                     </div>
                     <div className="flex flex-wrap gap-3 items-end">
                         {/* Pilih Guru - Searchable */}
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 w-full sm:w-[260px]">
                             <label className="text-xs font-medium text-muted-foreground">Pilih Guru</label>
                             <SearchableSelect
                                 value={exportGuruId}
@@ -366,29 +427,30 @@ parts.push(k.jurusan.singkatan);
                                     setExportMapelIds([]);
                                     setExportKelasIds([]);
                                 }}
-                                placeholder="-- Pilih Guru --"
+                                placeholder="Pilih Guru"
                                 items={gurus.map(g => ({
                                     value: g.id.toString(),
                                     label: `${g.nama} (${g.nip || '-'})`,
                                 }))}
+                                className="w-full"
                             />
                         </div>
 
                         {/* Pilih Mapel - Multi-select with search */}
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 w-full sm:w-auto">
                             <label className="text-xs font-medium text-muted-foreground">Pilih Mapel</label>
-                            <div className="relative">
+                            <div ref={mapelDropdownRef} className="relative">
                                 <button
                                     type="button"
                                     disabled={!exportGuruId}
                                     onClick={() => {
  setExportMapelOpen(!exportMapelOpen); setExportKelasOpen(false); 
 }}
-                                    className="flex h-9 w-[220px] items-center justify-between gap-2 rounded-md border border-input bg-muted/30 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50"
+                                    className="flex h-9 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-input bg-muted/30 px-3 py-1 text-xs leading-tight shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 sm:w-[220px] sm:text-sm"
                                 >
-                                    <span className="line-clamp-1 flex-1 text-left">
+                                    <span className="min-w-0 flex-1 truncate text-left text-xs leading-tight sm:text-sm">
                                         {exportMapelIds.length === 0
-                                            ? '-- Pilih Mapel --'
+                                            ? 'Pilih Mapel'
                                             : allMapelSelected
                                                 ? 'Semua Mapel'
                                                 : `${exportMapelIds.length} mapel dipilih`}
@@ -396,41 +458,41 @@ parts.push(k.jurusan.singkatan);
                                     <ChevronDown className="size-4 shrink-0 opacity-50" />
                                 </button>
                                 {exportMapelOpen && (
-                                    <div className="bg-popover text-popover-foreground absolute z-50 mt-1 w-[220px] origin-top overflow-hidden rounded-md border shadow-md">
+                                    <div className="bg-popover text-popover-foreground absolute z-50 mt-1 w-full origin-top overflow-hidden rounded-md border shadow-md sm:w-[220px]">
                                         <div className="flex items-center gap-2 border-b px-3 py-2">
                                             <Search className="size-4 shrink-0 opacity-50" />
                                             <input
                                                 value={exportMapelSearch}
                                                 onChange={e => setExportMapelSearch(e.target.value)}
                                                 placeholder="Cari mapel..."
-                                                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                                                className="flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground sm:text-sm"
                                             />
                                         </div>
                                         <div className="max-h-48 overflow-y-auto p-1">
-                                            <label className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent">
+                                            <label className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-xs hover:bg-accent sm:text-sm">
                                                 <input
                                                     type="checkbox"
                                                     checked={allMapelSelected}
                                                     onChange={toggleAllMapel}
-                                                    className="size-4"
+                                                    className="size-4 shrink-0"
                                                 />
                                                 <span className="font-medium">Semua Mapel</span>
                                             </label>
                                             {filteredMapels.length === 0 ? (
-                                                <p className="px-2 py-6 text-center text-sm text-muted-foreground">
+                                                <p className="px-2 py-6 text-center text-xs text-muted-foreground sm:text-sm">
                                                     Tidak ada hasil
                                                 </p>
                                             ) : (
                                                 filteredMapels.map(m => (
-                                                    <label key={m.id} className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent">
+                                                    <label key={m.id} className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-xs hover:bg-accent sm:text-sm">
                                                         <input
                                                             type="checkbox"
                                                             checked={exportMapelIds.includes(m.id.toString())}
                                                             onChange={() => toggleMapel(m.id.toString())}
-                                                            className="size-4"
+                                                            className="size-4 shrink-0"
                                                         />
-                                                        <span className="flex-1">{m.nama_mapel}</span>
-                                                        <span className="text-xs text-muted-foreground">{m.kategori}</span>
+                                                        <span className="flex-1 break-words whitespace-normal leading-snug">{m.nama_mapel}</span>
+                                                        <span className="shrink-0 text-[11px] text-muted-foreground sm:text-xs">{m.kategori}</span>
                                                     </label>
                                                 ))
                                             )}
@@ -441,20 +503,20 @@ parts.push(k.jurusan.singkatan);
                         </div>
 
                         {/* Pilih Kelas - Multi-select with search */}
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 w-full sm:w-auto">
                             <label className="text-xs font-medium text-muted-foreground">Pilih Kelas</label>
-                            <div className="relative">
+                            <div ref={kelasDropdownRef} className="relative">
                                 <button
                                     type="button"
                                     disabled={!exportGuruId}
                                     onClick={() => {
  setExportKelasOpen(!exportKelasOpen); setExportMapelOpen(false); 
 }}
-                                    className="flex h-9 w-[220px] items-center justify-between gap-2 rounded-md border border-input bg-muted/30 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50"
+                                    className="flex h-9 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-input bg-muted/30 px-3 py-1 text-xs leading-tight shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 sm:w-[220px] sm:text-sm"
                                 >
-                                    <span className="line-clamp-1 flex-1 text-left">
+                                    <span className="min-w-0 flex-1 truncate text-left text-xs leading-tight sm:text-sm">
                                         {exportKelasIds.length === 0
-                                            ? '-- Pilih Kelas --'
+                                            ? 'Pilih Kelas'
                                             : allKelasSelected
                                                 ? 'Semua Kelas'
                                                 : `${exportKelasIds.length} kelas dipilih`}
@@ -462,40 +524,40 @@ parts.push(k.jurusan.singkatan);
                                     <ChevronDown className="size-4 shrink-0 opacity-50" />
                                 </button>
                                 {exportKelasOpen && (
-                                    <div className="bg-popover text-popover-foreground absolute z-50 mt-1 w-[220px] origin-top overflow-hidden rounded-md border shadow-md">
+                                    <div className="bg-popover text-popover-foreground absolute z-50 mt-1 w-full origin-top overflow-hidden rounded-md border shadow-md sm:w-[220px]">
                                         <div className="flex items-center gap-2 border-b px-3 py-2">
                                             <Search className="size-4 shrink-0 opacity-50" />
                                             <input
                                                 value={exportKelasSearch}
                                                 onChange={e => setExportKelasSearch(e.target.value)}
                                                 placeholder="Cari kelas..."
-                                                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                                                className="flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground sm:text-sm"
                                             />
                                         </div>
                                         <div className="max-h-48 overflow-y-auto p-1">
-                                            <label className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent">
+                                            <label className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-xs hover:bg-accent sm:text-sm">
                                                 <input
                                                     type="checkbox"
                                                     checked={allKelasSelected}
                                                     onChange={toggleAllKelas}
-                                                    className="size-4"
+                                                    className="size-4 shrink-0"
                                                 />
                                                 <span className="font-medium">Semua Kelas</span>
                                             </label>
                                             {filteredKelas.length === 0 ? (
-                                                <p className="px-2 py-6 text-center text-sm text-muted-foreground">
+                                                <p className="px-2 py-6 text-center text-xs text-muted-foreground sm:text-sm">
                                                     Tidak ada hasil
                                                 </p>
                                             ) : (
                                                 filteredKelas.map(k => (
-                                                    <label key={k.id} className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent">
+                                                    <label key={k.id} className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-xs hover:bg-accent sm:text-sm">
                                                         <input
                                                             type="checkbox"
                                                             checked={exportKelasIds.includes(k.id.toString())}
                                                             onChange={() => toggleKelas(k.id.toString())}
-                                                            className="size-4"
+                                                            className="size-4 shrink-0"
                                                         />
-                                                        <span className="flex-1">{formatKelasName(k)}</span>
+                                                        <span className="flex-1 break-words whitespace-normal leading-snug">{formatKelasName(k)}</span>
                                                     </label>
                                                 ))
                                             )}
@@ -523,8 +585,8 @@ parts.push(k.jurusan.singkatan);
                                 className="w-[170px] bg-muted/30 h-9"
                             />
                         </div>
-                        <Button onClick={handleExport} className="h-9 gap-1.5">
-                            <FileSpreadsheet className="h-4 w-4" /> Export
+                        <Button onClick={handleExport} disabled={exporting} className="h-9 gap-1.5">
+                            {exporting ? <><Loader2 className="h-4 w-4 animate-spin" /> Mengunduh...</> : <><FileSpreadsheet className="h-4 w-4" /> Ekspor</>}
                         </Button>
                     </div>
                 </div>
@@ -537,7 +599,7 @@ parts.push(k.jurusan.singkatan);
                         <CardHeader className="flex flex-row items-center gap-2 pb-2">
                             <PieChartIcon className="h-5 w-5 text-muted-foreground" />
                             <div className="flex-1">
-                                <CardTitle className="text-lg">Statistik Absensi</CardTitle>
+                                <CardTitle className="text-lg">Statistik Presensi</CardTitle>
                                 <CardDescription>Klik status untuk melihat detail siswa</CardDescription>
                             </div>
                             <Input
@@ -568,13 +630,13 @@ parts.push(k.jurusan.singkatan);
                                             </Pie>
                                         </PieChart>
                                     </ChartContainer>
-                                    <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-5 text-center">
-                                        {attendanceData.map((item) => (
+                                    <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6 text-center">
+                                        {gridData.map((item) => (
                                             <button 
                                                 key={item.status} 
                                                 className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors hover:bg-muted/50 hover:ring-1 hover:ring-border cursor-pointer"
-                                                onClick={() => fetchStatDetail(item.status)}
-                                                title={`Klik lihat detail ${item.status}`}
+                                                onClick={() => openStatistik(item.status)}
+                                                title={`Klik buka halaman ${item.status} — terbaru per siswa`}
                                             >
                                                 <div className="flex items-center justify-center gap-1.5">
                                                     <div
@@ -584,6 +646,7 @@ parts.push(k.jurusan.singkatan);
                                                                 item.status === 'hadir' ? 'var(--chart-2)' :
                                                                 item.status === 'sakit' ? 'var(--chart-4)' :
                                                                 item.status === 'izin' ? 'var(--chart-1)' :
+                                                                item.status === 'kelas' ? 'var(--chart-3)' :
                                                                 item.status === 'dispensasi' ? 'var(--chart-5)' :
                                                                 'var(--destructive)',
                                                         }}
@@ -600,7 +663,7 @@ parts.push(k.jurusan.singkatan);
                             ) : (
                                 <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
                                     <PieChartIcon className="h-12 w-12 opacity-20 mb-3" />
-                                    <p>Belum ada data absensi pada tanggal ini.</p>
+                                    <p>Belum ada data presensi pada tanggal ini.</p>
                                 </div>
                             )}
                         </CardContent>
@@ -640,93 +703,7 @@ parts.push(k.jurusan.singkatan);
                     </Card>
                 </div>
 
-                {/* Statistik Detail Dialog */}
-                <Dialog open={statDialogOpen} onOpenChange={(open) => {
- if (!open) {
-setStatDialogOpen(false);
-} 
-}}>
-                    <DialogContent className="sm:max-w-4xl max-h-[80vh] flex flex-col">
-                        <DialogHeader>
-                            <DialogTitle className="capitalize">Detail Absensi: {selectedStatus}</DialogTitle>
-                            <DialogDescription>
-                                Tanggal: {statDate} — {statDetail.length} siswa
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="overflow-y-auto flex-1 -mx-6 px-6">
-                            {statLoading ? (
-                                <div className="flex items-center justify-center py-12 text-muted-foreground">Memuat data...</div>
-                            ) : statDetail.length > 0 ? (
-                                <table className="w-full text-left text-sm whitespace-nowrap">
-                                    <thead className="bg-muted/50 text-xs font-medium text-muted-foreground uppercase tracking-wider sticky top-0 z-10">
-                                        <tr>
-                                            <th className="px-3 py-2 w-10">#</th>
-                                            <th className="px-3 py-2">NIS</th>
-                                            <th className="px-3 py-2">Nama</th>
-                                            <th className="px-3 py-2">Kelas</th>
-                                            <th className="px-3 py-2">Status</th>
-                                            <th className="px-3 py-2">Keterangan</th>
-                                            <th className="px-3 py-2">Surat</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-sidebar-border/70">
-                                        {statDetail.map((record, idx) => (
-                                            <tr key={record.id} className="hover:bg-muted/30 transition-colors">
-                                                <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
-                                                <td className="px-3 py-2 font-mono text-xs">{record.siswa.nis}</td>
-                                                <td className="px-3 py-2 font-medium">{record.siswa.nama}</td>
-                                                <td className="px-3 py-2 text-xs">{record.kelas}</td>
-                                                <td className="px-3 py-2"><StatusBadge status={record.status} /></td>
-                                                <td className="px-3 py-2 text-xs max-w-[150px] truncate" title={record.keterangan ?? ''}>
-                                                    {record.keterangan || '-'}
-                                                </td>
-                                                <td className="px-3 py-2">
-                                                    {record.bukti ? (
-                                                        <button onClick={() => setPreviewBukti(`/storage/${record.bukti}`)}
-                                                            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 underline underline-offset-2">
-                                                            <ImageUp className="h-3 w-3" /> Lihat
-                                                        </button>
-                                                    ) : (
-                                                        <span className="text-xs text-muted-foreground">-</span>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            ) : (
-                                <div className="flex items-center justify-center py-12 text-muted-foreground">
-                                    Tidak ada data untuk status ini.
-                                </div>
-                            )}
-                        </div>
-                    </DialogContent>
-                </Dialog>
             </div>
-
-            <Dialog open={previewBukti !== null} onOpenChange={(open) => {
- if (!open) {
-setPreviewBukti(null);
-} 
-}}>
-                <DialogContent className="sm:max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle>Bukti Absensi</DialogTitle>
-                        <DialogDescription>
-                            Foto bukti yang diunggah saat pencatatan absensi.
-                        </DialogDescription>
-                    </DialogHeader>
-                    {previewBukti && (
-                        <div className="flex justify-center">
-                            <img
-                                src={previewBukti}
-                                alt="Bukti absensi"
-                                className="max-w-full max-h-[60vh] rounded-lg object-contain"
-                            />
-                        </div>
-                    )}
-                </DialogContent>
-            </Dialog>
         </>
     );
 }
@@ -734,7 +711,11 @@ setPreviewBukti(null);
 AdminDashboard.layout = {
     breadcrumbs: [
         {
-            title: 'Admin Dashboard',
+            title: 'Admin',
+            href: adminDashboard.url(),
+        },
+        {
+            title: 'Dashboard',
             href: adminDashboard.url(),
         },
     ],

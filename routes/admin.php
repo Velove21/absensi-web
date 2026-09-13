@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DurasiPembelajaranController;
 use App\Http\Controllers\Admin\GuruController;
+use App\Http\Controllers\Admin\ImportController;
 use App\Http\Controllers\Admin\JenjangKelasController;
 use App\Http\Controllers\Admin\JurusanController;
 use App\Http\Controllers\Admin\KategoriPembelajaranController;
@@ -11,6 +13,7 @@ use App\Http\Controllers\Admin\MataPelajaranController;
 use App\Http\Controllers\Admin\ResetPasswordController;
 use App\Http\Controllers\Admin\ScheduleController;
 use App\Http\Controllers\Admin\SiswaController;
+use App\Http\Controllers\Admin\StatistikController;
 use App\Http\Controllers\Admin\TahunAjaranController;
 use App\Http\Controllers\Export\AttendanceExportController;
 use App\Http\Controllers\PasswordResetController;
@@ -18,6 +21,13 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['web', 'auth', 'role:admin', 'check.password.status'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
+    Route::get('statistik/{status}', [StatistikController::class, 'index'])->name('statistik');
+
+    Route::get('tambah-admin', [AdminController::class, 'tambahAdmin'])->name('tambah-admin');
+    Route::post('admin', [AdminController::class, 'store'])->name('admin.store');
+    Route::put('admin/{admin}', [AdminController::class, 'update'])->name('admin.update');
+    Route::delete('admin/{admin}', [AdminController::class, 'destroy'])->name('admin.destroy');
+    Route::post('admin/{admin}/reset-password', [AdminController::class, 'resetPassword'])->name('admin.resetPassword');
 
     Route::get('guru', [GuruController::class, 'index'])->name('guru.index');
     Route::get('guru/{guru}/profil', [GuruController::class, 'show'])->name('guru.profil');
@@ -55,6 +65,12 @@ Route::middleware(['web', 'auth', 'role:admin', 'check.password.status'])->prefi
     Route::put('jenjang-kelas/{jenjang_kela}', [JenjangKelasController::class, 'update'])->name('jenjang-kelas.update');
     Route::delete('jenjang-kelas/{jenjang_kela}', [JenjangKelasController::class, 'destroy'])->name('jenjang-kelas.destroy');
 
+    // Alias baru: Jenjang (tanpa Kelas) - konsisten dengan penamaan UI
+    Route::get('jenjang', [JenjangKelasController::class, 'index'])->name('jenjang.index');
+    Route::post('jenjang', [JenjangKelasController::class, 'store'])->name('jenjang.store');
+    Route::put('jenjang/{jenjang}', [JenjangKelasController::class, 'update'])->name('jenjang.update');
+    Route::delete('jenjang/{jenjang}', [JenjangKelasController::class, 'destroy'])->name('jenjang.destroy');
+
     Route::get('matapelajaran', [MataPelajaranController::class, 'index'])->name('matapelajaran.index');
     Route::post('matapelajaran', [MataPelajaranController::class, 'store'])->name('matapelajaran.store');
     Route::put('matapelajaran/{matapelajaran}', [MataPelajaranController::class, 'update'])->name('matapelajaran.update');
@@ -68,6 +84,7 @@ Route::middleware(['web', 'auth', 'role:admin', 'check.password.status'])->prefi
     Route::get('durasi-pembelajaran', [DurasiPembelajaranController::class, 'index'])->name('durasi-pembelajaran.index');
     Route::post('durasi-pembelajaran', [DurasiPembelajaranController::class, 'store'])->name('durasi-pembelajaran.store');
     Route::put('durasi-pembelajaran/{durasi_pembelajaran}', [DurasiPembelajaranController::class, 'update'])->name('durasi-pembelajaran.update');
+    Route::delete('durasi-pembelajaran/{durasi_pembelajaran}', [DurasiPembelajaranController::class, 'destroy'])->name('durasi-pembelajaran.destroy');
 
     Route::get('jadwal-pelajaran', [ScheduleController::class, 'index'])->name('jadwal-pelajaran.index');
     Route::post('jadwal-pelajaran', [ScheduleController::class, 'store'])->name('jadwal-pelajaran.store');
@@ -78,4 +95,25 @@ Route::middleware(['web', 'auth', 'role:admin', 'check.password.status'])->prefi
     Route::post('ubah-sandi', [PasswordResetController::class, 'updateChange'])->name('password.change');
 
     Route::get('export-absensi', [AttendanceExportController::class, 'export'])->name('export-absensi');
+
+    // CSV Import: template & import untuk 10 platform
+    Route::get('import/template/{entity}', [ImportController::class, 'template'])->name('import.template');
+    Route::post('import/{entity}', [ImportController::class, 'import'])->name('import');
+    Route::get('import/template/{entity}/info', function (string $entity) {
+        $map = [
+            'tahun-ajaran' => ['headers' => ['tahun_awal', 'tahun_akhir']],
+            'jurusan' => ['headers' => ['nama_jurusan', 'singkatan']],
+            'jenjang-kelas' => ['headers' => ['nama_jenjang']],
+            'jenjang' => ['headers' => ['nama_jenjang']],
+            'durasi-pembelajaran' => ['headers' => ['hari', 'jam_ke', 'waktu_mulai', 'waktu_selesai']],
+            'kelas' => ['headers' => ['nama_kelas', 'jurusan_singkatan', 'jenjang_nama']],
+            'kategori-pembelajaran' => ['headers' => ['nama_kategori', 'kode']],
+            'mata-pelajaran' => ['headers' => ['nama_mapel', 'kategori_kode']],
+            'guru' => ['headers' => ['nip', 'nama', 'jenis_kelamin', 'kelas', 'mata_pelajaran']],
+            'siswa' => ['headers' => ['nis', 'nama', 'jenis_kelamin', 'kelas']],
+            'admin' => ['headers' => ['name', 'email', 'password']],
+        ];
+
+        return response()->json($map[$entity] ?? ['headers' => []]);
+    })->name('import.info');
 });

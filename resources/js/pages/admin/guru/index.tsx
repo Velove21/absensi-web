@@ -18,6 +18,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import CsvImport from '@/components/csv-import';
+import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import adminGuru from '@/routes/admin/guru';
 
@@ -48,6 +50,7 @@ interface Guru {
     };
     kelas?: Kelas[];
     mataPelajarans?: MataPelajaran[];
+    mata_pelajarans?: MataPelajaran[];
 }
 
 interface PaginatedData<T> {
@@ -72,6 +75,8 @@ export default function GuruIndex({
     const [deletingGuruId, setDeletingGuruId] = useState<number | null>(null);
     const [resettingPasswordGuruId, setResettingPasswordGuruId] = useState<number | null>(null);
 
+    useAutoRefresh(true, 5000);
+
     const [search, setSearch] = useState(() => {
         if (typeof window !== 'undefined') {
             const params = new URLSearchParams(window.location.search);
@@ -82,6 +87,12 @@ export default function GuruIndex({
         return '';
     });
     const searchTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+    const [kelasSearch, setKelasSearch] = useState('');
+    const [mapelSearch, setMapelSearch] = useState('');
+
+    const filteredKelas = kelas.filter(k => k.full_nama_kelas.toLowerCase().includes(kelasSearch.toLowerCase()));
+    const filteredMapel = mataPelajarans.filter(m => m.nama_mapel.toLowerCase().includes(mapelSearch.toLowerCase()) || m.kategori.toLowerCase().includes(mapelSearch.toLowerCase()));
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         nip: '',
@@ -127,6 +138,7 @@ export default function GuruIndex({
                 onSuccess: () => {
                     handleCancel();
                     toast.success('Data guru berhasil diperbarui');
+                    router.reload({ only: ['gurus'], preserveScroll: true, preserveUrl: true } as unknown as never);
                 },
             });
         } else {
@@ -138,14 +150,18 @@ export default function GuruIndex({
                     toast.success('Guru berhasil ditambahkan', {
                         description: 'Akun guru telah dibuat dan siap digunakan.',
                     });
+                    router.reload({ only: ['gurus'], preserveScroll: true, preserveUrl: true } as unknown as never);
                 },
             });
         }
     };
 
     const handleEdit = (guru: Guru) => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         setEditingGuru(guru);
         clearErrors();
+        const gKelas = guru.kelas ?? (guru as unknown as { kelas: Kelas[] }).kelas ?? [];
+        const gMapels = guru.mataPelajarans ?? guru.mata_pelajarans ?? [];
         setData({
             nip: guru.nip,
             nama: guru.nama,
@@ -153,8 +169,8 @@ export default function GuruIndex({
             password: '',
             foto: guru.foto_url ?? null,
             remove_foto: false,
-            kelas_ids: guru.kelas ? guru.kelas.map(k => k.id) : [],
-            mata_pelajaran_ids: guru.mataPelajarans ? guru.mataPelajarans.map(m => m.id) : [],
+            kelas_ids: gKelas.map((k) => k.id),
+            mata_pelajaran_ids: gMapels.map((m) => m.id),
         });
     };
 
@@ -194,6 +210,7 @@ return;
             onSuccess: () => {
                 toast.success('Guru berhasil dihapus');
                 setDeletingGuruId(null);
+                router.reload({ only: ['gurus'], preserveScroll: true, preserveUrl: true } as unknown as never);
             },
             onError: () => setDeletingGuruId(null),
         });
@@ -207,8 +224,9 @@ return;
         router.post(adminGuru.resetPassword.url({ guru: resettingPasswordGuruId }), {}, {
             preserveScroll: true,
             onSuccess: () => {
-                toast.success('Password guru berhasil direset ke default (password)');
+                toast.success('Kata Sandi guru berhasil direset ke default (kata sandi)');
                 setResettingPasswordGuruId(null);
+                router.reload({ only: ['gurus'], preserveScroll: true, preserveUrl: true } as unknown as never);
             },
             onError: () => setResettingPasswordGuruId(null),
         });
@@ -217,22 +235,22 @@ return;
     return (
         <>
             <Head title="Manajemen Guru" />
-            <div className="flex h-full flex-1 flex-col gap-6 p-6">
+            <div className="flex h-full w-full flex-1 flex-col gap-6 p-8">
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight">
                             Manajemen Guru
                         </h1>
                         <p className="text-muted-foreground">
-                            Kelola data, NIP, akun, dan penempatan guru.
+                            Kelola akun dan penempatan mengajar guru.
                         </p>
                     </div>
+                    <CsvImport entity="guru" title="Impor Guru" description="Header: nip, nama, jenis_kelamin, kelas, mata_pelajaran" />
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-stretch">
                     {/* Form Input */}
-                    <div className="col-span-1">
-                        <div className="sticky top-6 rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border">
+                    <div className="col-span-1 flex flex-col gap-6"><div className="sticky top-8 min-h-[260px] flex flex-col rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border">
                             <div className="mb-4 flex items-center justify-between">
                                 <h2 className="text-lg font-semibold flex items-center gap-2">
                                     {editingGuru ? (
@@ -316,7 +334,7 @@ return;
                                     <Label htmlFor="jenis_kelamin">Jenis Kelamin</Label>
                                     <select
                                         id="jenis_kelamin"
-                                        className="flex h-9 w-full rounded-md border border-input bg-muted/30 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
+                                        className="flex h-9 w-full rounded-md border border-input bg-muted/30 px-3 py-1 text-xs shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none sm:text-sm"
                                         value={data.jenis_kelamin}
                                         onChange={(e) =>
                                             setData('jenis_kelamin', e.target.value)
@@ -337,8 +355,17 @@ return;
                                     <Label className="flex items-center gap-1">
                                         <Users className="h-4 w-4" /> Mengampu di Kelas
                                     </Label>
-                                    <div className="grid grid-cols-2 gap-2 mt-2 max-h-48 overflow-y-auto p-1 border border-sidebar-border/30 rounded-md">
-                                        {kelas.map(k => (
+                                    <div className="relative mt-2">
+                                        <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                                        <Input
+                                            placeholder="Cari kelas..."
+                                            value={kelasSearch}
+                                            onChange={(e) => setKelasSearch(e.target.value)}
+                                            className="h-8 pl-8 bg-muted/20 text-xs"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1 border border-sidebar-border/30 rounded-md">
+                                        {filteredKelas.map(k => (
                                             <div key={k.id} className="flex items-center space-x-2 bg-muted/30 p-2 rounded-md border border-sidebar-border/50">
                                                 <input
                                                     type="checkbox"
@@ -352,10 +379,10 @@ return;
                                                 </Label>
                                             </div>
                                         ))}
+                                        {filteredKelas.length === 0 && (
+                                            <p className="col-span-2 text-center text-xs text-muted-foreground py-3">Tidak ada kelas ditemukan</p>
+                                        )}
                                     </div>
-                                    <p className="text-[11px] text-muted-foreground">
-                                        Pilih satu atau lebih kelas tempat guru ini mengajar.
-                                    </p>
                                     {errors.kelas_ids && (
                                         <p className="text-xs text-destructive">
                                             {errors.kelas_ids}
@@ -365,10 +392,19 @@ return;
 
                                 <div className="space-y-3 pt-2 border-t border-sidebar-border/50">
                                     <Label className="flex items-center gap-1">
-                                        <BookOpen className="h-4 w-4" /> Mata Pelajaran Diampu
+                                        <BookOpen className="h-4 w-4" /> Mengampu Mata Pelajaran
                                     </Label>
-                                    <div className="grid grid-cols-1 gap-2 mt-2 max-h-48 overflow-y-auto p-1 border border-sidebar-border/30 rounded-md">
-                                        {mataPelajarans.map(mapel => (
+                                    <div className="relative mt-2">
+                                        <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                                        <Input
+                                            placeholder="Cari mata pelajaran..."
+                                            value={mapelSearch}
+                                            onChange={(e) => setMapelSearch(e.target.value)}
+                                            className="h-8 pl-8 bg-muted/20 text-xs"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto p-1 border border-sidebar-border/30 rounded-md">
+                                        {filteredMapel.map(mapel => (
                                             <div key={mapel.id} className="flex items-center space-x-2 bg-muted/30 p-2 rounded-md border border-sidebar-border/50">
                                                 <input
                                                     type="checkbox"
@@ -382,10 +418,10 @@ return;
                                                 </Label>
                                             </div>
                                         ))}
+                                        {filteredMapel.length === 0 && (
+                                            <p className="text-center text-xs text-muted-foreground py-3">Tidak ada mata pelajaran ditemukan</p>
+                                        )}
                                     </div>
-                                    <p className="text-[11px] text-muted-foreground">
-                                        Pilih mata pelajaran yang diampu oleh guru ini.
-                                    </p>
                                     {errors.mata_pelajaran_ids && (
                                         <p className="text-xs text-destructive">
                                             {errors.mata_pelajaran_ids}
@@ -396,7 +432,7 @@ return;
                                 {editingGuru && (
                                     <div className="space-y-2 pt-2 border-t border-sidebar-border mt-4">
                                         <Label htmlFor="password">
-                                            Password Baru (Opsional)
+                                            Kata Sandi Baru (Opsional)
                                         </Label>
                                         <Input
                                             id="password"
@@ -446,11 +482,11 @@ return;
                     </div>
 
                     {/* Data Table */}
-                    <div className="col-span-1 lg:col-span-2 space-y-4">
+                    <div className="col-span-1 flex flex-col gap-6 lg:col-span-2">
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
-                                placeholder="Cari nama, NIP, kelas, atau mata pelajaran..."
+                                placeholder="Cari NIP, nama, kelas, atau mata pelajaran"
                                 value={search}
                                 onChange={(e) => handleSearch(e.target.value)}
                                 className="pl-9 bg-muted/30"
@@ -474,7 +510,7 @@ return;
                                                 Mata Pelajaran
                                             </th>
                                             <th scope="col" className="px-6 py-4">
-                                                Status Sandi
+                                                Status Kata Sandi
                                             </th>
                                             <th
                                                 scope="col"
@@ -519,15 +555,22 @@ return;
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex flex-wrap gap-1">
-                                                        {guru.mataPelajarans && guru.mataPelajarans.length > 0 ? (
-                                                            guru.mataPelajarans.map(m => (
-                                                                <span key={m.id} className="inline-flex items-center rounded-md bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-600 ring-1 ring-inset ring-blue-500/20 dark:text-blue-400">
-                                                                    {m.nama_mapel}
-                                                                </span>
-                                                            ))
-                                                        ) : (
-                                                            <span className="text-xs text-muted-foreground italic">-</span>
-                                                        )}
+                                                        {(() => {
+                                                            const mapels = guru.mataPelajarans ?? guru.mata_pelajarans ?? [];
+                                                            return mapels.length > 0 ? (
+                                                                mapels.map((m) => (
+                                                                    <span
+                                                                        key={m.id}
+                                                                        className="inline-flex items-center rounded-md bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-600 ring-1 ring-inset ring-blue-500/20 dark:text-blue-400"
+                                                                    >
+                                                                        {m.nama_mapel}
+                                                                        {m.kategori ? ` (${m.kategori})` : ''}
+                                                                    </span>
+                                                                ))
+                                                            ) : (
+                                                                <span className="text-xs text-muted-foreground italic">-</span>
+                                                            );
+                                                        })()}
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
@@ -558,8 +601,8 @@ return;
                                                             variant="ghost"
                                                             size="icon"
                                                             onClick={() => setResettingPasswordGuruId(guru.id)}
-                                                            title="Reset Password"
-                                                            className="h-8 w-8 text-muted-foreground hover:text-yellow-600"
+                                                            title="Reset Kata Sandi"
+                                                            className="h-8 w-8 text-muted-foreground hover:text-black"
                                                         >
                                                             <KeyRound className="h-4 w-4" />
                                                         </Button>
@@ -610,7 +653,7 @@ return;
                     <AlertDialogHeader>
                         <AlertDialogTitle>Konfirmasi Hapus</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Apakah Anda yakin ingin menghapus data guru ini? Semua data absensi terkait juga akan terhapus.
+                            Apakah Anda yakin ingin menghapus data guru ini? Semua data presensi terkait juga akan terhapus.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -623,15 +666,15 @@ return;
             <AlertDialog open={resettingPasswordGuruId !== null} onOpenChange={(open) => !open && setResettingPasswordGuruId(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Konfirmasi Reset Password</AlertDialogTitle>
+                        <AlertDialogTitle>Konfirmasi Reset Kata Sandi</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Password guru ini akan direset ke <strong>password</strong>. Guru wajib mengganti password setelah login berikutnya.
+                            Kata Sandi guru ini akan direset ke <strong>kata sandi</strong>. Guru wajib mengganti kata sandi setelah login berikutnya.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Batal</AlertDialogCancel>
-                        <AlertDialogAction onClick={executeResetPassword} className="bg-yellow-600 hover:bg-yellow-700">
-                            Reset Password
+                        <AlertDialogAction onClick={executeResetPassword} className="bg-black hover:bg-black/90">
+                            Reset Kata Sandi
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
@@ -642,7 +685,7 @@ return;
 
 GuruIndex.layout = {
     breadcrumbs: [
-        { title: 'Admin Dashboard', href: adminDashboard.url() },
+        { title: 'Admin', href: adminDashboard.url() },
         { title: 'Guru', href: adminGuru.index.url() },
     ],
 };

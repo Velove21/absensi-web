@@ -29,16 +29,15 @@ export default function ChangePassword() {
     return (
         <>
             <Head title="Ubah Sandi" />
-            <div className="flex h-full flex-1 flex-col gap-6 p-6">
+            <div className="flex h-full w-full flex-1 flex-col gap-6 p-8">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">Ubah Sandi</h1>
                     <p className="text-muted-foreground">
-                        Ganti password akun Anda secara berkala untuk keamanan.
+                        Ganti kata sandi akun Anda secara berkala untuk keamanan.
                     </p>
                 </div>
 
-                <div className="max-w-lg">
-                    <Card>
+                <div className="w-full max-w-[440px]"><Card className="min-h-[260px] flex flex-col">
                         <CardHeader>
                             <div className="flex items-center gap-3">
                                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
@@ -47,7 +46,7 @@ export default function ChangePassword() {
                                 <div>
                                     <CardTitle>Form Ubah Sandi</CardTitle>
                                     <CardDescription>
-                                        Masukkan password lama dan password baru Anda.
+                                        Masukkan kata sandi lama dan kata sandi baru Anda.
                                     </CardDescription>
                                 </div>
                             </div>
@@ -56,7 +55,7 @@ export default function ChangePassword() {
                             <form onSubmit={submit} className="space-y-5">
                                 <div className="space-y-2">
                                     <Label htmlFor="current_password" className="flex items-center gap-1.5">
-                                        <KeyRound className="h-3.5 w-3.5" /> Password Lama
+                                        <KeyRound className="h-3.5 w-3.5" /> Kata Sandi Lama
                                     </Label>
                                     <PasswordInput
                                         id="current_password"
@@ -65,7 +64,7 @@ export default function ChangePassword() {
                                         autoFocus
                                         value={data.current_password}
                                         onChange={(e) => setData('current_password', e.target.value)}
-                                        placeholder="Masukkan password saat ini"
+                                        placeholder="Masukkan kata sandi saat ini"
                                         className="bg-muted/30 h-11"
                                     />
                                     <InputError message={errors.current_password} />
@@ -73,7 +72,7 @@ export default function ChangePassword() {
 
                                 <div className="space-y-2">
                                     <Label htmlFor="password" className="flex items-center gap-1.5">
-                                        <ShieldCheck className="h-3.5 w-3.5" /> Password Baru
+                                        <ShieldCheck className="h-3.5 w-3.5" /> Kata Sandi Baru
                                     </Label>
                                     <PasswordInput
                                         id="password"
@@ -89,7 +88,7 @@ export default function ChangePassword() {
 
                                 <div className="space-y-2">
                                     <Label htmlFor="password_confirmation">
-                                        Konfirmasi Password Baru
+                                        Konfirmasi Kata Sandi Baru
                                     </Label>
                                     <PasswordInput
                                         id="password_confirmation"
@@ -97,7 +96,7 @@ export default function ChangePassword() {
                                         required
                                         value={data.password_confirmation}
                                         onChange={(e) => setData('password_confirmation', e.target.value)}
-                                        placeholder="Ulangi password baru"
+                                        placeholder="Ulangi kata sandi baru"
                                         className="bg-muted/30 h-11"
                                     />
                                     <InputError message={errors.password_confirmation} />
@@ -105,7 +104,7 @@ export default function ChangePassword() {
 
                                 {recentlySuccessful && (
                                     <div className="rounded-md bg-emerald-50 dark:bg-emerald-950/20 p-3 text-sm font-medium text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900">
-                                        Password berhasil diubah.
+                                        Kata Sandi berhasil diubah.
                                     </div>
                                 )}
 
@@ -131,7 +130,7 @@ export default function ChangePassword() {
 
 ChangePassword.layout = {
     breadcrumbs: [
-        { title: 'Dashboard', href: siswaDashboard.url() },
+        { title: 'Siswa', href: siswaDashboard.url() },
         { title: 'Ubah Sandi', href: siswaPassword.change.url() },
     ],
 };

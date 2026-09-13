@@ -10,10 +10,23 @@ use Inertia\Inertia;
 
 class DurasiPembelajaranController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $hari = $request->query('hari');
+
+        $query = DurasiPembelajaran::query();
+
+        if ($hari && in_array($hari, ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'], true)) {
+            $query->where('hari', $hari);
+        }
+
+        // Urut Senin -> Minggu, lalu jam_ke
+        $query->orderByRaw("FIELD(hari, 'Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu')")
+            ->orderBy('jam_ke');
+
         return Inertia::render('admin/durasipembelajaran/index', [
-            'durasiPembelajaran' => DurasiPembelajaran::orderBy('hari')->orderBy('jam_ke')->paginate(15),
+            'durasiPembelajaran' => $query->paginate(15)->withQueryString(),
+            'filters' => ['hari' => $hari],
         ]);
     }
 
@@ -27,7 +40,6 @@ class DurasiPembelajaranController extends Controller
                 'min:0',
                 Rule::unique('durasi_pembelajarans')->where(fn ($query) => $query->where('hari', $request->hari)),
             ],
-            'nama' => 'nullable|string|max:50',
             'waktu_mulai' => 'required|date_format:H:i',
             'waktu_selesai' => 'required|date_format:H:i|after:waktu_mulai',
         ], [
@@ -54,7 +66,6 @@ class DurasiPembelajaranController extends Controller
                     ->where(fn ($query) => $query->where('hari', $request->hari))
                     ->ignore($durasi->id),
             ],
-            'nama' => 'nullable|string|max:50',
             'waktu_mulai' => 'required|date_format:H:i',
             'waktu_selesai' => 'required|date_format:H:i|after:waktu_mulai',
         ], [
@@ -69,6 +80,9 @@ class DurasiPembelajaranController extends Controller
 
     public function destroy(string $id)
     {
-        abort(403, 'Penghapusan durasi pembelajaran tidak diizinkan.');
+        $durasi = DurasiPembelajaran::findOrFail($id);
+        $durasi->delete();
+
+        return redirect()->back()->with('success', 'Jam pembelajaran berhasil dihapus.');
     }
 }

@@ -29,7 +29,7 @@ export default function SecretAdminRegister({ secretKey }: SecretAdminRegisterPr
                     {/* Header Branding */}
                     <div className="text-center">
                         <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
-                            Absensi KlikHadir
+                            Presensi KlikHadir
                         </h1>
                     </div>
 

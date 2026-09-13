@@ -10,11 +10,23 @@ use Inertia\Inertia;
 
 class MataPelajaranController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $search = $request->query('search');
+
+        $mapelQuery = MataPelajaran::with('kategoriPembelajaran')->orderBy('id', 'asc');
+
+        if ($search) {
+            $mapelQuery->where(function ($q) use ($search) {
+                $q->where('nama_mapel', 'like', "%{$search}%")
+                    ->orWhereHas('kategoriPembelajaran', fn ($kq) => $kq->where('nama_kategori', 'like', "%{$search}%")->orWhere('kode', 'like', "%{$search}%"));
+            });
+        }
+
         return Inertia::render('admin/matapelajaran/index', [
-            'matapelajarans' => MataPelajaran::with('kategoriPembelajaran')->latest()->paginate(10),
+            'matapelajarans' => $mapelQuery->paginate(10)->withQueryString(),
             'kategoriPembelajarans' => KategoriPembelajaran::orderBy('kode')->get(),
+            'filters' => ['search' => $search],
         ]);
     }
 

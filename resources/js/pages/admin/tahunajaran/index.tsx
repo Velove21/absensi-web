@@ -25,6 +25,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import CsvImport from '@/components/csv-import';
+import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import adminTahunAjaran from '@/routes/admin/tahun-ajaran';
 
@@ -55,6 +57,8 @@ export default function TahunAjaranIndex({
     const [deletingTahunId, setDeletingTahunId] = useState<number | null>(null);
     const [naikKelasOpen, setNaikKelasOpen] = useState(false);
 
+    useAutoRefresh(true, 5000);
+
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         tahun_awal: '',
         tahun_akhir: '',
@@ -69,6 +73,7 @@ export default function TahunAjaranIndex({
                 onSuccess: () => {
                     handleCancel();
                     toast.success('Tahun ajaran berhasil diperbarui');
+                    router.reload({ only: ['tahunAjarans'], preserveScroll: true, preserveUrl: true } as unknown as never);
                 },
             });
         } else {
@@ -77,12 +82,14 @@ export default function TahunAjaranIndex({
                 onSuccess: () => {
                     reset();
                     toast.success('Tahun ajaran berhasil ditambahkan');
+                    router.reload({ only: ['tahunAjarans'], preserveScroll: true, preserveUrl: true } as unknown as never);
                 },
             });
         }
     };
 
     const handleEdit = (tahun: TahunAjaran) => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         setEditingTahun(tahun);
         clearErrors();
         setData({
@@ -107,6 +114,7 @@ return;
             onSuccess: () => {
                 toast.success('Tahun ajaran berhasil dihapus');
                 setDeletingTahunId(null);
+                router.reload({ only: ['tahunAjarans'], preserveScroll: true, preserveUrl: true } as unknown as never);
             },
             onError: (errors) => {
                 if (errors.active) {
@@ -121,7 +129,10 @@ toast.error(errors.active);
     const handleActivate = (id: number) => {
         router.post(adminTahunAjaran.activate.url({ tahun_ajaran: id }), undefined, {
             preserveScroll: true,
-            onSuccess: () => toast.success('Tahun ajaran aktif berubah'),
+            onSuccess: () => {
+                toast.success('Tahun ajaran aktif berubah');
+                router.reload({ only: ['tahunAjarans'], preserveScroll: true, preserveUrl: true } as unknown as never);
+            },
         });
     };
 
@@ -131,6 +142,7 @@ toast.error(errors.active);
             onSuccess: () => {
                 setNaikKelasOpen(false);
                 toast.success('Naik kelas berhasil');
+                router.reload({ only: ['tahunAjarans'], preserveScroll: true, preserveUrl: true } as unknown as never);
             },
             onError: (errors) => {
                 setNaikKelasOpen(false);
@@ -145,7 +157,7 @@ toast.error(errors.naik_kelas);
     return (
         <>
             <Head title="Manajemen Tahun Ajaran" />
-            <div className="flex h-full flex-1 flex-col gap-6 p-6">
+            <div className="flex h-full w-full flex-1 flex-col gap-6 p-8">
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight">
@@ -155,39 +167,41 @@ toast.error(errors.naik_kelas);
                             Kelola data tahun ajaran dan proses kenaikan kelas.
                         </p>
                     </div>
-                    {isNaikKelasAvailable && (
-                        <Dialog open={naikKelasOpen} onOpenChange={setNaikKelasOpen}>
-                            <DialogTrigger asChild>
-                                <Button variant="default">
-                                    <ArrowUp className="mr-2 h-4 w-4" /> Naik Kelas
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle>Konfirmasi Naik Kelas</DialogTitle>
-                                    <DialogDescription>
-                                        Semua siswa akan dipindahkan ke kelas di jenjang berikutnya.
-                                        Siswa di jenjang tertinggi akan ditandai sebagai lulus.
-                                        Tindakan ini tidak dapat dibatalkan.
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <DialogFooter>
-                                    <Button variant="outline" onClick={() => setNaikKelasOpen(false)}>
-                                        Batal
+                    <div className="flex items-center gap-2">
+                        <CsvImport entity="tahun-ajaran" title="Impor Tahun Ajaran" description="Header: tahun_awal, tahun_akhir" />
+                        {isNaikKelasAvailable && (
+                            <Dialog open={naikKelasOpen} onOpenChange={setNaikKelasOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant="default">
+                                        <ArrowUp className="mr-2 h-4 w-4" /> Naik Kelas
                                     </Button>
-                                    <Button onClick={handleNaikKelas} disabled={processing}>
-                                        {processing ? 'Proses...' : 'Ya, Naikkan Kelas'}
-                                    </Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-                    )}
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Konfirmasi Naik Kelas</DialogTitle>
+                                        <DialogDescription>
+                                            Semua siswa akan dipindahkan ke kelas di jenjang berikutnya.
+                                            Siswa di jenjang tertinggi akan ditandai sebagai lulus.
+                                            Tindakan ini tidak dapat dibatalkan.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <DialogFooter>
+                                        <Button variant="outline" onClick={() => setNaikKelasOpen(false)}>
+                                            Batal
+                                        </Button>
+                                        <Button onClick={handleNaikKelas} disabled={processing}>
+                                            {processing ? 'Proses...' : 'Ya, Naikkan Kelas'}
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                        )}
+                    </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-stretch">
                     {/* Form Input */}
-                    <div className="col-span-1">
-                        <div className="sticky top-6 rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border">
+                    <div className="col-span-1 flex flex-col gap-6"><div className="sticky top-8 min-h-[260px] flex flex-col rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border">
                             <div className="mb-4 flex items-center justify-between">
                                 <h2 className="text-lg font-semibold flex items-center gap-2">
                                     {editingTahun ? (
@@ -277,7 +291,7 @@ toast.error(errors.naik_kelas);
                     </div>
 
                     {/* Data Table */}
-                    <div className="col-span-1 lg:col-span-2 space-y-4">
+                    <div className="col-span-1 flex flex-col gap-6 lg:col-span-2">
                         <div className="overflow-hidden rounded-xl border border-sidebar-border/70 bg-card shadow-sm dark:border-sidebar-border">
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-sm">
@@ -386,7 +400,7 @@ toast.error(errors.naik_kelas);
 
 TahunAjaranIndex.layout = {
     breadcrumbs: [
-        { title: 'Admin Dashboard', href: adminDashboard.url() },
+        { title: 'Admin', href: adminDashboard.url() },
         { title: 'Tahun Ajaran', href: adminTahunAjaran.index.url() },
     ],
 };

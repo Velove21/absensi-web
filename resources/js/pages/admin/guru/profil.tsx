@@ -32,7 +32,7 @@ export default function GuruProfil({ guru }: { guru: Guru }) {
     return (
         <>
             <Head title={`Profil ${guru.nama}`} />
-            <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
+            <div className="flex h-full w-full flex-1 flex-col gap-6 p-8">
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight">Profil Guru</h1>
@@ -46,7 +46,7 @@ export default function GuruProfil({ guru }: { guru: Guru }) {
                     </Button>
                 </div>
 
-                <Card>
+                <Card className="mb-2">
                     <CardContent className="flex flex-col items-center gap-4 p-8 sm:flex-row sm:items-start">
                         <Avatar className="size-24 shrink-0 overflow-hidden rounded-full ring-2 ring-sidebar-border/70">
                             <AvatarImage src={guru.foto_url ?? undefined} alt={guru.nama} />
@@ -70,7 +70,7 @@ export default function GuruProfil({ guru }: { guru: Guru }) {
                     </CardContent>
                 </Card>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 pt-2">
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-base">
@@ -146,7 +146,7 @@ export default function GuruProfil({ guru }: { guru: Guru }) {
 
 GuruProfil.layout = {
     breadcrumbs: [
-        { title: 'Admin Dashboard', href: adminDashboard.url() },
+        { title: 'Admin', href: adminDashboard.url() },
         { title: 'Guru', href: adminGuru.index.url() },
         { title: 'Profil Guru' },
     ],

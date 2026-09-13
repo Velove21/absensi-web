@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -55,6 +56,15 @@ class HandleInertiaRequests extends Middleware
                 'user' => $user,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'flash' => [
+                'success' => fn () => $request->session()->get('success') ?? Inertia::getFlashed($request)['success'] ?? null,
+                'error' => fn () => $request->session()->get('error') ?? Inertia::getFlashed($request)['error'] ?? null,
+                'import_errors' => fn () => $request->session()->get('import_errors') ?? Inertia::getFlashed($request)['import_errors'] ?? null,
+                'toast' => fn () => Inertia::getFlashed($request)['toast'] ?? $request->session()->get('toast'),
+            ],
+            'success' => fn () => $request->session()->get('success'),
+            'error' => fn () => $request->session()->get('error'),
+            'import_errors' => fn () => $request->session()->get('import_errors'),
         ];
     }
 

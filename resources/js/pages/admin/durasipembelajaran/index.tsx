@@ -1,11 +1,23 @@
-import { Head, useForm } from '@inertiajs/react';
-import { Edit2, X, Plus, Save, Clock } from 'lucide-react';
+import { Head, useForm, router } from '@inertiajs/react';
+import { Edit2, X, Plus, Save, Clock, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import Pagination from '@/components/pagination';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import CsvImport from '@/components/csv-import';
+import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import adminDurasiPembelajaran from '@/routes/admin/durasi-pembelajaran';
 
@@ -29,21 +41,34 @@ interface PaginatedData<T> {
 
 export default function DurasiPembelajaranIndex({
     durasiPembelajaran,
+    filters,
 }: {
     durasiPembelajaran: PaginatedData<DurasiPembelajaran>;
+    filters: { hari: string | null };
 }) {
     const [editingDurasi, setEditingDurasi] = useState<DurasiPembelajaran | null>(null);
+    const [deletingId, setDeletingId] = useState<number | null>(null);
+    const [searchHari, setSearchHari] = useState(filters?.hari ?? '');
+
+    useAutoRefresh(true, 5000);
+
+    const handleHariFilter = (value: string) => {
+        setSearchHari(value);
+        router.get(
+            adminDurasiPembelajaran.index.url(),
+            { hari: value || undefined },
+            { preserveState: true, preserveScroll: true, replace: true },
+        );
+    };
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         hari: 'Senin',
         jam_ke: 1,
-        nama: '',
         waktu_mulai: '07:00',
         waktu_selesai: '07:45',
     });
 
     const formatTime = (timeString: string) => {
-        // timeString is like "07:00:00", we want "07:00"
         return timeString.substring(0, 5);
     };
 
@@ -56,31 +81,32 @@ export default function DurasiPembelajaranIndex({
                 onSuccess: () => {
                     handleCancel();
                     toast.success('Durasi pembelajaran berhasil diperbarui');
+                    router.reload({ only: ['durasiPembelajaran'], preserveScroll: true, preserveUrl: true } as unknown as never);
                 },
             });
         } else {
             post(adminDurasiPembelajaran.store.url(), {
                 preserveScroll: true,
                 onSuccess: () => {
-                    // keep hari, increment jam_ke, calculate new start/end
-                    setData(prev => ({
+                    setData((prev) => ({
                         ...prev,
                         jam_ke: Number(prev.jam_ke) + 1,
-                        waktu_mulai: prev.waktu_selesai, // new start = old end
+                        waktu_mulai: prev.waktu_selesai,
                     }));
                     toast.success('Durasi pembelajaran berhasil ditambahkan');
+                    router.reload({ only: ['durasiPembelajaran'], preserveScroll: true, preserveUrl: true } as unknown as never);
                 },
             });
         }
     };
 
     const handleEdit = (durasi: DurasiPembelajaran) => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         setEditingDurasi(durasi);
         clearErrors();
-        setData({ 
+        setData({
             hari: durasi.hari,
             jam_ke: durasi.jam_ke,
-            nama: durasi.nama ?? '',
             waktu_mulai: formatTime(durasi.waktu_mulai),
             waktu_selesai: formatTime(durasi.waktu_selesai),
         });
@@ -92,40 +118,49 @@ export default function DurasiPembelajaranIndex({
         clearErrors();
     };
 
+    const executeDelete = () => {
+        if (!deletingId) return;
+        router.delete(adminDurasiPembelajaran.destroy.url({ durasi_pembelajaran: deletingId }), {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success('Jam pembelajaran berhasil dihapus');
+                setDeletingId(null);
+                if (editingDurasi?.id === deletingId) handleCancel();
+                router.reload({ only: ['durasiPembelajaran'], preserveScroll: true, preserveUrl: true } as unknown as never);
+            },
+            onError: () => setDeletingId(null),
+        });
+    };
+
     return (
         <>
             <Head title="Manajemen Durasi Pembelajaran" />
-            <div className="flex h-full flex-1 flex-col gap-6 p-6">
+            <div className="flex h-full w-full flex-1 flex-col gap-6 p-8">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight">
-                            Manajemen Durasi Pembelajaran
-                        </h1>
-                        <p className="text-muted-foreground">
-                            Atur jadwal dan durasi jam pelajaran setiap harinya.
-                        </p>
+                        <h1 className="text-2xl font-bold tracking-tight">Manajemen Durasi Pembelajaran</h1>
+                        <p className="text-muted-foreground">Atur jadwal dan durasi jam pelajaran setiap harinya.</p>
                     </div>
+                    <CsvImport entity="durasi-pembelajaran" title="Impor Durasi" description="Header: hari, jam_ke, waktu_mulai, waktu_selesai" />
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-stretch">
                     {/* Form Input */}
-                    <div className="col-span-1">
-                        <div className="sticky top-6 rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border">
+                    <div className="col-span-1 flex flex-col gap-6"><div className="sticky top-8 min-h-[260px] flex flex-col rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border">
                             <div className="mb-4 flex items-center justify-between">
-                                <h2 className="text-lg font-semibold flex items-center gap-2">
+                                <h2 className="flex items-center gap-2 text-lg font-semibold">
                                     {editingDurasi ? (
-                                        <><Edit2 className="h-4 w-4 text-primary" /> Edit Durasi</>
+                                        <>
+                                            <Edit2 className="h-4 w-4 text-primary" /> Edit Durasi
+                                        </>
                                     ) : (
-                                        <><Plus className="h-4 w-4 text-primary" /> Tambah Durasi</>
+                                        <>
+                                            <Plus className="h-4 w-4 text-primary" /> Tambah Durasi
+                                        </>
                                     )}
                                 </h2>
                                 {editingDurasi && (
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={handleCancel}
-                                        className="h-8 w-8 rounded-full"
-                                    >
+                                    <Button variant="ghost" size="icon" onClick={handleCancel} className="h-8 w-8 rounded-full">
                                         <X className="h-4 w-4" />
                                     </Button>
                                 )}
@@ -136,11 +171,9 @@ export default function DurasiPembelajaranIndex({
                                     <Label htmlFor="hari">Hari</Label>
                                     <select
                                         id="hari"
-                                        className="flex h-9 w-full rounded-md border border-input bg-muted/30 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
+                                        className="flex h-9 w-full rounded-md border border-input bg-muted/30 px-3 py-1 text-xs shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none sm:text-sm"
                                         value={data.hari}
-                                        onChange={(e) =>
-                                            setData('hari', e.target.value)
-                                        }
+                                        onChange={(e) => setData('hari', e.target.value)}
                                         disabled={!!editingDurasi}
                                     >
                                         <option value="Senin">Senin</option>
@@ -151,11 +184,7 @@ export default function DurasiPembelajaranIndex({
                                         <option value="Sabtu">Sabtu</option>
                                         <option value="Minggu">Minggu</option>
                                     </select>
-                                    {errors.hari && (
-                                        <p className="text-xs text-destructive">
-                                            {errors.hari}
-                                        </p>
-                                    )}
+                                    {errors.hari && <p className="text-xs text-destructive">{errors.hari}</p>}
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="jam_ke">Jam Ke-</Label>
@@ -164,39 +193,12 @@ export default function DurasiPembelajaranIndex({
                                         type="number"
                                         min="0"
                                         value={data.jam_ke}
-                                        onChange={(e) =>
-                                            setData('jam_ke', parseInt(e.target.value) || 0)
-                                        }
+                                        onChange={(e) => setData('jam_ke', parseInt(e.target.value) || 0)}
                                         className="bg-muted/30"
                                     />
-                                    {errors.jam_ke && (
-                                        <p className="text-xs text-destructive">
-                                            {errors.jam_ke}
-                                        </p>
-                                    )}
+                                    {errors.jam_ke && <p className="text-xs text-destructive">{errors.jam_ke}</p>}
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="nama">Nama (Opsional)</Label>
-                                    <Input
-                                        id="nama"
-                                        value={data.nama}
-                                        onChange={(e) =>
-                                            setData('nama', e.target.value)
-                                        }
-                                        placeholder="Contoh: Upacara"
-                                        className="bg-muted/30"
-                                    />
-                                    <p className="text-[11px] text-muted-foreground">
-                                        Kosongkan untuk jam pelajaran biasa. Isi "Upacara" untuk jam khusus.
-                                    </p>
-                                    {errors.nama && (
-                                        <p className="text-xs text-destructive">
-                                            {errors.nama}
-                                        </p>
-                                    )}
-                                </div>
-                                
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="waktu_mulai">Waktu Mulai</Label>
@@ -204,16 +206,10 @@ export default function DurasiPembelajaranIndex({
                                             id="waktu_mulai"
                                             type="time"
                                             value={data.waktu_mulai}
-                                            onChange={(e) =>
-                                                setData('waktu_mulai', e.target.value)
-                                            }
+                                            onChange={(e) => setData('waktu_mulai', e.target.value)}
                                             className="bg-muted/30"
                                         />
-                                        {errors.waktu_mulai && (
-                                            <p className="text-xs text-destructive">
-                                                {errors.waktu_mulai}
-                                            </p>
-                                        )}
+                                        {errors.waktu_mulai && <p className="text-xs text-destructive">{errors.waktu_mulai}</p>}
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="waktu_selesai">Waktu Selesai</Label>
@@ -221,41 +217,30 @@ export default function DurasiPembelajaranIndex({
                                             id="waktu_selesai"
                                             type="time"
                                             value={data.waktu_selesai}
-                                            onChange={(e) =>
-                                                setData('waktu_selesai', e.target.value)
-                                            }
+                                            onChange={(e) => setData('waktu_selesai', e.target.value)}
                                             className="bg-muted/30"
                                         />
-                                        {errors.waktu_selesai && (
-                                            <p className="text-xs text-destructive">
-                                                {errors.waktu_selesai}
-                                            </p>
-                                        )}
+                                        {errors.waktu_selesai && <p className="text-xs text-destructive">{errors.waktu_selesai}</p>}
                                     </div>
                                 </div>
 
                                 <div className="flex gap-2 pt-2">
                                     {editingDurasi && (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            onClick={handleCancel}
-                                            className="flex-1"
-                                        >
+                                        <Button type="button" variant="outline" onClick={handleCancel} className="flex-1">
                                             Batal
                                         </Button>
                                     )}
-                                    <Button
-                                        type="submit"
-                                        disabled={processing}
-                                        className="flex-1"
-                                    >
+                                    <Button type="submit" disabled={processing} className="flex-1">
                                         {processing ? (
                                             'Proses...'
                                         ) : editingDurasi ? (
-                                            <><Save className="mr-2 h-4 w-4" /> Update</>
+                                            <>
+                                                <Save className="mr-2 h-4 w-4" /> Update
+                                            </>
                                         ) : (
-                                            <><Plus className="mr-2 h-4 w-4" /> Simpan</>
+                                            <>
+                                                <Plus className="mr-2 h-4 w-4" /> Simpan
+                                            </>
                                         )}
                                     </Button>
                                 </div>
@@ -264,33 +249,37 @@ export default function DurasiPembelajaranIndex({
                     </div>
 
                     {/* Data Table */}
-                    <div className="col-span-1 lg:col-span-2 space-y-4">
+                    <div className="col-span-1 space-y-4 lg:col-span-2">
+                        <div className="flex items-center gap-2">
+                            <label className="text-sm font-medium">Cari Hari:</label>
+                            <select
+                                value={searchHari}
+                                onChange={(e) => handleHariFilter(e.target.value)}
+                                className="h-9 rounded-md border border-input bg-white px-3 py-1 text-xs text-black sm:text-sm [&>option]:bg-white [&>option]:text-black"
+                            >
+                                <option value="">Semua Hari (Senin-Minggu)</option>
+                                <option value="Senin">Senin</option>
+                                <option value="Selasa">Selasa</option>
+                                <option value="Rabu">Rabu</option>
+                                <option value="Kamis">Kamis</option>
+                                <option value="Jumat">Jumat</option>
+                                <option value="Sabtu">Sabtu</option>
+                                <option value="Minggu">Minggu</option>
+                            </select>
+                            <span className="text-xs text-muted-foreground">
+                                Menampilkan: {durasiPembelajaran.data.length} data
+                            </span>
+                        </div>
                         <div className="overflow-hidden rounded-xl border border-sidebar-border/70 bg-card shadow-sm dark:border-sidebar-border">
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-sm">
-                                    <thead className="bg-muted/50 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                    <thead className="bg-muted/50 text-xs font-medium tracking-wider text-muted-foreground uppercase">
                                         <tr>
-                                            <th scope="col" className="px-6 py-4">
-                                                Hari
-                                            </th>
-                                            <th scope="col" className="px-6 py-4">
-                                                Jam Ke-
-                                            </th>
-                                            <th scope="col" className="px-6 py-4">
-                                                Nama
-                                            </th>
-                                            <th scope="col" className="px-6 py-4">
-                                                Waktu Mulai
-                                            </th>
-                                            <th scope="col" className="px-6 py-4">
-                                                Waktu Selesai
-                                            </th>
-                                            <th
-                                                scope="col"
-                                                className="px-6 py-4 text-right"
-                                            >
-                                                Aksi
-                                            </th>
+                                            <th scope="col" className="px-6 py-4">Hari</th>
+                                            <th scope="col" className="px-6 py-4">Jam Ke-</th>
+                                            <th scope="col" className="px-6 py-4">Waktu Mulai</th>
+                                            <th scope="col" className="px-6 py-4">Waktu Selesai</th>
+                                            <th scope="col" className="px-6 py-4 text-right">Aksi</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-sidebar-border/70 dark:divide-sidebar-border">
@@ -299,45 +288,39 @@ export default function DurasiPembelajaranIndex({
                                                 key={durasi.id}
                                                 className={`group transition-colors hover:bg-muted/30 ${editingDurasi?.id === durasi.id ? 'bg-primary/5' : ''}`}
                                             >
-                                                <td className="px-6 py-4 font-medium text-foreground">
-                                                    {durasi.hari}
-                                                </td>
+                                                <td className="px-6 py-4 font-medium text-foreground">{durasi.hari}</td>
                                                 <td className="px-6 py-4 text-muted-foreground">
-                                                    {durasi.jam_ke === 0 ? '-' : `Jam ke-${durasi.jam_ke}`}
+                                                    {durasi.jam_ke === 0 ? '-' : durasi.jam_ke}
                                                 </td>
-                                                <td className="px-6 py-4">
-                                                    {durasi.nama ? (
-                                                        <span className="inline-flex items-center rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-500/20">
-                                                            {durasi.nama}
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-muted-foreground opacity-60">-</span>
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-4 text-muted-foreground">
-                                                    {formatTime(durasi.waktu_mulai)}
-                                                </td>
-                                                <td className="px-6 py-4 text-muted-foreground">
-                                                    {formatTime(durasi.waktu_selesai)}
-                                                </td>
+                                                <td className="px-6 py-4 text-muted-foreground">{formatTime(durasi.waktu_mulai)}</td>
+                                                <td className="px-6 py-4 text-muted-foreground">{formatTime(durasi.waktu_selesai)}</td>
                                                 <td className="px-6 py-4 text-right">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => handleEdit(durasi)}
-                                                        className="h-8 w-8 text-muted-foreground hover:text-primary"
-                                                    >
-                                                        <Edit2 className="h-4 w-4" />
-                                                    </Button>
+                                                    <div className="flex justify-end gap-1">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => handleEdit(durasi)}
+                                                            className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                                            title="Edit"
+                                                        >
+                                                            <Edit2 className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => setDeletingId(durasi.id)}
+                                                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                                            title="Hapus jam pembelajaran"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
                                         {durasiPembelajaran.data.length === 0 && (
                                             <tr>
-                                                <td
-                                                    colSpan={6}
-                                                    className="px-6 py-12 text-center text-muted-foreground"
-                                                >
+                                                <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
                                                     <div className="flex flex-col items-center gap-2">
                                                         <Clock className="h-8 w-8 opacity-20" />
                                                         <p>Belum ada data durasi pembelajaran.</p>
@@ -354,13 +337,29 @@ export default function DurasiPembelajaranIndex({
                 </div>
             </div>
 
+            <AlertDialog open={deletingId !== null} onOpenChange={(open) => !open && setDeletingId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Konfirmasi Hapus</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Apakah Anda yakin ingin menghapus jam pembelajaran ini? Data yang sudah dihapus tidak dapat dikembalikan.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Batal</AlertDialogCancel>
+                        <AlertDialogAction onClick={executeDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Hapus
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     );
 }
 
 DurasiPembelajaranIndex.layout = {
     breadcrumbs: [
-        { title: 'Admin Dashboard', href: adminDashboard.url() },
+        { title: 'Admin', href: adminDashboard.url() },
         { title: 'Durasi Pembelajaran', href: adminDurasiPembelajaran.index.url() },
     ],
 };

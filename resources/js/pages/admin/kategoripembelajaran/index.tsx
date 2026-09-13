@@ -16,6 +16,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import CsvImport from '@/components/csv-import';
+import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import adminKategoriPembelajaran from '@/routes/admin/kategori-pembelajaran';
 
@@ -42,6 +44,8 @@ export default function KategoriPembelajaranIndex({
     const [editingKategori, setEditingKategori] = useState<KategoriPembelajaran | null>(null);
     const [deletingKategoriId, setDeletingKategoriId] = useState<number | null>(null);
 
+    useAutoRefresh(true, 5000);
+
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         nama_kategori: '',
         kode: '',
@@ -56,6 +60,7 @@ export default function KategoriPembelajaranIndex({
                 onSuccess: () => {
                     handleCancel();
                     toast.success('Kategori berhasil diperbarui');
+                    router.reload({ only: ['kategoriPembelajaran'], preserveScroll: true, preserveUrl: true } as unknown as never);
                 },
             });
         } else {
@@ -64,12 +69,14 @@ export default function KategoriPembelajaranIndex({
                 onSuccess: () => {
                     reset();
                     toast.success('Kategori berhasil ditambahkan');
+                    router.reload({ only: ['kategoriPembelajaran'], preserveScroll: true, preserveUrl: true } as unknown as never);
                 },
             });
         }
     };
 
     const handleEdit = (kategori: KategoriPembelajaran) => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         setEditingKategori(kategori);
         clearErrors();
         setData({ 
@@ -94,6 +101,7 @@ return;
             onSuccess: () => {
                 toast.success('Kategori berhasil dihapus');
                 setDeletingKategoriId(null);
+                router.reload({ only: ['kategoriPembelajaran'], preserveScroll: true, preserveUrl: true } as unknown as never);
             },
             onError: () => setDeletingKategoriId(null),
         });
@@ -101,23 +109,23 @@ return;
 
     return (
         <>
-            <Head title="Manajemen Kategori Pembelajaran" />
-            <div className="flex h-full flex-1 flex-col gap-6 p-6">
+            <Head title="Manajemen Kategori Pelajaran" />
+            <div className="flex h-full w-full flex-1 flex-col gap-6 p-8">
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight">
-                            Manajemen Kategori Pembelajaran
+                            Manajemen Kategori Pelajaran
                         </h1>
                         <p className="text-muted-foreground">
-                            Kelola kategori mata pelajaran (contoh: MPU, KK).
+                            Kelola kategori pelajaran untuk sekolah yang memiliki pengelompokan pelajaran (contoh: MPU, KK).
                         </p>
                     </div>
+                    <CsvImport entity="kategori-pembelajaran" title="Impor Kategori" description="Header: nama_kategori, kode" />
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-stretch">
                     {/* Form Input */}
-                    <div className="col-span-1">
-                        <div className="sticky top-6 rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border">
+                    <div className="col-span-1 flex flex-col gap-6"><div className="sticky top-8 min-h-[260px] flex flex-col rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border">
                             <div className="mb-4 flex items-center justify-between">
                                 <h2 className="text-lg font-semibold flex items-center gap-2">
                                     {editingKategori ? (
@@ -206,7 +214,7 @@ return;
                     </div>
 
                     {/* Data Table */}
-                    <div className="col-span-1 lg:col-span-2 space-y-4">
+                    <div className="col-span-1 flex flex-col gap-6 lg:col-span-2">
                         <div className="overflow-hidden rounded-xl border border-sidebar-border/70 bg-card shadow-sm dark:border-sidebar-border">
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-sm">
@@ -274,7 +282,7 @@ return;
                                                 >
                                                     <div className="flex flex-col items-center gap-2">
                                                         <Library className="h-8 w-8 opacity-20" />
-                                                        <p>Belum ada data kategori pembelajaran.</p>
+                                                        <p>Belum ada data kategori pelajaran.</p>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -293,7 +301,7 @@ return;
                     <AlertDialogHeader>
                         <AlertDialogTitle>Konfirmasi Hapus</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Apakah Anda yakin ingin menghapus kategori pembelajaran ini? 
+                            Apakah Anda yakin ingin menghapus kategori pelajaran ini? 
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -308,7 +316,7 @@ return;
 
 KategoriPembelajaranIndex.layout = {
     breadcrumbs: [
-        { title: 'Admin Dashboard', href: adminDashboard.url() },
-        { title: 'Kategori Pembelajaran', href: adminKategoriPembelajaran.index.url() },
+        { title: 'Admin', href: adminDashboard.url() },
+        { title: 'Kategori Pelajaran', href: adminKategoriPembelajaran.index.url() },
     ],
 };

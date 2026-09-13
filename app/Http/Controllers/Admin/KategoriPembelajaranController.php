@@ -13,7 +13,7 @@ class KategoriPembelajaranController extends Controller
     public function index()
     {
         return Inertia::render('admin/kategoripembelajaran/index', [
-            'kategoriPembelajaran' => KategoriPembelajaran::latest()->paginate(10),
+            'kategoriPembelajaran' => KategoriPembelajaran::orderBy('id', 'asc')->paginate(10),
         ]);
     }
 

@@ -11,7 +11,19 @@ function Toaster({ ...props }: ToasterProps) {
         <Sonner
             theme={appearance}
             className="toaster group"
-            position="bottom-right"
+            position="top-right"
+            duration={1800}
+            visibleToasts={3}
+            closeButton={false}
+            expand={false}
+            gap={8}
+            toastOptions={{
+                duration: 1800,
+                style: {
+                    fontSize: '13px',
+                    padding: '10px 14px',
+                },
+            }}
             style={
                 {
                     '--normal-bg': 'var(--popover)',

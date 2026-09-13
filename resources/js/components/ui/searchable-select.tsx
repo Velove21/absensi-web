@@ -71,17 +71,17 @@ export default function SearchableSelect({
     }, [filteredItems, highlightedIndex, onValueChange]);
 
     return (
-        <div ref={containerRef} className="relative">
+        <div ref={containerRef} className="relative min-w-0">
             <button
                 type="button"
                 onClick={() => setOpen(!open)}
                 className={cn(
-                    'border-input flex h-9 w-full items-center justify-between gap-2 rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50',
+                    'border-input flex h-9 w-full min-w-0 items-center justify-between gap-2 rounded-md border bg-transparent px-3 py-2 text-xs leading-tight shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm',
                     !value && 'text-muted-foreground',
                     className,
                 )}
             >
-                <span className="line-clamp-1 flex-1 text-left">
+                <span className="min-w-0 flex-1 truncate text-left text-xs leading-tight sm:text-sm" title={selectedLabel || placeholder}>
                     {selectedLabel || placeholder}
                 </span>
                 <ChevronDown className="size-4 shrink-0 opacity-50" />
@@ -103,12 +103,12 @@ export default function SearchableSelect({
                                 setHighlightedIndex(0);
                             }}
                             placeholder="Cari..."
-                            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                            className="flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground sm:text-sm"
                         />
                     </div>
                     <div className="max-h-60 overflow-y-auto p-1">
                         {filteredItems.length === 0 ? (
-                            <p className="px-2 py-6 text-center text-sm text-muted-foreground">
+                            <p className="px-2 py-6 text-center text-xs text-muted-foreground sm:text-sm">
                                 Tidak ada hasil
                             </p>
                         ) : (
@@ -117,7 +117,7 @@ export default function SearchableSelect({
                                     key={item.value}
                                     type="button"
                                     className={cn(
-                                        'relative flex w-full cursor-default items-center gap-2 rounded-sm px-2 py-1.5 pr-8 text-sm outline-none',
+                                        'relative flex w-full cursor-default items-center gap-2 rounded-sm px-2 py-1.5 pr-8 text-xs outline-none sm:text-sm',
                                         index === highlightedIndex
                                             ? 'bg-accent text-accent-foreground'
                                             : '',
@@ -131,7 +131,7 @@ export default function SearchableSelect({
                                     }}
                                     onMouseEnter={() => setHighlightedIndex(index)}
                                 >
-                                    <span className="flex-1 text-left">{item.label}</span>
+                                    <span className="flex-1 text-left break-words whitespace-normal text-xs leading-snug sm:text-sm">{item.label}</span>
                                     {value === item.value && (
                                         <Check className="size-4 shrink-0 text-primary" />
                                     )}

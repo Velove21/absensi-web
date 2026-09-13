@@ -12,7 +12,9 @@ class JenjangKelasController extends Controller
 {
     public function index()
     {
-        return Inertia::render('admin/jenjangkelas/index', [
+        return Inertia::render('admin/jenjang/index', [
+            'jenjang' => JenjangKelas::orderByRaw('COALESCE(urutan, 99999)')->latest('id')->paginate(10),
+            // keep alias for backward compatibility during transition
             'jenjangKelas' => JenjangKelas::orderByRaw('COALESCE(urutan, 99999)')->latest('id')->paginate(10),
         ]);
     }

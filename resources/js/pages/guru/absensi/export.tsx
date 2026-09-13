@@ -1,9 +1,11 @@
 import { Head } from '@inertiajs/react';
 import { FileSpreadsheet, Search, ChevronDown, Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import guruAbsensi from '@/routes/guru/absensi';
+import guruExport from '@/routes/guru/export';
 import { exportAbsensi as guruExportAbsensi } from '@/routes/guru';
 
 interface Kelas {
@@ -35,6 +37,21 @@ export default function GuruExportAbsensi({ kelasList, mataPelajarans }: Props) 
     const [mapelOpen, setMapelOpen] = useState(false);
     const [kelasOpen, setKelasOpen] = useState(false);
     const [exporting, setExporting] = useState(false);
+    const mapelRef = useRef<HTMLDivElement>(null);
+    const kelasRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (mapelRef.current && !mapelRef.current.contains(e.target as Node)) {
+                setMapelOpen(false);
+            }
+            if (kelasRef.current && !kelasRef.current.contains(e.target as Node)) {
+                setKelasOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const allMapelSelected = mapelIds.length === mataPelajarans.length && mataPelajarans.length > 0;
     const allKelasSelected = kelasIds.length === kelasList.length && kelasList.length > 0;
@@ -43,6 +60,7 @@ export default function GuruExportAbsensi({ kelasList, mataPelajarans }: Props) 
         setMapelIds(prev =>
             prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id]
         );
+        setMapelOpen(false);
     };
 
     const toggleAllMapel = () => {
@@ -51,12 +69,14 @@ export default function GuruExportAbsensi({ kelasList, mataPelajarans }: Props) 
         } else {
             setMapelIds(mataPelajarans.map(m => m.id.toString()));
         }
+        setMapelOpen(false);
     };
 
     const toggleKelas = (id: string) => {
         setKelasIds(prev =>
             prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id]
         );
+        setKelasOpen(false);
     };
 
     const toggleAllKelas = () => {
@@ -65,6 +85,7 @@ export default function GuruExportAbsensi({ kelasList, mataPelajarans }: Props) 
         } else {
             setKelasIds(kelasList.map(k => k.id.toString()));
         }
+        setKelasOpen(false);
     };
 
     const filteredMapels = mataPelajarans.filter(m =>
@@ -76,39 +97,74 @@ export default function GuruExportAbsensi({ kelasList, mataPelajarans }: Props) 
     );
 
     const handleExport = async () => {
-        if (mapelIds.length === 0) {
-            toast.error('Silakan pilih Mata Pelajaran.');
-
+        if (kelasIds.length === 0) {
+            toast.error('Silakan pilih Kelas untuk ekspor.');
             return;
         }
-
+        // Mapel opsional untuk format bersih No|NIS|Nama|Kelas|Keterangan
         const params = new URLSearchParams();
         mapelIds.forEach(id => params.append('mapel_ids[]', id));
         kelasIds.forEach(id => params.append('kelas_ids[]', id));
 
         if (startDate) {
-params.set('start_date', startDate);
-}
+            params.set('start_date', startDate);
+        }
 
         if (endDate) {
-params.set('end_date', endDate);
-}
+            params.set('end_date', endDate);
+        }
+        params.set('simple', '1');
 
         setExporting(true);
 
         try {
-            const response = await fetch(guruExportAbsensi.url() + '?' + params.toString());
+            const response = await fetch(guruExportAbsensi.url() + '?' + params.toString(), {
+                headers: { Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel, application/json, text/html, */*' },
+                credentials: 'same-origin',
+            });
 
             if (!response.ok) {
-                toast.error('Gagal mengunduh file export.');
-
+                let msg = 'Gagal mengunduh file export.';
+                try {
+                    const ct = response.headers.get('Content-Type') || '';
+                    if (ct.includes('application/json')) {
+                        const j = await response.json();
+                        msg = j.message || j.error || msg;
+                    } else {
+                        const txt = await response.text();
+                        try {
+                            const j2 = JSON.parse(txt);
+                            msg = j2.message || j2.error || msg;
+                        } catch {
+                            if (txt.includes('<!DOCTYPE') || txt.includes('<html')) {
+                                msg = 'Gagal mengunduh: sesi berakhir atau data tidak valid. Silakan refresh dan coba lagi.';
+                            } else if (txt.trim().length > 0 && txt.trim().length < 300) {
+                                msg = txt.trim();
+                            }
+                        }
+                    }
+                } catch {}
+                toast.error(msg);
                 return;
+            }
+            const contentType = response.headers.get('Content-Type') || '';
+            // XLSX asli: application/vnd.openxmlformats..., jangan dianggap error jika text/html tapi sebenarnya XLSX
+            if (contentType.includes('text/html') && !contentType.includes('application/vnd.openxmlformats') && !contentType.includes('application/vnd.ms-excel')) {
+                const txt = await response.text();
+                if (txt.includes('<!DOCTYPE') || txt.includes('<html')) {
+                    toast.error('Gagal mengunduh: sesi berakhir atau data tidak valid. Silakan refresh dan coba lagi.');
+                    return;
+                }
             }
 
             const blob = await response.blob();
+            if (blob.size < 100) {
+                toast.error('Data kosong untuk filter ini.');
+                return;
+            }
             const disposition = response.headers.get('Content-Disposition') || '';
             const filenameMatch = disposition.match(/filename="?([^";\n]+)"?/);
-            const filename = filenameMatch ? filenameMatch[1] : 'rekap-absensi.xls';
+            const filename = filenameMatch ? filenameMatch[1] : 'rekap-presensi.xlsx';
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -127,34 +183,34 @@ params.set('end_date', endDate);
 
     return (
         <>
-            <Head title="Export Absensi" />
+            <Head title="Ekspor Presensi" />
 
-            <div className="flex flex-1 flex-col gap-6 p-6">
+            <div className="flex h-full w-full flex-1 flex-col gap-6 p-8">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight">Export Absensi</h1>
-                        <p className="text-sm text-muted-foreground mt-1">
-                            Pilih kelas dan mata pelajaran untuk mengexport data absensi.
+                        <h1 className="text-2xl font-bold tracking-tight">Ekspor Presensi</h1>
+                        <p className="text-sm text-foreground mt-1">
+                            Memberikan ekspor presensi untuk guru pengampu yang memerlukan rekap presensi siswa.
                         </p>
                     </div>
                 </div>
 
-                <div className="rounded-xl border border-sidebar-border/70 bg-sidebar p-6 shadow-sm dark:border-sidebar-border">
-                    <div className="flex flex-wrap items-end gap-4">
+                <div className={`rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border w-full max-w-[560px] min-h-[260px] flex flex-col`}>
+                    <div className="flex flex-wrap items-end gap-4 w-full">
                         {/* Pilih Mapel */}
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 w-full sm:w-auto">
                             <label className="text-xs font-medium text-muted-foreground">Pilih Mapel</label>
-                            <div className="relative">
+                            <div ref={mapelRef} className="relative">
                                 <button
                                     type="button"
                                     onClick={() => {
  setMapelOpen(!mapelOpen); setKelasOpen(false); 
 }}
-                                    className="flex h-9 w-[220px] items-center justify-between gap-2 rounded-md border border-input bg-muted/30 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
+                                    className="flex h-9 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-input bg-muted/30 px-3 py-1 text-xs leading-tight shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none sm:w-[220px] sm:text-sm"
                                 >
-                                    <span className="line-clamp-1 flex-1 text-left">
+                                    <span className="min-w-0 flex-1 truncate text-left text-xs leading-tight sm:text-sm">
                                         {mapelIds.length === 0
-                                            ? '-- Pilih Mapel --'
+                                            ? 'Pilih Mapel'
                                             : allMapelSelected
                                                 ? 'Semua Mapel'
                                                 : `${mapelIds.length} mapel dipilih`}
@@ -162,41 +218,41 @@ params.set('end_date', endDate);
                                     <ChevronDown className="size-4 shrink-0 opacity-50" />
                                 </button>
                                 {mapelOpen && (
-                                    <div className="bg-popover text-popover-foreground absolute z-50 mt-1 w-[220px] origin-top overflow-hidden rounded-md border shadow-md">
+                                    <div className="bg-popover text-popover-foreground absolute z-50 mt-1 w-full origin-top overflow-hidden rounded-md border shadow-md sm:w-[220px]">
                                         <div className="flex items-center gap-2 border-b px-3 py-2">
                                             <Search className="size-4 shrink-0 opacity-50" />
                                             <input
                                                 value={mapelSearch}
                                                 onChange={e => setMapelSearch(e.target.value)}
                                                 placeholder="Cari mapel..."
-                                                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                                                className="flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground sm:text-sm"
                                             />
                                         </div>
                                         <div className="max-h-48 overflow-y-auto p-1">
-                                            <label className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent">
+                                            <label className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-xs hover:bg-accent sm:text-sm">
                                                 <input
                                                     type="checkbox"
                                                     checked={allMapelSelected}
                                                     onChange={toggleAllMapel}
-                                                    className="size-4"
+                                                    className="size-4 shrink-0"
                                                 />
                                                 <span className="font-medium">Semua Mapel</span>
                                             </label>
                                             {filteredMapels.length === 0 ? (
-                                                <p className="px-2 py-6 text-center text-sm text-muted-foreground">
+                                                <p className="px-2 py-6 text-center text-xs text-muted-foreground sm:text-sm">
                                                     Tidak ada hasil
                                                 </p>
                                             ) : (
                                                 filteredMapels.map(m => (
-                                                    <label key={m.id} className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent">
+                                                    <label key={m.id} className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-xs hover:bg-accent sm:text-sm">
                                                         <input
                                                             type="checkbox"
                                                             checked={mapelIds.includes(m.id.toString())}
                                                             onChange={() => toggleMapel(m.id.toString())}
-                                                            className="size-4"
+                                                            className="size-4 shrink-0"
                                                         />
-                                                        <span className="flex-1">{m.nama_mapel}</span>
-                                                        <span className="text-xs text-muted-foreground">{m.kategori}</span>
+                                                        <span className="flex-1 break-words whitespace-normal leading-snug">{m.nama_mapel}</span>
+                                                        <span className="shrink-0 text-[11px] text-muted-foreground sm:text-xs">{m.kategori}</span>
                                                     </label>
                                                 ))
                                             )}
@@ -207,19 +263,19 @@ params.set('end_date', endDate);
                         </div>
 
                         {/* Pilih Kelas */}
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 w-full sm:w-auto">
                             <label className="text-xs font-medium text-muted-foreground">Pilih Kelas</label>
-                            <div className="relative">
+                            <div ref={kelasRef} className="relative">
                                 <button
                                     type="button"
                                     onClick={() => {
  setKelasOpen(!kelasOpen); setMapelOpen(false); 
 }}
-                                    className="flex h-9 w-[220px] items-center justify-between gap-2 rounded-md border border-input bg-muted/30 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
+                                    className="flex h-9 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-input bg-muted/30 px-3 py-1 text-xs leading-tight shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none sm:w-[220px] sm:text-sm"
                                 >
-                                    <span className="line-clamp-1 flex-1 text-left">
+                                    <span className="min-w-0 flex-1 truncate text-left text-xs leading-tight sm:text-sm">
                                         {kelasIds.length === 0
-                                            ? '-- Pilih Kelas --'
+                                            ? 'Pilih Kelas'
                                             : allKelasSelected
                                                 ? 'Semua Kelas'
                                                 : `${kelasIds.length} kelas dipilih`}
@@ -227,40 +283,40 @@ params.set('end_date', endDate);
                                     <ChevronDown className="size-4 shrink-0 opacity-50" />
                                 </button>
                                 {kelasOpen && (
-                                    <div className="bg-popover text-popover-foreground absolute z-50 mt-1 w-[220px] origin-top overflow-hidden rounded-md border shadow-md">
+                                    <div className="bg-popover text-popover-foreground absolute z-50 mt-1 w-full origin-top overflow-hidden rounded-md border shadow-md sm:w-[220px]">
                                         <div className="flex items-center gap-2 border-b px-3 py-2">
                                             <Search className="size-4 shrink-0 opacity-50" />
                                             <input
                                                 value={kelasSearch}
                                                 onChange={e => setKelasSearch(e.target.value)}
                                                 placeholder="Cari kelas..."
-                                                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                                                className="flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground sm:text-sm"
                                             />
                                         </div>
                                         <div className="max-h-48 overflow-y-auto p-1">
-                                            <label className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent">
+                                            <label className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-xs hover:bg-accent sm:text-sm">
                                                 <input
                                                     type="checkbox"
                                                     checked={allKelasSelected}
                                                     onChange={toggleAllKelas}
-                                                    className="size-4"
+                                                    className="size-4 shrink-0"
                                                 />
                                                 <span className="font-medium">Semua Kelas</span>
                                             </label>
                                             {filteredKelas.length === 0 ? (
-                                                <p className="px-2 py-6 text-center text-sm text-muted-foreground">
+                                                <p className="px-2 py-6 text-center text-xs text-muted-foreground sm:text-sm">
                                                     Tidak ada hasil
                                                 </p>
                                             ) : (
                                                 filteredKelas.map(k => (
-                                                    <label key={k.id} className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent">
+                                                    <label key={k.id} className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-xs hover:bg-accent sm:text-sm">
                                                         <input
                                                             type="checkbox"
                                                             checked={kelasIds.includes(k.id.toString())}
                                                             onChange={() => toggleKelas(k.id.toString())}
-                                                            className="size-4"
+                                                            className="size-4 shrink-0"
                                                         />
-                                                        <span className="flex-1">{k.full_nama_kelas ?? k.nama_kelas}</span>
+                                                        <span className="flex-1 break-words whitespace-normal leading-snug">{k.full_nama_kelas ?? k.nama_kelas}</span>
                                                     </label>
                                                 ))
                                             )}
@@ -296,7 +352,7 @@ params.set('end_date', endDate);
                             {exporting ? (
                                 <><Loader2 className="h-4 w-4 animate-spin" /> Mengunduh...</>
                             ) : (
-                                <><FileSpreadsheet className="h-4 w-4" /> Export Excel</>
+                                <><FileSpreadsheet className="h-4 w-4" /> Ekspor</>
                             )}
                         </Button>
                     </div>
@@ -305,3 +361,10 @@ params.set('end_date', endDate);
         </>
     );
 }
+
+GuruExportAbsensi.layout = {
+    breadcrumbs: [
+        { title: 'Guru', href: guruAbsensi.index.url() },
+        { title: 'Ekspor Presensi', href: guruExport.index.url() },
+    ],
+};

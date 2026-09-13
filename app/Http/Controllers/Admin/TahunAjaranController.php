@@ -14,7 +14,7 @@ class TahunAjaranController extends Controller
     public function index()
     {
         return Inertia::render('admin/tahunajaran/index', [
-            'tahunAjarans' => TahunAjaran::latest()->paginate(10),
+            'tahunAjarans' => TahunAjaran::orderByRaw('CAST(tahun_awal AS UNSIGNED) ASC')->orderByRaw('CAST(tahun_akhir AS UNSIGNED) ASC')->paginate(10),
             'isNaikKelasAvailable' => Kelas::whereHas('jenjangKelas', fn ($q) => $q->whereNotNull('urutan'))->exists()
                 && JenjangKelas::whereNotNull('urutan')->count() > 1,
         ]);

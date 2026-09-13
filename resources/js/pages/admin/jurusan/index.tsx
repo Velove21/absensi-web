@@ -16,6 +16,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import CsvImport from '@/components/csv-import';
+import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import adminJurusan from '@/routes/admin/jurusan';
 
@@ -38,6 +40,8 @@ export default function JurusanIndex({ jurusans }: { jurusans: PaginatedData<Jur
     const [editingJurusan, setEditingJurusan] = useState<Jurusan | null>(null);
     const [deletingJurusanId, setDeletingJurusanId] = useState<number | null>(null);
 
+    useAutoRefresh(true, 5000);
+
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         nama_jurusan: '',
         singkatan: '',
@@ -52,6 +56,7 @@ export default function JurusanIndex({ jurusans }: { jurusans: PaginatedData<Jur
                 onSuccess: () => {
                     handleCancel();
                     toast.success('Jurusan berhasil diperbarui');
+                    router.reload({ only: ['jurusans'], preserveScroll: true, preserveUrl: true } as unknown as never);
                 },
             });
         } else {
@@ -60,12 +65,14 @@ export default function JurusanIndex({ jurusans }: { jurusans: PaginatedData<Jur
                 onSuccess: () => {
                     reset();
                     toast.success('Jurusan berhasil ditambahkan');
+                    router.reload({ only: ['jurusans'], preserveScroll: true, preserveUrl: true } as unknown as never);
                 },
             });
         }
     };
 
     const handleEdit = (jurusan: Jurusan) => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         setEditingJurusan(jurusan);
         clearErrors();
         setData({
@@ -90,6 +97,7 @@ return;
             onSuccess: () => {
                 toast.success('Jurusan berhasil dihapus');
                 setDeletingJurusanId(null);
+                router.reload({ only: ['jurusans'], preserveScroll: true, preserveUrl: true } as unknown as never);
             },
             onError: () => setDeletingJurusanId(null),
         });
@@ -98,20 +106,22 @@ return;
     return (
         <>
             <Head title="Manajemen Jurusan" />
-            <div className="flex h-full flex-1 flex-col gap-6 p-6">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight">
-                        Manajemen Jurusan
-                    </h1>
-                    <p className="text-muted-foreground">
-                        Kelola data program studi/jurusan sekolah.
-                    </p>
+            <div className="flex h-full w-full flex-1 flex-col gap-6 p-8">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight">
+                            Manajemen Jurusan
+                        </h1>
+                        <p className="text-muted-foreground">
+                            Kelola data jurusan sekolah.
+                        </p>
+                    </div>
+                    <CsvImport entity="jurusan" title="Impor Jurusan" description="Header: nama_jurusan, singkatan" />
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-stretch">
                     {/* Form Input */}
-                    <div className="col-span-1">
-                        <div className="sticky top-6 rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border">
+                    <div className="col-span-1 flex flex-col gap-6"><div className="sticky top-8 min-h-[260px] flex flex-col rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border">
                             <div className="mb-4 flex items-center justify-between">
                                 <h2 className="text-lg font-semibold flex items-center gap-2">
                                     {editingJurusan ? (
@@ -199,7 +209,7 @@ return;
                     </div>
 
                     {/* Data Table */}
-                    <div className="col-span-1 lg:col-span-2 space-y-4">
+                    <div className="col-span-1 flex flex-col gap-6 lg:col-span-2">
                         <div className="overflow-hidden rounded-xl border border-sidebar-border/70 bg-card shadow-sm dark:border-sidebar-border">
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-sm">
@@ -286,7 +296,7 @@ return;
 
 JurusanIndex.layout = {
     breadcrumbs: [
-        { title: 'Admin Dashboard', href: adminDashboard.url() },
+        { title: 'Admin', href: adminDashboard.url() },
         { title: 'Jurusan', href: adminJurusan.index.url() },
     ],
 };

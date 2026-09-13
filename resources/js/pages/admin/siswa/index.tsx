@@ -18,16 +18,21 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import CsvImport from '@/components/csv-import';
+import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import adminSiswa from '@/routes/admin/siswa';
 
 interface Kelas {
     id: number;
-    nama_kelas: string;
+    nama_kelas: string | null;
     full_nama_kelas: string;
     jurusan?: {
         singkatan: string;
-    };
+    } | null;
+    jenjangKelas?: {
+        nama_jenjang: string;
+    } | null;
 }
 
 interface Siswa {
@@ -55,22 +60,25 @@ interface PaginatedData<T> {
 export default function SiswaIndex({
     siswas,
     kelasList,
+    filters,
 }: {
     siswas: PaginatedData<Siswa>;
     kelasList: Kelas[];
+    filters?: { search?: string | null };
 }) {
     const [editingSiswa, setEditingSiswa] = useState<Siswa | null>(null);
     const [deletingSiswaId, setDeletingSiswaId] = useState<number | null>(null);
     const [resettingPasswordSiswaId, setResettingPasswordSiswaId] = useState<number | null>(null);
-    const [search, setSearch] = useState(() => {
+
+    useAutoRefresh(true, 5000);
+
+    const [search, setSearch] = useState(filters?.search ?? (() => {
         if (typeof window !== 'undefined') {
             const params = new URLSearchParams(window.location.search);
-
             return params.get('search') || '';
         }
-
         return '';
-    });
+    })() as string);
     const searchTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
@@ -92,7 +100,7 @@ export default function SiswaIndex({
         setSearch(value);
         clearTimeout(searchTimeout.current);
         searchTimeout.current = setTimeout(() => {
-            router.get(adminSiswa.index.url(), { search: value || undefined }, {
+            router.get(adminSiswa.index.url(), { search: value || undefined } as never, {
                 preserveScroll: true,
                 preserveState: true,
                 replace: true,
@@ -110,6 +118,7 @@ export default function SiswaIndex({
                 onSuccess: () => {
                     handleCancel();
                     toast.success('Data siswa berhasil diperbarui');
+                    router.reload({ only: ['siswas'], preserveScroll: true, preserveUrl: true } as unknown as never);
                 },
             });
         } else {
@@ -121,12 +130,14 @@ export default function SiswaIndex({
                     toast.success('Siswa berhasil ditambahkan', {
                         description: 'Akun siswa telah dibuat.',
                     });
+                    router.reload({ only: ['siswas'], preserveScroll: true, preserveUrl: true } as unknown as never);
                 },
             });
         }
     };
 
     const handleEdit = (siswa: Siswa) => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         setEditingSiswa(siswa);
         clearErrors();
         setData({
@@ -156,6 +167,7 @@ return;
             onSuccess: () => {
                 toast.success('Siswa berhasil dihapus');
                 setDeletingSiswaId(null);
+                router.reload({ only: ['siswas'], preserveScroll: true, preserveUrl: true } as unknown as never);
             },
             onError: () => setDeletingSiswaId(null),
         });
@@ -169,8 +181,9 @@ return;
         router.post(adminSiswa.resetPassword.url({ siswa: resettingPasswordSiswaId }), {}, {
             preserveScroll: true,
             onSuccess: () => {
-                toast.success('Password siswa berhasil direset ke default (password)');
+                toast.success('Kata Sandi siswa berhasil direset ke default (kata sandi)');
                 setResettingPasswordSiswaId(null);
+                router.reload({ only: ['siswas'], preserveScroll: true, preserveUrl: true } as unknown as never);
             },
             onError: () => setResettingPasswordSiswaId(null),
         });
@@ -179,7 +192,7 @@ return;
     return (
         <>
             <Head title="Manajemen Siswa" />
-            <div className="flex h-full flex-1 flex-col gap-6 p-6">
+            <div className="flex h-full w-full flex-1 flex-col gap-6 p-8">
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight">
@@ -189,12 +202,12 @@ return;
                             Kelola data dan akun akses siswa.
                         </p>
                     </div>
+                    <CsvImport entity="siswa" title="Impor Siswa" description="Header: nis, nama, jenis_kelamin, kelas" />
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-stretch">
                     {/* Form Input */}
-                    <div className="col-span-1">
-                        <div className="sticky top-6 rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border">
+                    <div className="col-span-1 flex flex-col gap-6"><div className="sticky top-8 min-h-[260px] flex flex-col rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border">
                             <div className="mb-4 flex items-center justify-between">
                                 <h2 className="text-lg font-semibold flex items-center gap-2">
                                     {editingSiswa ? (
@@ -280,7 +293,7 @@ return;
                                     <Label htmlFor="jenis_kelamin">Jenis Kelamin</Label>
                                     <select
                                         id="jenis_kelamin"
-                                        className="flex h-9 w-full rounded-md border border-input bg-muted/30 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
+                                        className="flex h-9 w-full rounded-md border border-input bg-muted/30 px-3 py-1 text-xs shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none sm:text-sm"
                                         value={data.jenis_kelamin}
                                         onChange={(e) =>
                                             setData('jenis_kelamin', e.target.value)
@@ -301,7 +314,7 @@ return;
                                     <Label htmlFor="kelas_id">Kelas</Label>
                                     <select
                                         id="kelas_id"
-                                        className="flex h-9 w-full rounded-md border border-input bg-muted/30 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
+                                        className="flex h-9 w-full rounded-md border border-input bg-muted/30 px-3 py-1 text-xs shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none sm:text-sm"
                                         value={data.kelas_id}
                                         onChange={(e) =>
                                             setData('kelas_id', e.target.value)
@@ -324,7 +337,7 @@ return;
                                 {editingSiswa && (
                                     <div className="space-y-2 pt-2 border-t border-sidebar-border mt-4">
                                         <Label htmlFor="password">
-                                            Password Baru (Opsional)
+                                            Kata Sandi Baru (Opsional)
                                         </Label>
                                         <Input
                                             id="password"
@@ -374,11 +387,11 @@ return;
                     </div>
 
                     {/* Data Table */}
-                    <div className="col-span-1 lg:col-span-2 space-y-4">
+                    <div className="col-span-1 flex flex-col gap-6 lg:col-span-2">
                         <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
-                                placeholder="Cari nama, NIS, atau kelas..."
+                                placeholder="Cari NIS, nama, atau kelas"
                                 value={search}
                                 onChange={(e) => handleSearch(e.target.value)}
                                 className="pl-9 bg-muted/30"
@@ -389,7 +402,7 @@ return;
                                 <table className="w-full text-left text-sm">
                                     <thead className="bg-muted/50 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                         <tr>
-                                            <th scope="col" className="px-6 py-4">
+                                            <th scope="col" className="px-2 py-3 w-[78px] text-center whitespace-nowrap">
                                                 NIS
                                             </th>
                                             <th scope="col" className="px-6 py-4">
@@ -399,7 +412,7 @@ return;
                                                 Kelas
                                             </th>
                                             <th scope="col" className="px-6 py-4">
-                                                Status Sandi
+                                                Status Kata Sandi
                                             </th>
                                             <th
                                                 scope="col"
@@ -415,7 +428,7 @@ return;
                                                 key={siswa.id}
                                                 className={`group transition-colors hover:bg-muted/30 ${editingSiswa?.id === siswa.id ? 'bg-primary/5' : ''}`}
                                             >
-                                                <td className="px-6 py-4 font-mono text-xs font-medium">
+                                                <td className="px-2 py-4 font-mono text-[11px] font-medium whitespace-nowrap tracking-tight text-center w-[78px]">
                                                     {siswa.nis}
                                                 </td>
                                                 <td className="px-6 py-4 font-medium text-foreground">
@@ -460,8 +473,8 @@ return;
                                                             variant="ghost"
                                                             size="icon"
                                                             onClick={() => setResettingPasswordSiswaId(siswa.id)}
-                                                            title="Reset Password"
-                                                            className="h-8 w-8 text-muted-foreground hover:text-yellow-600"
+                                                            title="Reset Kata Sandi"
+                                                            className="h-8 w-8 text-muted-foreground hover:text-black"
                                                         >
                                                             <KeyRound className="h-4 w-4" />
                                                         </Button>
@@ -525,15 +538,15 @@ return;
             <AlertDialog open={resettingPasswordSiswaId !== null} onOpenChange={(open) => !open && setResettingPasswordSiswaId(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Konfirmasi Reset Password</AlertDialogTitle>
+                        <AlertDialogTitle>Konfirmasi Reset Kata Sandi</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Password siswa ini akan direset ke <strong>password</strong>. Siswa wajib mengganti password setelah login berikutnya.
+                            Kata Sandi siswa ini akan direset ke <strong>kata sandi</strong>. Siswa wajib mengganti kata sandi setelah login berikutnya.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Batal</AlertDialogCancel>
-                        <AlertDialogAction onClick={executeResetPassword} className="bg-yellow-600 hover:bg-yellow-700">
-                            Reset Password
+                        <AlertDialogAction onClick={executeResetPassword} className="bg-black hover:bg-black/90">
+                            Reset Kata Sandi
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
@@ -544,7 +557,7 @@ return;
 
 SiswaIndex.layout = {
     breadcrumbs: [
-        { title: 'Admin Dashboard', href: adminDashboard.url() },
+        { title: 'Admin', href: adminDashboard.url() },
         { title: 'Siswa', href: adminSiswa.index.url() },
     ],
 };

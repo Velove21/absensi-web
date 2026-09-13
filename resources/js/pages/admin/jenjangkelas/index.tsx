@@ -16,10 +16,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import CsvImport from '@/components/csv-import';
+import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 import { dashboard as adminDashboard } from '@/routes/admin';
-import adminJenjangKelas from '@/routes/admin/jenjang-kelas';
+import adminJenjang from '@/routes/admin/jenjang';
 
-interface JenjangKelas {
+interface Jenjang {
     id: number;
     nama_jenjang: string;
 }
@@ -33,13 +35,15 @@ interface PaginatedData<T> {
     }[];
 }
 
-export default function JenjangKelasIndex({
-    jenjangKelas,
+export default function JenjangIndex({
+    jenjang,
 }: {
-    jenjangKelas: PaginatedData<JenjangKelas>;
+    jenjang: PaginatedData<Jenjang>;
 }) {
-    const [editingJenjang, setEditingJenjang] = useState<JenjangKelas | null>(null);
+    const [editingJenjang, setEditingJenjang] = useState<Jenjang | null>(null);
     const [deletingJenjangId, setDeletingJenjangId] = useState<number | null>(null);
+
+    useAutoRefresh(true, 5000);
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         nama_jenjang: '',
@@ -49,25 +53,28 @@ export default function JenjangKelasIndex({
         e.preventDefault();
 
         if (editingJenjang) {
-            put(adminJenjangKelas.update.url({ jenjang_kela: editingJenjang.id }), {
+            put(adminJenjang.update.url({ jenjang: editingJenjang.id }), {
                 preserveScroll: true,
                 onSuccess: () => {
                     handleCancel();
-                    toast.success('Jenjang kelas berhasil diperbarui');
+                    toast.success('Jenjang berhasil diperbarui');
+                    router.reload({ only: ['jenjang'], preserveScroll: true, preserveUrl: true } as unknown as never);
                 },
             });
         } else {
-            post(adminJenjangKelas.store.url(), {
+            post(adminJenjang.store.url(), {
                 preserveScroll: true,
                 onSuccess: () => {
                     reset();
-                    toast.success('Jenjang kelas berhasil ditambahkan');
+                    toast.success('Jenjang berhasil ditambahkan');
+                    router.reload({ only: ['jenjang'], preserveScroll: true, preserveUrl: true } as unknown as never);
                 },
             });
         }
     };
 
-    const handleEdit = (jenjang: JenjangKelas) => {
+    const handleEdit = (jenjang: Jenjang) => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         setEditingJenjang(jenjang);
         clearErrors();
         setData({ nama_jenjang: jenjang.nama_jenjang });
@@ -84,11 +91,12 @@ export default function JenjangKelasIndex({
 return;
 }
 
-        router.delete(adminJenjangKelas.destroy.url({ jenjang_kela: deletingJenjangId }), {
+        router.delete(adminJenjang.destroy.url({ jenjang: deletingJenjangId }), {
             preserveScroll: true,
             onSuccess: () => {
-                toast.success('Jenjang kelas berhasil dihapus');
+                toast.success('Jenjang berhasil dihapus');
                 setDeletingJenjangId(null);
+                router.reload({ only: ['jenjang'], preserveScroll: true, preserveUrl: true } as unknown as never);
             },
             onError: () => setDeletingJenjangId(null),
         });
@@ -96,23 +104,23 @@ return;
 
     return (
         <>
-            <Head title="Manajemen Jenjang Kelas" />
-            <div className="flex h-full flex-1 flex-col gap-6 p-6">
+            <Head title="Manajemen Jenjang" />
+            <div className="flex h-full w-full flex-1 flex-col gap-6 p-8">
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight">
-                            Manajemen Jenjang Kelas
+                            Manajemen Jenjang
                         </h1>
                         <p className="text-muted-foreground">
-                            Kelola data jenjang/tingkat kelas (contoh: X, XI, XII, 1, 2, dst).
+                            Kelola data jenjang angkatan untuk melanjutkan ke data tingkat kelas.
                         </p>
                     </div>
+                    <CsvImport entity="jenjang" title="Impor Jenjang" description="Header: nama_jenjang" />
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-stretch">
                     {/* Form Input */}
-                    <div className="col-span-1">
-                        <div className="sticky top-6 rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border">
+                    <div className="col-span-1 flex flex-col gap-6"><div className="sticky top-8 min-h-[260px] flex flex-col rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border">
                             <div className="mb-4 flex items-center justify-between">
                                 <h2 className="text-lg font-semibold flex items-center gap-2">
                                     {editingJenjang ? (
@@ -142,7 +150,7 @@ return;
                                         onChange={(e) =>
                                             setData('nama_jenjang', e.target.value)
                                         }
-                                        placeholder="Contoh: X, XI, XII, 1, 2, VII"
+                                        placeholder="Contoh: X, XI, XII, 1, 2"
                                         className="bg-muted/30"
                                         maxLength={20}
                                     />
@@ -151,9 +159,6 @@ return;
                                             {errors.nama_jenjang}
                                         </p>
                                     )}
-                                    <p className="text-[11px] text-muted-foreground">
-                                        Input jenjang yang akan digunakan untuk tingkat kelas.
-                                    </p>
                                 </div>
 
                                 <div className="flex gap-2 pt-2">
@@ -186,7 +191,7 @@ return;
                     </div>
 
                     {/* Data Table */}
-                    <div className="col-span-1 lg:col-span-2 space-y-4">
+                    <div className="col-span-1 flex flex-col gap-6 lg:col-span-2">
                         <div className="overflow-hidden rounded-xl border border-sidebar-border/70 bg-card shadow-sm dark:border-sidebar-border">
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-sm">
@@ -207,7 +212,7 @@ return;
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-sidebar-border/70 dark:divide-sidebar-border">
-                                        {jenjangKelas.data.map((jenjang, index) => (
+                                        {jenjang.data.map((jenjang, index) => (
                                             <tr
                                                 key={jenjang.id}
                                                 className={`group transition-colors hover:bg-muted/30 ${editingJenjang?.id === jenjang.id ? 'bg-primary/5' : ''}`}
@@ -240,7 +245,7 @@ return;
                                                 </td>
                                             </tr>
                                         ))}
-                                        {jenjangKelas.data.length === 0 && (
+                                        {jenjang.data.length === 0 && (
                                             <tr>
                                                 <td
                                                     colSpan={3}
@@ -248,7 +253,7 @@ return;
                                                 >
                                                     <div className="flex flex-col items-center gap-2">
                                                         <ListOrdered className="h-8 w-8 opacity-20" />
-                                                        <p>Belum ada data jenjang kelas.</p>
+                                                        <p>Belum ada data jenjang.</p>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -257,7 +262,7 @@ return;
                                 </table>
                             </div>
                         </div>
-                        <Pagination links={jenjangKelas.links} />
+                        <Pagination links={jenjang.links} />
                     </div>
                 </div>
             </div>
@@ -267,7 +272,7 @@ return;
                     <AlertDialogHeader>
                         <AlertDialogTitle>Konfirmasi Hapus</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Apakah Anda yakin ingin menghapus jenjang kelas ini? Kelas yang menggunakan jenjang ini akan kehilangan data tingkatnya.
+                            Apakah Anda yakin ingin menghapus jenjang ini? Kelas yang menggunakan jenjang ini akan kehilangan data tingkatnya.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -280,9 +285,9 @@ return;
     );
 }
 
-JenjangKelasIndex.layout = {
+JenjangIndex.layout = {
     breadcrumbs: [
-        { title: 'Admin Dashboard', href: adminDashboard.url() },
-        { title: 'Jenjang Kelas', href: adminJenjangKelas.index.url() },
+        { title: 'Admin', href: adminDashboard.url() },
+        { title: 'Jenjang', href: adminJenjang.index.url() },
     ],
 };

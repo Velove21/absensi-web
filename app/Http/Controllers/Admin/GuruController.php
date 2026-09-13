@@ -22,7 +22,7 @@ class GuruController extends Controller
     {
         $search = $request->input('search');
 
-        $gurus = Guru::with(['user', 'foto', 'kelas.jurusan', 'kelas.jenjangKelas', 'mataPelajarans'])
+        $gurus = Guru::with(['user', 'foto', 'kelas.jurusan', 'kelas.jenjangKelas', 'mataPelajarans.kategoriPembelajaran'])
             ->when($search, function ($query, $search) {
                 $query->where('nama', 'like', "%{$search}%")
                     ->orWhere('nip', 'like', "%{$search}%")
@@ -34,20 +34,37 @@ class GuruController extends Controller
                     ->orWhereHas('mataPelajarans', fn ($q) => $q->where('nama_mapel', 'like', "%{$search}%"));
             })
             ->latest()
-            ->paginate(10)
+            ->paginate(11)
             ->withQueryString();
+
+        // Transform untuk frontend: sediakan key camelCase mataPelajarans (Laravel serialize jadi snake_case mata_pelajarans)
+        // agar tabel tidak tampil "-" padahal sudah diinput
+        $gurus->getCollection()->transform(function ($guru) {
+            $mapels = $guru->getRelation('mataPelajarans') ?? collect();
+            // append kategori yang sudah di-eager load agar tidak N+1
+            $mapels->each(fn ($m) => $m->setAppends(['kategori']));
+            // expose camelCase untuk frontend
+            $guru->setAttribute('mataPelajarans', $mapels);
+            // kelas juga pastikan key konsisten (sudah benar) tapi tetap set untuk konsistensi
+            $guru->setAttribute('kelas', $guru->getRelation('kelas') ?? collect());
+
+            return $guru;
+        });
 
         return Inertia::render('admin/guru/index', [
             'gurus' => $gurus,
             'kelas' => Kelas::with(['jurusan', 'jenjangKelas'])->get(),
-            'mataPelajarans' => MataPelajaran::all(),
+            'mataPelajarans' => MataPelajaran::with('kategoriPembelajaran')->get()->each(fn ($m) => $m->setAppends(['kategori'])),
         ]);
     }
 
     public function show(string $id)
     {
-        $guru = Guru::with(['user', 'foto', 'kelas.jurusan', 'kelas.jenjangKelas', 'mataPelajarans'])
+        $guru = Guru::with(['user', 'foto', 'kelas.jurusan', 'kelas.jenjangKelas', 'mataPelajarans.kategoriPembelajaran'])
             ->findOrFail($id);
+
+        $guru->setAttribute('mataPelajarans', $guru->getRelation('mataPelajarans') ?? collect());
+        $guru->setAttribute('kelas', $guru->getRelation('kelas') ?? collect());
 
         return Inertia::render('admin/guru/profil', [
             'guru' => $guru,
@@ -62,11 +79,14 @@ class GuruController extends Controller
             'nip' => 'required|digits:18|unique:gurus,nip',
             'nama' => 'required|string|max:255',
             'jenis_kelamin' => 'nullable|in:laki-laki,perempuan',
-            'foto' => 'nullable|file|mimes:jpg,jpeg,png,webp|max:2048',
+            'foto' => 'nullable|file|mimes:png|max:5120',
             'kelas_ids' => 'nullable|array',
             'kelas_ids.*' => 'exists:kelas,id',
             'mata_pelajaran_ids' => 'nullable|array',
             'mata_pelajaran_ids.*' => 'exists:mata_pelajarans,id',
+        ], [
+            'foto.mimes' => 'Foto harus format PNG.',
+            'foto.max' => 'Ukuran foto maksimal 5 MB.',
         ]);
 
         DB::transaction(function () use ($request, $validated) {
@@ -111,12 +131,15 @@ class GuruController extends Controller
             'nama' => 'required|string|max:255',
             'jenis_kelamin' => 'nullable|in:laki-laki,perempuan',
             'password' => 'nullable|string|min:8',
-            'foto' => 'nullable|file|mimes:jpg,jpeg,png,webp|max:2048',
+            'foto' => 'nullable|file|mimes:png|max:5120',
             'remove_foto' => 'nullable|boolean',
             'kelas_ids' => 'nullable|array',
             'kelas_ids.*' => 'exists:kelas,id',
             'mata_pelajaran_ids' => 'nullable|array',
             'mata_pelajaran_ids.*' => 'exists:mata_pelajarans,id',
+        ], [
+            'foto.mimes' => 'Foto harus format PNG.',
+            'foto.max' => 'Ukuran foto maksimal 5 MB.',
         ]);
 
         DB::transaction(function () use ($request, $guru, $validated) {

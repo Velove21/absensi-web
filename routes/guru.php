@@ -14,6 +14,7 @@ Route::middleware(['web', 'auth', 'role:guru', 'check.password.status'])->prefix
 
     Route::get('absensi', [AbsensiController::class, 'index'])->name('absensi.index');
     Route::post('absensi', [AbsensiController::class, 'store'])->name('absensi.store');
+    Route::post('absensi/bulk', [AbsensiController::class, 'bulkStore'])->name('absensi.bulk');
     Route::delete('absensi/{absensi}', [AbsensiController::class, 'destroy'])->name('absensi.destroy');
 
     Route::get('data-absensi', [DataAbsensiController::class, 'index'])->name('data-absensi.index');

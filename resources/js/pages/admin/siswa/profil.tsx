@@ -26,7 +26,7 @@ export default function SiswaProfil({ siswa }: { siswa: Siswa }) {
     return (
         <>
             <Head title={`Profil ${siswa.nama}`} />
-            <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
+            <div className="flex h-full w-full flex-1 flex-col gap-6 p-8">
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight">Profil Siswa</h1>
@@ -40,7 +40,7 @@ export default function SiswaProfil({ siswa }: { siswa: Siswa }) {
                     </Button>
                 </div>
 
-                <Card>
+                <Card className="mb-2">
                     <CardContent className="flex flex-col items-center gap-4 p-8 sm:flex-row sm:items-start">
                         <Avatar className="size-24 shrink-0 overflow-hidden rounded-full ring-2 ring-sidebar-border/70">
                             <AvatarImage src={siswa.foto_url ?? undefined} alt={siswa.nama} />
@@ -64,7 +64,7 @@ export default function SiswaProfil({ siswa }: { siswa: Siswa }) {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="mt-2">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-base">
                             <UserRound className="h-4 w-4 text-primary" />
@@ -106,7 +106,7 @@ export default function SiswaProfil({ siswa }: { siswa: Siswa }) {
 
 SiswaProfil.layout = {
     breadcrumbs: [
-        { title: 'Admin Dashboard', href: adminDashboard.url() },
+        { title: 'Admin', href: adminDashboard.url() },
         { title: 'Siswa', href: adminSiswa.index.url() },
         { title: 'Profil Siswa' },
     ],

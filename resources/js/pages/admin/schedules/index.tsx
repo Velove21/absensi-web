@@ -66,6 +66,7 @@ export default function SchedulesIndex({ schedules }: { schedules: Schedule[] })
     };
 
     const handleEdit = (schedule: Schedule) => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         setEditingSchedule(schedule);
         clearErrors();
         setData({
@@ -99,7 +100,7 @@ return;
     return (
         <>
             <Head title="Manajemen Jam Pelajaran" />
-            <div className="flex h-full flex-1 flex-col gap-6 p-6">
+            <div className="flex h-full w-full flex-1 flex-col gap-6 p-8">
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight">
@@ -111,9 +112,8 @@ return;
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                    <div className="col-span-1">
-                        <div className="sticky top-6 rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-stretch">
+                    <div className="col-span-1 flex flex-col gap-6"><div className="sticky top-8 min-h-[260px] flex flex-col rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border">
                             <div className="mb-4 flex items-center justify-between">
                                 <h2 className="text-lg font-semibold flex items-center gap-2">
                                     {editingSchedule ? (
@@ -308,7 +308,7 @@ return;
 
 SchedulesIndex.layout = {
     breadcrumbs: [
-        { title: 'Admin Dashboard', href: adminDashboard.url() },
+        { title: 'Admin', href: adminDashboard.url() },
         { title: 'Jam Pelajaran', href: adminSchedule.index.url() },
     ],
 };

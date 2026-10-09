@@ -1,11 +1,12 @@
 import { Head, Link } from '@inertiajs/react';
-import { FileSpreadsheet, GraduationCap, ArrowLeft, Calendar } from 'lucide-react';
+import { FileSpreadsheet, GraduationCap, ArrowLeft, Calendar, Users, CheckCircle, Clock, FileWarning, XCircle, Award, ImageUp, Download } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import adminTahunAjaran from '@/routes/admin/tahun-ajaran';
 
@@ -23,38 +24,53 @@ interface Record {
   mapel: string;
   guru: string;
   keterangan: string | null;
+  bukti: string | null;
 }
 
 export default function ArsipDetail({ tahunAjaran, kelas, records, stats }: { tahunAjaran: any; kelas: any; records: Record[]; stats: any }) {
+  useAutoRefresh(true, 5000);
   const [selectedDate, setSelectedDate] = useState<string>('');
-
-  const dates = useMemo(() => {
-    const s = new Set(records.map(r => r.tanggal));
-    return Array.from(s).sort();
-  }, [records]);
+  const [previewBukti, setPreviewBukti] = useState<{ url: string; id: number; nama?: string; status?: string; tanggal?: string; kelasNama?: string } | null>(null);
 
   const filtered = useMemo(() => {
     if (!selectedDate) return [];
-    return records.filter(r => r.tanggal === selectedDate);
+    return records.filter((r) => r.tanggal === selectedDate);
   }, [records, selectedDate]);
 
   const filteredStats = useMemo(() => {
     const c: Record<string, number> = { hadir: 0, sakit: 0, izin: 0, alpha: 0, dispensasi: 0 };
-    filtered.forEach(r => { if (c[r.status] !== undefined) c[r.status]++; });
+    filtered.forEach((r) => { if (c[r.status] !== undefined) c[r.status]++; });
     return c;
   }, [filtered]);
 
   const showStats = selectedDate ? filteredStats : stats;
 
-  const statusBadge = (s: string) => {
-    const map: Record<string, string> = {
-      hadir: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
-      sakit: 'bg-blue-50 text-blue-700 ring-blue-600/20',
-      izin: 'bg-orange-50 text-orange-700 ring-orange-600/20',
-      alpha: 'bg-red-50 text-red-700 ring-red-600/20',
-      dispensasi: 'bg-indigo-50 text-indigo-700 ring-indigo-600/20',
-    };
-    return map[s] ?? 'bg-muted text-muted-foreground';
+  const hasKeterangan = filtered.some((r) => r.keterangan != null && r.keterangan.toString().trim() !== '');
+  const hasBukti = filtered.some((r) => ['izin', 'sakit', 'dispensasi'].includes(r.status));
+
+  const getSuratLabel = (status: string, nama: string | undefined, kelasNama: string | undefined, tanggal: string | undefined) => {
+    const jenis = status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Surat';
+    const nm = nama ? nama.toUpperCase().replace(/\s+/g, ' ').trim() : 'SISWA';
+    const kls = kelasNama ?? kelas?.full_nama_kelas ?? '-';
+    const tgl = tanggal ?? selectedDate;
+    return `${jenis}-${nm}-${kls}-${tgl}`;
+  };
+
+  const StatusBadge = ({ status }: { status: string }) => {
+    switch (status) {
+      case 'hadir':
+        return <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20"><CheckCircle className="h-3 w-3" /> Hadir</span>;
+      case 'sakit':
+        return <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20"><Clock className="h-3 w-3" /> Sakit</span>;
+      case 'izin':
+        return <span className="inline-flex items-center gap-1 rounded-md bg-orange-50 px-2 py-1 text-xs font-medium text-orange-700 ring-1 ring-inset ring-orange-600/20"><FileWarning className="h-3 w-3" /> Izin</span>;
+      case 'alpha':
+        return <span className="inline-flex items-center gap-1 rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20"><XCircle className="h-3 w-3" /> Alpha</span>;
+      case 'dispensasi':
+        return <span className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20"><Award className="h-3 w-3" /> Dispensasi</span>;
+      default:
+        return <span>{status}</span>;
+    }
   };
 
   const hari = (iso: string) => {
@@ -63,67 +79,145 @@ export default function ArsipDetail({ tahunAjaran, kelas, records, stats }: { ta
     return d.toLocaleDateString('id-ID', { weekday: 'long' });
   };
 
+  const totalFiltered = filtered.length;
+  const totalAll = Object.values(showStats as Record<string, number>).reduce((a: number, b: unknown) => a + (typeof b === 'number' ? b : 0), 0);
+
   return (
     <>
       <Head title={`Arsip ${kelas.full_nama_kelas} ${tahunAjaran.tahun_awal}/${tahunAjaran.tahun_akhir}`} />
-      <div className="flex h-full w-full flex-1 flex-col gap-4 p-8 font-sans">
+      <div className="flex h-full w-full flex-1 flex-col gap-6 p-8">
         <div className="flex items-center gap-3">
           <Link href={`/admin/tahun-ajaran/${tahunAjaran.id}/arsip`} className="inline-flex items-center justify-center rounded-md border p-2 hover:bg-accent"><ArrowLeft className="h-4 w-4" /></Link>
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Arsip {tahunAjaran.tahun_awal}/{tahunAjaran.tahun_akhir} — {kelas.full_nama_kelas}</h1>
-            <p className="text-sm text-muted-foreground font-normal">pilih tanggal untuk melihat presensi atau pilih ekspor data untuk melihat rekap presensi per tahun ajaran.</p>
+            <p className="text-sm text-muted-foreground font-normal">Data arsip dari semester awal sampai naik kelas — format terbaru guru (1 siswa 1 hari, prioritas berhalangan). Pilih tanggal atau ekspor.</p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Calendar className="h-3 w-3" /> Pilih Tanggal</label>
-            <Input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="w-[200px] h-9 bg-muted/30" />
-          </div>
-          <Button asChild className="gap-2 h-9"><a href={`/admin/tahun-ajaran/${tahunAjaran.id}/arsip/kelas/${kelas.id}/export`}><FileSpreadsheet className="h-4 w-4" /> Ekspor Arsip</a></Button>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-          <Card><CardContent className="p-4 text-center"><p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Hadir</p><p className="text-2xl font-bold text-emerald-600 mt-1">{showStats.hadir}</p></CardContent></Card>
-          <Card><CardContent className="p-4 text-center"><p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Sakit</p><p className="text-2xl font-bold text-blue-600 mt-1">{showStats.sakit}</p></CardContent></Card>
-          <Card><CardContent className="p-4 text-center"><p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Izin</p><p className="text-2xl font-bold text-orange-600 mt-1">{showStats.izin}</p></CardContent></Card>
-          <Card><CardContent className="p-4 text-center"><p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Alpha</p><p className="text-2xl font-bold text-red-600 mt-1">{showStats.alpha}</p></CardContent></Card>
-          <Card><CardContent className="p-4 text-center"><p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Dispensasi</p><p className="text-2xl font-bold text-indigo-600 mt-1">{showStats.dispensasi}</p></CardContent></Card>
-        </div>
-
-        {selectedDate && (
-          <Card className="overflow-hidden">
-            <CardHeader className="py-2.5 px-4"><CardTitle className="flex items-center gap-2 text-sm font-semibold leading-none"><GraduationCap className="h-4 w-4" /> {kelas.full_nama_kelas} - {hari(selectedDate)}, {selectedDate.split('-').reverse().join('-')}</CardTitle></CardHeader>
-            <CardContent className="p-0">
-              {filtered.length === 0 ? <div className="py-4 text-center text-sm text-muted-foreground leading-none">Tidak ada data pada tanggal ini.</div> : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader><TableRow className="bg-muted/40 text-xs"><TableHead className="w-[40px] text-center py-2">No</TableHead><TableHead className="w-[70px] py-2 text-center">NIS</TableHead><TableHead className="py-2">Nama</TableHead><TableHead className="w-[110px] py-2">Kelas</TableHead><TableHead className="w-[80px] py-2">Hari</TableHead><TableHead className="w-[95px] py-2">Tanggal</TableHead><TableHead className="w-[85px] py-2">Status</TableHead></TableRow></TableHeader>
-                    <TableBody>
-                      {filtered.map((r, i) => (
-                      <TableRow key={`${r.id}-${r.tanggal}`} className="text-sm">
-                        <TableCell className="text-center text-muted-foreground py-2">{i+1}</TableCell>
-                        <TableCell className="py-2">
-                          <div className="flex items-center gap-1.5">
-                            <Avatar className="size-6 shrink-0"><AvatarImage src={r.foto_url ?? undefined} /><AvatarFallback className="text-[9px]">{r.nama?.slice(0,2)?.toUpperCase()}</AvatarFallback></Avatar>
-                            <span className="font-mono text-xs">{r.nis}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-medium py-2 text-xs">{r.nama}</TableCell>
-                        <TableCell className="text-xs whitespace-nowrap py-2">{r.kelas} {r.is_alumni && <span className="rounded bg-amber-100 px-1 py-0.5 text-[9px] font-medium text-amber-700">Alumni</span>}</TableCell>
-                        <TableCell className="text-xs whitespace-nowrap py-2">{hari(r.tanggal)}</TableCell>
-                        <TableCell className="font-mono text-xs whitespace-nowrap py-2">{r.tanggal_formatted}</TableCell>
-                        <TableCell className="py-2"><span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${statusBadge(r.status)}`}>{r.status}</span></TableCell>
-                      </TableRow>
-                    ))}
-                    </TableBody>
-                  </Table>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-stretch">
+          <div className="col-span-1 flex flex-col gap-4">
+            <div className="rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border sticky top-8 min-h-[260px] flex flex-col">
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold flex items-center gap-2"><GraduationCap className="h-4 w-4 text-primary" /> Filter Arsip</h2>
+                <p className="text-xs text-muted-foreground mt-1">Pilih tanggal untuk melihat presensi per kelas per hari</p>
+              </div>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-1"><Calendar className="h-3 w-3" /> Tanggal</label>
+                  <Input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-full h-9 bg-muted/30" />
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+                <Button asChild className="w-full gap-2 h-9"><a href={`/admin/tahun-ajaran/${tahunAjaran.id}/arsip/kelas/${kelas.id}/export`}><FileSpreadsheet className="h-4 w-4" /> Ekspor Arsip</a></Button>
+                <p className="text-xs text-muted-foreground">Ekspor 1 tabel per hari (No·NIS·Nama·Kelas·Tanggal·Status·Keterangan) — sama seperti ekspor Lihat Presensi guru.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="col-span-1 flex flex-col gap-6 lg:col-span-2">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+              <div className="rounded-xl border bg-card p-3 shadow-sm text-center"><p className="text-xs text-muted-foreground">Hadir</p><p className="text-xl font-bold text-emerald-600">{showStats.hadir}</p></div>
+              <div className="rounded-xl border bg-card p-3 shadow-sm text-center"><p className="text-xs text-muted-foreground">Sakit</p><p className="text-xl font-bold text-blue-600">{showStats.sakit}</p></div>
+              <div className="rounded-xl border bg-card p-3 shadow-sm text-center"><p className="text-xs text-muted-foreground">Izin</p><p className="text-xl font-bold text-orange-600">{showStats.izin}</p></div>
+              <div className="rounded-xl border bg-card p-3 shadow-sm text-center"><p className="text-xs text-muted-foreground">Alpha</p><p className="text-xl font-bold text-red-600">{showStats.alpha}</p></div>
+              <div className="rounded-xl border bg-card p-3 shadow-sm text-center"><p className="text-xs text-muted-foreground">Dispensasi</p><p className="text-xl font-bold text-indigo-600">{showStats.dispensasi}</p></div>
+            </div>
+
+            {selectedDate && (
+              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground items-center">
+                <span className="inline-flex items-center gap-1 rounded-full border px-3 py-1 bg-muted/30"><Calendar className="h-3 w-3" /> {selectedDate} ({hari(selectedDate)})</span>
+                <span className="inline-flex items-center gap-1 rounded-full border px-3 py-1 bg-muted/30"><GraduationCap className="h-3 w-3" /> {kelas.full_nama_kelas}</span>
+                <span className="inline-flex items-center gap-1 rounded-full border px-3 py-1 bg-muted/30">total: {totalFiltered} siswa</span>
+              </div>
+            )}
+            {!selectedDate && (
+              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground items-center">
+                <span className="inline-flex items-center gap-1 rounded-full border px-3 py-1 bg-muted/30"><GraduationCap className="h-3 w-3" /> {kelas.full_nama_kelas}</span>
+                <span className="inline-flex items-center gap-1 rounded-full border px-3 py-1 bg-muted/30">total arsip: {totalAll} entri</span>
+                <span className="inline-flex items-center gap-1 rounded-full border px-3 py-1 bg-muted/30">pilih tanggal untuk lihat detail</span>
+              </div>
+            )}
+
+            {selectedDate ? (
+              <div className="rounded-xl border border-sidebar-border/70 bg-card shadow-sm dark:border-sidebar-border overflow-hidden flex flex-col">
+                <div className="px-4 py-3 border-b bg-muted/20 flex items-center gap-2 text-sm font-semibold"><GraduationCap className="h-4 w-4" /> {kelas.full_nama_kelas} — {hari(selectedDate)}, {selectedDate.split('-').reverse().join('-')}</div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-muted/50 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      <tr>
+                        <th className="px-3 py-3 w-10 text-center">No</th>
+                        <th className="px-2 py-3 w-[72px] text-center whitespace-nowrap">NIS</th>
+                        <th className="px-4 py-3 min-w-[160px]">Nama Siswa</th>
+                        <th className="px-4 py-3">Status</th>
+                        {hasKeterangan && <th className="px-4 py-3 min-w-[140px]">Keterangan</th>}
+                        {hasBukti && <th className="px-4 py-3">Bukti</th>}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {filtered.length === 0 ? (
+                        <tr><td colSpan={4 + (hasKeterangan ? 1 : 0) + (hasBukti ? 1 : 0)} className="px-6 py-12 text-center text-muted-foreground"><div className="flex flex-col items-center gap-2"><Users className="h-8 w-8 opacity-20" /><p>Tidak ada data pada tanggal ini.</p></div></td></tr>
+                      ) : (
+                        filtered.map((r, i) => (
+                          <tr key={`${r.id}-${r.tanggal}`} className="hover:bg-muted/30">
+                            <td className="px-3 py-3 text-center text-muted-foreground text-xs">{i + 1}</td>
+                            <td className="px-2 py-3 font-mono text-[11px] whitespace-nowrap tracking-tight text-center">
+                              <div className="flex items-center justify-center gap-1.5">
+                                <Avatar className="size-6 shrink-0"><AvatarImage src={r.foto_url ?? undefined} /><AvatarFallback className="text-[9px]">{r.nama?.slice(0, 2)?.toUpperCase()}</AvatarFallback></Avatar>
+                                <span>{r.nis}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 font-medium text-xs">{r.nama} {r.is_alumni && <span className="ml-1 rounded bg-amber-100 px-1 py-0.5 text-[9px] font-medium text-amber-700">Alumni</span>}</td>
+                            <td className="px-4 py-3"><StatusBadge status={r.status} /></td>
+                            {hasKeterangan && <td className="px-4 py-3 text-xs truncate max-w-[180px]" title={r.keterangan || ''}>{r.status === 'alpha' && r.keterangan ? r.keterangan : '-'}</td>}
+                            {hasBukti && (
+                              <td className="px-4 py-3">
+                                {r.bukti ? (
+                                  <button
+                                    onClick={() => setPreviewBukti({ url: `/storage/${r.bukti}`, id: r.id, nama: r.nama, status: r.status, tanggal: r.tanggal, kelasNama: r.kelas })}
+                                    className="group relative h-8 w-8 shrink-0 overflow-hidden rounded-md border bg-muted/20 shadow-sm hover:ring-2 hover:ring-primary/20 transition-all"
+                                    title="Lihat surat"
+                                  >
+                                    <img src={`/storage/${r.bukti}`} alt={`Bukti ${r.status}`} className="h-full w-full object-cover" loading="lazy" decoding="async" onError={(e) => {(e.currentTarget as HTMLImageElement).style.display = 'none';}} />
+                                    <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/10"><ImageUp className="h-2.5 w-2.5 text-white opacity-0 group-hover:opacity-100" /></span>
+                                  </button>
+                                ) : <span className="text-xs text-muted-foreground">-</span>}
+                              </td>
+                            )}
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : (
+              <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">Pilih tanggal di filter untuk melihat detail presensi (format terbaru: No·NIS·Nama·Status·Keterangan·Bukti).</CardContent></Card>
+            )}
+          </div>
+        </div>
       </div>
+
+      <Dialog open={previewBukti !== null} onOpenChange={(o) => { if (!o) setPreviewBukti(null); }}>
+        <DialogContent className="sm:max-w-[400px] w-auto max-h-[85vh] bg-transparent border-none shadow-none p-1 sm:p-2 [&>button]:hidden">
+          {previewBukti && (
+            <div className="bg-card rounded-xl px-4 py-4 shadow-2xl flex flex-col gap-4 relative w-auto max-w-[400px] mx-auto aspect-square justify-center">
+              <button onClick={() => setPreviewBukti(null)} className="absolute left-4 top-4 h-8 w-8 rounded-full bg-muted hover:bg-accent flex items-center justify-center transition-colors" aria-label="Kembali">
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+              <div className="text-center">
+                <h3 className="text-base font-semibold">Surat {previewBukti.status ? previewBukti.status.charAt(0).toUpperCase() + previewBukti.status.slice(1) : 'Presensi'}</h3>
+                <p className="text-xs text-muted-foreground mt-0.5 font-mono break-all">{getSuratLabel(previewBukti.status ?? 'surat', previewBukti.nama, previewBukti.kelasNama, previewBukti.tanggal)}.</p>
+              </div>
+              <div className="flex justify-center">
+                <img src={previewBukti.url} alt={`Surat ${previewBukti.status}`} className="max-w-full max-h-[50vh] rounded-lg object-contain" loading="eager" decoding="async" onError={(e) => {(e.currentTarget as HTMLImageElement).style.display = 'none';}} />
+              </div>
+              <div className="flex justify-center">
+                <a href={previewBukti.url} download={`${getSuratLabel(previewBukti.status ?? 'surat', previewBukti.nama, previewBukti.kelasNama, previewBukti.tanggal)}.${previewBukti.url.split('.').pop()?.split('?')[0] || 'png'}`} className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-lg">
+                  <Download className="h-4 w-4" /> unduh
+                </a>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -9,14 +9,31 @@ use App\Models\Guru;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
 use App\Models\Siswa;
+use App\Models\TahunAjaran;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class AttendanceExportController extends Controller
 {
+    private function validateActiveRange(?string $startDate, ?string $endDate): ?string
+    {
+        if ($startDate && ! TahunAjaran::isDateInActiveYear($startDate)) {
+            return 'Rentang tanggal di luar tahun ajaran aktif. Silakan akses Arsip untuk data tahun sebelumnya.';
+        }
+        if ($endDate && ! TahunAjaran::isDateInActiveYear($endDate)) {
+            return 'Rentang tanggal di luar tahun ajaran aktif. Silakan akses Arsip untuk data tahun sebelumnya.';
+        }
+
+        return null;
+    }
+
     public function export(Request $request)
     {
+        $valRange = $this->validateActiveRange($request->query('start_date'), $request->query('end_date'));
+        if ($valRange) {
+            return back()->with('error', $valRange);
+        }
         $guruId = $request->query('guru_id');
         $mapelIds = $request->query('mapel_ids', []);
         $kelasIds = $request->query('kelas_ids', []);

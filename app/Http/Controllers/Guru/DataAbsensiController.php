@@ -7,6 +7,7 @@ use App\Models\Absensi;
 use App\Models\DurasiPembelajaran;
 use App\Models\Kelas;
 use App\Models\Schedule;
+use App\Models\TahunAjaran;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -18,6 +19,19 @@ class DataAbsensiController extends Controller
         $tanggal = $request->query('tanggal', now()->toDateString());
         $berhalanganHadir = $request->query('berhalangan_hadir') === 'true';
 
+        $active = TahunAjaran::where('is_active', true)->first();
+        $activeYear = null;
+        $isOutOfYear = false;
+        if ($active) {
+            try {
+                $s = \Carbon\Carbon::create((int) $active->tahun_awal, 7, 1)->format('Y-m-d');
+                $e = \Carbon\Carbon::create((int) $active->tahun_akhir, 6, 30)->format('Y-m-d');
+                $activeYear = ['tahun_awal' => $active->tahun_awal, 'tahun_akhir' => $active->tahun_akhir, 'start' => $s, 'end' => $e];
+                $isOutOfYear = ! TahunAjaran::isDateInActiveYear($tanggal);
+            } catch (\Throwable $ex) {
+            }
+        }
+
         // Universal: semua guru dapat lihat semua kelas (read-only) - per kelas 1 data 1 hari
         $kelasList = Kelas::with(['jurusan', 'jenjangKelas'])->orderBy('id')->get();
 
@@ -27,7 +41,7 @@ class DataAbsensiController extends Controller
         $jamAktif = null;
         $guruAktif = null;
 
-        if ($selectedKelasId && $tanggal) {
+        if ($selectedKelasId && $tanggal && ! $isOutOfYear) {
             $dayName = Schedule::indonesianDayName($tanggal);
             $schedules = DurasiPembelajaran::where('hari', $dayName)->orderBy('jam_ke')->get();
 
@@ -223,6 +237,8 @@ class DataAbsensiController extends Controller
             'schedules' => $schedules,
             'jamAktif' => $jamAktif,
             'guruAktif' => $guruAktif,
+            'activeYear' => $activeYear,
+            'isOutOfYear' => $isOutOfYear,
         ]);
     }
 }

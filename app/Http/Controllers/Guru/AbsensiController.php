@@ -8,6 +8,7 @@ use App\Models\DurasiPembelajaran;
 use App\Models\Kelas;
 use App\Models\Schedule;
 use App\Models\Siswa;
+use App\Models\TahunAjaran;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -27,6 +28,19 @@ class AbsensiController extends Controller
         $waktuSelesai = $request->query('waktu_selesai');
         $tanggal = $request->query('tanggal', now()->toDateString());
 
+        $active = TahunAjaran::where('is_active', true)->first();
+        $activeYear = null;
+        $isOutOfYear = false;
+        if ($active) {
+            try {
+                $s = \Carbon\Carbon::create((int) $active->tahun_awal, 7, 1)->format('Y-m-d');
+                $e = \Carbon\Carbon::create((int) $active->tahun_akhir, 6, 30)->format('Y-m-d');
+                $activeYear = ['tahun_awal' => $active->tahun_awal, 'tahun_akhir' => $active->tahun_akhir, 'start' => $s, 'end' => $e];
+                $isOutOfYear = ! TahunAjaran::isDateInActiveYear($tanggal);
+            } catch (\Throwable $ex) {
+            }
+        }
+
         $siswas = [];
         $mataPelajarans = [];
         $schedules = collect();
@@ -39,7 +53,7 @@ class AbsensiController extends Controller
 
             $mataPelajarans = $guru ? $guru->mataPelajarans()->with('kategoriPembelajaran')->get() : collect([]);
 
-            if ($selectedMapelId && $jamKe) {
+            if ($selectedMapelId && $jamKe && ! $isOutOfYear) {
                 $rawSiswas = Siswa::where('kelas_id', $selectedKelasId)
                     ->with(['foto', 'absensis' => function ($query) use ($tanggal, $selectedMapelId, $jamKe, $guru) {
                         $query->where('tanggal', $tanggal)
@@ -158,11 +172,13 @@ class AbsensiController extends Controller
                 'waktu_selesai' => $waktuSelesai,
                 'tanggal' => $tanggal,
             ],
-            'siswas' => $siswas,
+            'siswas' => $isOutOfYear ? [] : $siswas,
             'meta' => [
                 'is_first_guru' => $isFirstGuru,
                 'has_submitted' => $hasSubmitted,
             ],
+            'activeYear' => $activeYear,
+            'isOutOfYear' => $isOutOfYear,
         ]);
     }
 
@@ -198,6 +214,9 @@ class AbsensiController extends Controller
 
     public function store(Request $request)
     {
+        if (! TahunAjaran::isDateInActiveYear($request->input('tanggal'))) {
+            return back()->with('error', 'Tanggal di luar tahun ajaran aktif. Data tersebut telah diarsipkan dan hanya tersedia di menu Arsip admin.');
+        }
         $rules = [
             'siswa_id' => 'required|exists:siswas,id',
             'mapel_id' => 'required|exists:mata_pelajarans,id',
@@ -310,6 +329,9 @@ class AbsensiController extends Controller
         $guru = $request->user()->guru;
         if (! $guru) {
             return back()->with('error', 'Profil Guru tidak ditemukan.');
+        }
+        if (! TahunAjaran::isDateInActiveYear($request->input('tanggal'))) {
+            return back()->with('error', 'Tanggal di luar tahun ajaran aktif. Data tersebut telah diarsipkan dan hanya tersedia di menu Arsip admin.');
         }
 
         $validated = $request->validate([

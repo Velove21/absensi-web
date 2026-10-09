@@ -66,15 +66,33 @@ class AbsensiController extends Controller
                 $missingIds = $rawSiswas->filter(fn ($s) => $s->absensis->isEmpty())->pluck('id');
                 $fallbackMap = collect();
                 if ($missingIds->isNotEmpty() && ! $isFirstGuru) {
-                    $fallbacks = Absensi::whereIn('siswa_id', $missingIds)
+                    $rawFallbacks = Absensi::whereIn('siswa_id', $missingIds)
                         ->where('tanggal', $tanggal)
                         ->whereHas('siswa', fn ($q) => $q->where('kelas_id', $selectedKelasId))
                         ->orderBy('updated_at', 'desc')
+                        ->orderBy('id', 'desc')
                         ->get()
                         ->groupBy('siswa_id');
 
-                    foreach ($fallbacks as $sid => $group) {
-                        $fallbackMap[$sid] = $group->first();
+                    foreach ($rawFallbacks as $sid => $group) {
+                        $sorted = $group->sort(function ($a, $b) {
+                            $ta = $a->updated_at ? $a->updated_at->getTimestamp() : 0;
+                            $tb = $b->updated_at ? $b->updated_at->getTimestamp() : 0;
+                            if ($ta === $tb) {
+                                return $b->id <=> $a->id;
+                            }
+
+                            return $tb <=> $ta;
+                        })->values();
+                        $berhalangan = $sorted->first(fn ($it) => in_array($it->status, ['sakit', 'izin', 'dispensasi', 'alpha'], true));
+                        $fallbackMap[$sid] = $berhalangan ?? $sorted->first();
+                        // preserve bukti seperti DataAbsensi agar surat tidak hilang pada copy
+                        if ($fallbackMap[$sid] && empty($fallbackMap[$sid]->bukti)) {
+                            $withBukti = $sorted->first(fn ($it) => ! empty($it->bukti));
+                            if ($withBukti) {
+                                $fallbackMap[$sid]->setAttribute('bukti', $withBukti->bukti);
+                            }
+                        }
                     }
                 }
 
@@ -148,6 +166,36 @@ class AbsensiController extends Controller
         ]);
     }
 
+    private function isTransitionAllowed(?string $prev, string $next, bool $isFirstGuru): bool
+    {
+        if ($isFirstGuru) {
+            return true;
+        }
+        if (! $prev || $prev === $next) {
+            return true;
+        }
+        if ($prev === 'hadir' && in_array($next, ['sakit', 'izin', 'alpha', 'dispensasi'], true)) {
+            return true;
+        }
+        if ($prev === 'alpha') {
+            return true; // ponytail: alpha -> hadir/sakit/izin/dispen bebas; sakit/izin/dispen terkunci
+        }
+
+        return false;
+    }
+
+    private function effectivePrevStatus(int $siswaId, string $tanggal, ?int $excludeGuruId = null): ?string
+    {
+        $q = Absensi::where('siswa_id', $siswaId)->where('tanggal', $tanggal)->orderBy('updated_at', 'desc')->orderBy('id', 'desc');
+        $all = $q->get();
+        if ($all->isEmpty()) {
+            return null;
+        }
+        $berhalangan = $all->first(fn ($it) => in_array($it->status, ['sakit', 'izin', 'dispensasi', 'alpha'], true));
+
+        return ($berhalangan ?? $all->first())?->status;
+    }
+
     public function store(Request $request)
     {
         $rules = [
@@ -178,6 +226,22 @@ class AbsensiController extends Controller
         $guru = $request->user()->guru;
         if (! $guru) {
             return back()->with('error', 'Profil Guru tidak ditemukan.');
+        }
+
+        // Validasi transisi guru B: alpha->any, hadir->berhalangan, sakit/izin/dispen terkunci seharian
+        $siswaForKelas = Siswa::find($validated['siswa_id']);
+        $kelasIdForCheck = $siswaForKelas?->kelas_id;
+        $isFirstGuruForStore = true;
+        if ($guru && $kelasIdForCheck) {
+            $otherExists = Absensi::where('tanggal', $validated['tanggal'])->where('guru_id', '!=', $guru->id)->whereHas('siswa', fn ($q) => $q->where('kelas_id', $kelasIdForCheck))->exists();
+            $isFirstGuruForStore = ! $otherExists;
+        }
+        if (! $isFirstGuruForStore) {
+            $prevEffective = $this->effectivePrevStatus((int) $validated['siswa_id'], (string) $validated['tanggal']);
+            if (! $this->isTransitionAllowed($prevEffective, $validated['status'], $isFirstGuruForStore)) {
+                $prevLabel = $prevEffective ?? 'kosong';
+                return back()->with('error', "Status '{$prevLabel}' tidak dapat diubah menjadi '{$validated['status']}' (sakit/izin/dispensasi terkunci seharian, hadir hanya ke berhalangan, alpha bebas).");
+            }
         }
 
         $myDispensasi = Absensi::where([
@@ -261,6 +325,26 @@ class AbsensiController extends Controller
             'absensis.*.keterangan' => 'nullable|string|max:255',
             'absensis.*.bukti' => 'nullable|file|mimes:jpg,jpeg,png,webp|max:10240',
         ]);
+
+        // Prune bulk: guru B tidak boleh ubah sakit/izin/dispen seharian
+        $isFirstGuruForBulk = true;
+        if ($guru) {
+            $otherExistsBulk = Absensi::where('tanggal', $validated['tanggal'])->where('guru_id', '!=', $guru->id)->whereHas('siswa', fn ($q) => $q->where('kelas_id', $validated['kelas_id']))->exists();
+            $isFirstGuruForBulk = ! $otherExistsBulk;
+        }
+        if (! $isFirstGuruForBulk) {
+            foreach ($validated['absensis'] as $item) {
+                $sidBulk = (int) $item['siswa_id'];
+                $nextBulk = (string) $item['status'];
+                $prevBulk = $this->effectivePrevStatus($sidBulk, (string) $validated['tanggal']);
+                if (! $this->isTransitionAllowed($prevBulk, $nextBulk, $isFirstGuruForBulk)) {
+                    $prevLabel = $prevBulk ?? 'kosong';
+                    $siswaName = Siswa::find($sidBulk)?->nama ?? "siswa $sidBulk";
+
+                    return back()->with('error', "Siswa {$siswaName}: status '{$prevLabel}' tidak dapat diubah menjadi '{$nextBulk}' (sakit/izin/dispensasi terkunci seharian, hadir hanya ke berhalangan, alpha bebas).");
+                }
+            }
+        }
 
         $count = 0;
         foreach ($validated['absensis'] as $idx => $item) {

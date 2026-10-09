@@ -294,7 +294,7 @@ export default function GuruAbsensiIndex({
         if (isFirstGuru) return true;
         if (!prev || prev === next) return true;
         if (prev === 'hadir' && ['sakit', 'izin', 'alpha', 'dispensasi'].includes(next)) return true;
-        if (prev === 'alpha' && next === 'hadir') return true;
+        if (prev === 'alpha') return true; // ponytail: alpha bebas ke hadir/sakit/izin/dispen; sakit/izin/dispen terkunci
         return false;
     };
 

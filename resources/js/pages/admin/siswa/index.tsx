@@ -219,7 +219,7 @@ return;
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button onClick={handleOpenCreate}>
+                        <Button onClick={handleOpenCreate} className="bg-white text-black border border-zinc-200 shadow-xs hover:bg-zinc-50 dark:bg-white dark:text-black dark:border-zinc-200 dark:hover:bg-zinc-100">
                             <Plus className="mr-2 h-4 w-4" /> Tambah
                         </Button>
                         <CsvImport entity="siswa" title="Impor Siswa" description="Header: nis, nama, jenis_kelamin, kelas" />

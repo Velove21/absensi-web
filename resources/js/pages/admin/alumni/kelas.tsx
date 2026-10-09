@@ -1,8 +1,10 @@
 import { Head, Link } from '@inertiajs/react';
 import { GraduationCap, ArrowLeft } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 import { dashboard as adminDashboard } from '@/routes/admin';
 export default function AlumniKelas({ tahunAjaran, kelasList }: any) {
+  useAutoRefresh(true, 5000);
   return (
     <>
       <Head title={`Alumni ${tahunAjaran.tahun_awal}/${tahunAjaran.tahun_akhir}`} />

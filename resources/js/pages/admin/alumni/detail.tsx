@@ -3,8 +3,10 @@ import { ArrowLeft, GraduationCap } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 import { dashboard as adminDashboard } from '@/routes/admin';
 export default function AlumniDetail({ tahunAjaran, kelas, records }: any) {
+  useAutoRefresh(true, 5000);
   return (
     <>
       <Head title={`Alumni ${kelas.full_nama_kelas} ${tahunAjaran.tahun_awal}/${tahunAjaran.tahun_akhir}`} />

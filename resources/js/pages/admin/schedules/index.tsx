@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import adminSchedule from '@/routes/admin/jadwal-pelajaran';
 
@@ -33,6 +34,8 @@ export default function SchedulesIndex({ schedules }: { schedules: Schedule[] })
     const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
     const [deletingSchedule, setDeletingSchedule] = useState<Schedule | null>(null);
 
+    useAutoRefresh(true, 5000, ['schedules']);
+
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         hari: 'Senin',
         waktu_mulai: '07:00',
@@ -49,6 +52,7 @@ export default function SchedulesIndex({ schedules }: { schedules: Schedule[] })
                 onSuccess: () => {
                     handleCancel();
                     toast.success('Jam pelajaran berhasil diperbarui');
+                    router.reload({ only: ['schedules'], preserveScroll: true, preserveUrl: true } as unknown as never);
                 },
             });
         } else {
@@ -60,6 +64,7 @@ export default function SchedulesIndex({ schedules }: { schedules: Schedule[] })
                         urutan: Number(prev.urutan) + 1,
                     }));
                     toast.success('Jam pelajaran berhasil ditambahkan');
+                    router.reload({ only: ['schedules'], preserveScroll: true, preserveUrl: true } as unknown as never);
                 },
             });
         }
@@ -93,6 +98,7 @@ return;
             onSuccess: () => {
                 setDeletingSchedule(null);
                 toast.success('Jam pelajaran berhasil dihapus');
+                router.reload({ only: ['schedules'], preserveScroll: true, preserveUrl: true } as unknown as never);
             },
         });
     };

@@ -3,6 +3,7 @@ import { ArrowLeft, BookOpen, Users, UserRound } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import adminGuru from '@/routes/admin/guru';
 
@@ -27,6 +28,7 @@ interface Guru {
 }
 
 export default function GuruProfil({ guru }: { guru: Guru }) {
+    useAutoRefresh(true, 5000);
     const jenisKelamin = guru.jenis_kelamin === 'perempuan' ? 'Perempuan' : guru.jenis_kelamin === 'laki-laki' ? 'Laki-laki' : '-';
 
     return (

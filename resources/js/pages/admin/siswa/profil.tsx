@@ -3,6 +3,7 @@ import { ArrowLeft, GraduationCap, UserRound } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import adminSiswa from '@/routes/admin/siswa';
 
@@ -21,6 +22,7 @@ interface Siswa {
 }
 
 export default function SiswaProfil({ siswa }: { siswa: Siswa }) {
+    useAutoRefresh(true, 5000);
     const jenisKelamin = siswa.jenis_kelamin === 'perempuan' ? 'Perempuan' : siswa.jenis_kelamin === 'laki-laki' ? 'Laki-laki' : '-';
 
     return (

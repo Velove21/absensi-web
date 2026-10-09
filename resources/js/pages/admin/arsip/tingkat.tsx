@@ -1,9 +1,11 @@
 import { Head, Link } from '@inertiajs/react';
 import { BookOpen, Users, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import adminTahunAjaran from '@/routes/admin/tahun-ajaran';
 export default function ArsipTingkat({ tahunAjaran, jenjangs, jurusans, hasAnyArsip }: any) {
+  useAutoRefresh(true, 5000);
   return (
     <>
       <Head title={`Arsip ${tahunAjaran.tahun_awal}/${tahunAjaran.tahun_akhir}`} />

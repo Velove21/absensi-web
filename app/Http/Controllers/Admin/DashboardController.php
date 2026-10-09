@@ -58,10 +58,11 @@ class DashboardController extends Controller
             ->distinct()
             ->count(DB::raw('siswas.kelas_id'));
 
-        // Students per Jurusan
+        // Students per Jurusan — hanya siswa aktif (kecualikan alumni, selaras dengan halaman data siswa)
         $studentsPerJurusan = DB::table('siswas')
             ->join('kelas', 'siswas.kelas_id', '=', 'kelas.id')
             ->join('jurusans', 'kelas.jurusan_id', '=', 'jurusans.id')
+            ->where('siswas.is_alumni', false)
             ->select('jurusans.singkatan', DB::raw('count(siswas.id) as count'))
             ->groupBy('jurusans.id', 'jurusans.singkatan')
             ->get();
@@ -99,7 +100,7 @@ class DashboardController extends Controller
         return Inertia::render('admin/dashboard', [
             'stats' => [
                 'total_admin' => User::where('role', 'admin')->count(),
-                'total_siswa' => Siswa::count(),
+                'total_siswa' => Siswa::where('is_alumni', false)->count(),
                 'total_guru' => Guru::count(),
                 'total_kelas' => Kelas::count(),
                 'total_jurusan' => Jurusan::count(),

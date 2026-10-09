@@ -107,7 +107,7 @@ export default function ArsipDetail({ tahunAjaran, kelas, records, stats }: { ta
                   <Input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-full h-9 bg-muted/30" />
                 </div>
                 <Button asChild className="w-full gap-2 h-9"><a href={`/admin/tahun-ajaran/${tahunAjaran.id}/arsip/kelas/${kelas.id}/export`}><FileSpreadsheet className="h-4 w-4" /> Ekspor Arsip</a></Button>
-                <p className="text-xs text-muted-foreground">Ekspor 1 tabel per hari (No·NIS·Nama·Kelas·Tanggal·Status·Keterangan) — sama seperti ekspor Lihat Presensi guru.</p>
+                <p className="text-xs text-muted-foreground">Data ekspor dalam rentang per hari</p>
               </div>
             </div>
           </div>

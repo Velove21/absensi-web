@@ -19,10 +19,10 @@ class AttendanceExportController extends Controller
     private function validateActiveRange(?string $startDate, ?string $endDate): ?string
     {
         if ($startDate && ! TahunAjaran::isDateInActiveYear($startDate)) {
-            return 'Rentang tanggal di luar tahun ajaran aktif. Silakan akses Arsip untuk data tahun sebelumnya.';
+            return 'Tanggal tidak valid untuk tahun ajaran aktif.';
         }
         if ($endDate && ! TahunAjaran::isDateInActiveYear($endDate)) {
-            return 'Rentang tanggal di luar tahun ajaran aktif. Silakan akses Arsip untuk data tahun sebelumnya.';
+            return 'Tanggal tidak valid untuk tahun ajaran aktif.';
         }
 
         return null;

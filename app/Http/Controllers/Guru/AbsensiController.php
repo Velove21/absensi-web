@@ -215,7 +215,7 @@ class AbsensiController extends Controller
     public function store(Request $request)
     {
         if (! TahunAjaran::isDateInActiveYear($request->input('tanggal'))) {
-            return back()->with('error', 'Tanggal di luar tahun ajaran aktif. Data tersebut telah diarsipkan dan hanya tersedia di menu Arsip admin.');
+            return back()->with('error', 'Tanggal tidak valid untuk tahun ajaran aktif.');
         }
         $rules = [
             'siswa_id' => 'required|exists:siswas,id',
@@ -331,7 +331,7 @@ class AbsensiController extends Controller
             return back()->with('error', 'Profil Guru tidak ditemukan.');
         }
         if (! TahunAjaran::isDateInActiveYear($request->input('tanggal'))) {
-            return back()->with('error', 'Tanggal di luar tahun ajaran aktif. Data tersebut telah diarsipkan dan hanya tersedia di menu Arsip admin.');
+            return back()->with('error', 'Tanggal tidak valid untuk tahun ajaran aktif.');
         }
 
         $validated = $request->validate([

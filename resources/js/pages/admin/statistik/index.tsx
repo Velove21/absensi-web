@@ -91,10 +91,6 @@ export default function StatistikIndex({
     };
 
     const handleTanggalChange = (newDate: string) => {
-        if (activeYear && (newDate < activeYear.start || newDate > activeYear.end)) {
-            toast.error('Tanggal di luar tahun ajaran aktif — hanya tersedia di Arsip');
-            return;
-        }
         setFilterTanggal(newDate);
         router.get(
             statistik.url({ status }, { query: { tanggal: newDate } }),
@@ -244,11 +240,7 @@ export default function StatistikIndex({
                             </h1>
                         </div>
                     </div>
-                    {isOutOfYear && (
-                        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                            Tanggal di luar tahun ajaran aktif {activeYear?.tahun_awal}/{activeYear?.tahun_akhir} — data telah diarsipkan dan hanya tersedia di menu Arsip. Silakan akses admin/arsip.
-                        </div>
-                    )}
+                    
                     <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 shadow-sm">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <Input

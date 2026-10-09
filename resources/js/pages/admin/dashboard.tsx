@@ -283,10 +283,6 @@ export default function AdminDashboard({
     const [statDate, setStatDate] = useState(filters.tanggal);
 
     const handleStatDateChange = (newDate: string) => {
-        if (activeYear && (newDate < activeYear.start || newDate > activeYear.end)) {
-            toast.error('Tanggal di luar tahun ajaran aktif');
-            return;
-        }
         setStatDate(newDate);
         router.get(
             adminDashboard.url(),
@@ -348,9 +344,7 @@ export default function AdminDashboard({
                     </p>
                 </div>
 
-                {isOutOfYear && (
-                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">Tanggal di luar tahun ajaran aktif {activeYear?.tahun_awal}/{activeYear?.tahun_akhir} — data telah diarsipkan dan hanya tersedia di menu Arsip. Silakan akses admin/arsip.</div>
-                )}
+                
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {/* Baris 1: Admin - Siswa - Guru */}

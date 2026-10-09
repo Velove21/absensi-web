@@ -35,6 +35,7 @@ interface TahunAjaran {
     tahun_awal: string;
     tahun_akhir: string;
     is_active: boolean;
+    arsip_presensis_count: number;
 }
 
 interface PaginatedData<T> {
@@ -164,7 +165,7 @@ toast.error(errors.naik_kelas);
                             Manajemen Tahun Ajaran
                         </h1>
                         <p className="text-muted-foreground">
-                            Kelola data tahun ajaran dan proses kenaikan kelas.
+                            Kelola data tahun ajaran, proses kenaikan kelas, dan akses arsip presensi tahun sebelumnya.
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -344,7 +345,7 @@ toast.error(errors.naik_kelas);
                                                         >
                                                             <Edit2 className="h-4 w-4" />
                                                         </Button>
-                                                        {!tahun.is_active && (
+                                                        {!tahun.is_active && tahun.arsip_presensis_count > 0 && (
                                                             <Button
                                                                 variant="ghost"
                                                                 size="icon"

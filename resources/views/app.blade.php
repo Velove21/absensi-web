@@ -52,6 +52,19 @@
         <div id="initial-splash" style="position:fixed; top:0; right:0; bottom:0; left:0; z-index:99999; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#013ffb;">
             <img src="/images/P.png" alt="KlikHadir" style="max-width:70%; max-height:60%; object-fit:contain;">
         </div>
+        <script>
+            (function () {
+                var s = document.getElementById('initial-splash');
+                if (!s) return;
+                setTimeout(function () {
+                    if (!document.getElementById('initial-splash')) return;
+                    s.style.transition = 'opacity 0.6s ease';
+                    s.style.opacity = '0';
+                    s.style.pointerEvents = 'none';
+                    setTimeout(function () { if (s.parentNode) s.remove(); }, 700);
+                }, 2200);
+            })();
+        </script>
         <x-inertia::app />
     </body>
 </html>

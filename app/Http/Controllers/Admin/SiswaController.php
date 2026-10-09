@@ -22,6 +22,7 @@ class SiswaController extends Controller
         $kelasId = $request->input('kelas_id');
 
         $siswas = Siswa::with(['user', 'foto', 'kelas.jurusan', 'kelas.jenjangKelas'])
+            ->where('is_alumni', false)
             ->when($kelasId, fn ($q) => $q->where('kelas_id', $kelasId))
             ->when($search, function ($query, $search) {
                 $searchTrim = trim($search);

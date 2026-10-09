@@ -110,6 +110,11 @@ export function AppSidebar() {
                 href: admin.tambahAdmin.url(),
                 icon: ShieldCheck,
             },
+            {
+                title: 'Alumni',
+                href: '/admin/alumni',
+                icon: GraduationCap,
+            },
         ];
     } else if (userRole === 'guru') {
         mainNavItems = [

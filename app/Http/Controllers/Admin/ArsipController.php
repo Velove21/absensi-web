@@ -8,11 +8,10 @@ use App\Models\JenjangKelas;
 use App\Models\Jurusan;
 use App\Models\Kelas;
 use App\Models\TahunAjaran;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class ArsipController extends Controller
 {
@@ -20,48 +19,168 @@ class ArsipController extends Controller
     {
         $jenjangs = JenjangKelas::orderBy('urutan')->get();
         $jurusans = Jurusan::orderBy('singkatan')->get();
+        $hasAnyArsip = ArsipPresensi::where('tahun_ajaran_id', $tahunAjaran->id)->exists();
 
-        return Inertia::render('admin/arsip/tingkat', ['tahunAjaran' => $tahunAjaran, 'jenjangs' => $jenjangs, 'jurusans' => $jurusans]);
+        return Inertia::render('admin/arsip/tingkat', ['tahunAjaran' => $tahunAjaran, 'jenjangs' => $jenjangs, 'jurusans' => $jurusans, 'hasAnyArsip' => $hasAnyArsip]);
     }
 
     public function kelas(Request $request, TahunAjaran $tahunAjaran, string $jenjangId, string $jurusanId)
     {
-        $kelasList = Kelas::with(['jurusan', 'jenjangKelas'])->where('jenjang_kelas_id', $jenjangId)->where('jurusan_id', $jurusanId)->orderBy('nama_kelas')->get();
+        $kelasIdsWithArsip = ArsipPresensi::where('tahun_ajaran_id', $tahunAjaran->id)->distinct()->pluck('kelas_id');
+        $kelasList = Kelas::with(['jurusan', 'jenjangKelas'])
+            ->where('jenjang_kelas_id', $jenjangId)
+            ->where('jurusan_id', $jurusanId)
+            ->whereIn('id', $kelasIdsWithArsip)
+            ->orderBy('nama_kelas')
+            ->get();
 
         return Inertia::render('admin/arsip/kelas', ['tahunAjaran' => $tahunAjaran, 'kelasList' => $kelasList, 'jenjang' => JenjangKelas::findOrFail($jenjangId), 'jurusan' => Jurusan::findOrFail($jurusanId)]);
     }
 
     public function detail(Request $request, TahunAjaran $tahunAjaran, Kelas $kelas)
     {
-        $arsip = ArsipPresensi::with(['siswa.foto', 'kelas.jurusan', 'kelas.jenjangKelas'])->where('tahun_ajaran_id', $tahunAjaran->id)->where('kelas_id', $kelas->id)->orderBy('tanggal')->get();
-        // Group per siswa per tanggal terbaru like lihat presensi
-        $grouped = $arsip->groupBy(fn ($a) => $a->siswa_id.'|'.$a->tanggal)->map(fn ($g) => $g->sortByDesc('updated_at')->first())->values();
+        $arsip = ArsipPresensi::with(['siswa.foto', 'kelas.jurusan', 'kelas.jenjangKelas', 'guru', 'mapel'])
+            ->where('tahun_ajaran_id', $tahunAjaran->id)
+            ->where('kelas_id', $kelas->id)
+            ->orderBy('tanggal', 'asc')
+            ->orderBy('updated_at', 'desc')
+            ->get();
+
+        // 1 siswa 1 hari - ambil validasi terakhir per siswa per tanggal, tanggal urut asc (pakai snapshot untuk alumni terhapus)
+        $grouped = $arsip->groupBy(fn ($a) => ($a->siswa_id ?? $a->siswa_nis ?? $a->id).'|'.$a->tanggal->format('Y-m-d'))
+            ->map(fn ($g) => $g->sortByDesc('updated_at')->first())
+            ->values()
+            ->sortBy(fn ($a) => $a->tanggal->format('Y-m-d').'|'.($a->siswa_nis ?? $a->siswa?->nis ?? ''))
+            ->values();
+
         $stats = ['hadir' => 0, 'sakit' => 0, 'izin' => 0, 'alpha' => 0, 'dispensasi' => 0];
+
         foreach ($grouped as $r) {
             if (isset($stats[$r->status])) {
                 $stats[$r->status]++;
             }
         }
 
-        return Inertia::render('admin/arsip/detail', ['tahunAjaran' => $tahunAjaran, 'kelas' => $kelas->load(['jurusan', 'jenjangKelas']), 'records' => $grouped->map(fn ($a) => ['id' => $a->id, 'nis' => $a->siswa?->nis, 'nama' => $a->siswa?->nama, 'foto_url' => $a->siswa?->foto_url, 'kelas' => $a->kelas?->full_nama_kelas, 'is_alumni' => $a->is_alumni, 'status' => $a->status, 'tanggal' => $a->tanggal->format('Y-m-d')])->values(), 'stats' => $stats]);
+        return Inertia::render('admin/arsip/detail', [
+            'tahunAjaran' => $tahunAjaran,
+            'kelas' => $kelas->load(['jurusan', 'jenjangKelas']),
+            'records' => $grouped->map(fn ($a) => [
+                'id' => $a->id,
+                'nis' => $a->siswa_nis ?? $a->siswa?->nis,
+                'nama' => $a->siswa_nama ?? $a->siswa?->nama,
+                'foto_url' => $a->siswa_foto_url ?? $a->siswa?->foto_url,
+                'kelas' => $a->kelas?->full_nama_kelas,
+                'is_alumni' => $a->is_alumni,
+                'status' => $a->status,
+                'tanggal' => $a->tanggal->format('Y-m-d'),
+                'tanggal_formatted' => $a->tanggal->format('d-m-Y'),
+                'jam_ke' => $a->jam_ke,
+                'mapel' => $a->mapel?->nama_mapel ?? '-',
+                'guru' => $a->guru?->nama ?? '-',
+                'keterangan' => $a->keterangan,
+            ])->values(),
+            'stats' => $stats,
+        ]);
     }
 
     public function export(Request $request, TahunAjaran $tahunAjaran, Kelas $kelas)
     {
-        $arsip = ArsipPresensi::with(['siswa', 'kelas'])->where('tahun_ajaran_id', $tahunAjaran->id)->where('kelas_id', $kelas->id)->orderBy('siswa_id')->get();
-        $spreadsheet = new Spreadsheet;
-        $sheet = $spreadsheet->getActiveSheet();
-        $sheet->fromArray(['No', 'Foto', 'NIS', 'Nama', 'Kelas', 'Status'], null, 'A1');
-        $row = 2;
-        foreach ($arsip as $i => $a) {
-            $sheet->fromArray([$i + 1, '', $a->siswa?->nis, $a->siswa?->nama, $a->kelas?->full_nama_kelas, $a->status], null, "A{$row}");
-            $row++;
-        }
-        $filename = 'arsip-rekap-presensi-'.Str::slug($kelas->full_nama_kelas).'-'.$tahunAjaran->tahun_awal.$tahunAjaran->tahun_akhir.'.xlsx';
-        $tmp = tempnam(sys_get_temp_dir(), 'arsip');
-        $writer = new Xlsx($spreadsheet);
-        $writer->save($tmp);
+        $arsip = ArsipPresensi::with(['siswa.kelas.jurusan', 'siswa.kelas.jenjangKelas', 'guru', 'mapel'])
+            ->where('tahun_ajaran_id', $tahunAjaran->id)
+            ->where('kelas_id', $kelas->id)
+            ->orderBy('tanggal', 'asc')
+            ->orderBy('updated_at', 'desc')
+            ->get()
+            ->groupBy(fn ($a) => ($a->siswa_id ?? $a->siswa_nis ?? $a->id).'|'.$a->tanggal->format('Y-m-d'))
+            ->map(fn ($g) => $g->sortByDesc('updated_at')->first())
+            ->values()
+            ->sortBy(fn ($a) => $a->tanggal->format('Y-m-d').'|'.($a->siswa_nis ?? $a->siswa?->nis ?? ''))
+            ->values();
 
-        return response()->download($tmp, $filename)->deleteFileAfterSend(true);
+        $fullKelas = $kelas->full_nama_kelas ?? $kelas->nama_kelas;
+
+        // HTML XLS like AttendanceExportController::generateLihatAbsensiExcel - 1 tabel per hari urut
+        $html = "\xEF\xBB\xBF";
+        $html .= '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
+        $html .= '<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta charset="UTF-8">';
+        $html .= '<style>body{font-family:Calibri,Arial,sans-serif;font-size:12px;color:#000;line-height:1.45}table{border-collapse:collapse;width:100%;table-layout:auto}th,td{border:1px solid #000;padding:10px 12px;text-align:left;vertical-align:middle;color:#000;background:#fff;word-wrap:break-word;font-size:12px}th{font-weight:bold;text-align:center;background:#F2F4FF;color:#000}.header-meta td{border:none;padding:4px 10px;font-size:12px}.header-meta{margin-bottom:48px}.title-row td{font-weight:bold;font-size:12px;text-align:left;border:1px solid #000;background:#E8EEFF;color:#002399;padding:10px 12px}</style>';
+        $html .= '</head><body>';
+
+        $html .= '<table class="header-meta">';
+        $html .= '<tr><td style="font-weight:bold;width:90px;white-space:nowrap">Kelas</td><td style="white-space:nowrap">: '.e($fullKelas).'</td></tr>';
+        $html .= '<tr><td style="font-weight:bold;white-space:nowrap">Tahun Ajaran</td><td style="white-space:nowrap">: '.e($tahunAjaran->tahun_awal.'/'.$tahunAjaran->tahun_akhir).'</td></tr>';
+        $html .= '</table>';
+        $html .= '<table style="border:none;width:100%"><tr><td style="border:none;height:32px;background:transparent">&nbsp;</td></tr></table>';
+        $html .= '<div style="height:21px;line-height:21px;border:none;background:transparent;mso-height-source:userset">&nbsp;</div>';
+
+        if ($arsip->isEmpty()) {
+            $html .= '<table border="1" cellspacing="0" cellpadding="10" style="border-collapse:collapse;width:100%;border:1px solid #000;">';
+            $html .= '<thead><tr><th style="width:38px">No</th><th style="width:58px">NIS</th><th style="min-width:260px">Nama</th><th style="width:125px">Kelas</th><th style="width:85px">Hari</th><th style="width:95px">Tanggal</th><th style="width:105px">Status</th></tr></thead><tbody>';
+            $html .= '<tr><td colspan="7" style="text-align:center;padding:24px;">Tidak ada data untuk filter ini.</td></tr>';
+            $html .= '</tbody></table></body></html>';
+            $filename = 'arsip-rekap-presensi-'.Str::slug($fullKelas).'-'.$tahunAjaran->tahun_awal.$tahunAjaran->tahun_akhir.'.xls';
+
+            return $this->safeExcelResponse($html, $filename);
+        }
+
+        $grouped = $arsip->groupBy(fn ($a) => $a->tanggal->format('Y-m-d'));
+
+        // Sort tanggal asc
+        $grouped = $grouped->sortKeys();
+
+        foreach ($grouped as $tanggal => $dateGroup) {
+            $formattedPeriode = Carbon::parse($tanggal)->format('d-m-Y');
+            $hari = Carbon::parse($tanggal)->locale('id')->isoFormat('dddd');
+            $sortedDateGroup = $dateGroup->sortBy(fn ($a) => $a->siswa_nis ?? $a->siswa?->nis)->values();
+            $html .= '<table border="1" cellspacing="0" cellpadding="10" style="border-collapse:collapse;width:100%;border:1px solid #000;">';
+            $html .= '<tr class="title-row"><td colspan="7" style="font-size:12px">'.e($fullKelas).' &nbsp;&bull;&nbsp; '.e(ucfirst($hari).', '.$formattedPeriode).'</td></tr>';
+            $html .= '<thead><tr><th style="width:38px">No</th><th style="width:58px">NIS</th><th style="min-width:260px">Nama</th><th style="width:125px">Kelas</th><th style="width:85px">Hari</th><th style="width:95px">Tanggal</th><th style="width:105px">Status</th></tr></thead><tbody>';
+            $no = 1;
+            foreach ($sortedDateGroup as $a) {
+                $html .= '<tr>';
+                $html .= '<td style="text-align:center;">'.$no++.'</td>';
+                $html .= '<td style="mso-number-format:\@;text-align:center;">'.e($a->siswa_nis ?? $a->siswa?->nis ?? '-').'</td>';
+                $html .= '<td style="white-space:normal;word-wrap:break-word;min-width:260px">'.e($a->siswa_nama ?? $a->siswa?->nama ?? '-').'</td>';
+                $html .= '<td style="text-align:center;white-space:nowrap;">'.e($a->kelas?->full_nama_kelas ?? $fullKelas).'</td>';
+                $html .= '<td style="text-align:center;white-space:nowrap">'.e(ucfirst($hari)).'</td>';
+                $html .= '<td style="text-align:center;mso-number-format:\@;white-space:nowrap">'.e($formattedPeriode).'</td>';
+                $html .= '<td style="text-align:center;white-space:nowrap">'.e(ucfirst($a->status ?? '-')).'</td>';
+                $html .= '</tr>';
+            }
+            $html .= '<tr><td colspan="7" style="font-weight:bold; text-align:left; border:1px solid #000; padding:10px 12px;background:#F8FAFF">Total: '.$sortedDateGroup->count().' siswa</td></tr>';
+            $html .= '</tbody></table>';
+            $html .= '<table style="border:none;width:100%"><tr><td style="border:none;height:35px;background:transparent">&nbsp;</td></tr></table>';
+            $html .= '<div style="height:27px;line-height:27px;border:none;background:transparent;mso-height-source:userset">&nbsp;</div>';
+        }
+
+        $html .= '</body></html>';
+
+        $filename = 'arsip-rekap-presensi-'.Str::slug($fullKelas).'-'.$tahunAjaran->tahun_awal.$tahunAjaran->tahun_akhir.'.xls';
+
+        return $this->safeExcelResponse($html, $filename);
+    }
+
+    private function safeExcelResponse(string $html, string $filename)
+    {
+        $filename = preg_replace('/[^a-zA-Z0-9\-\_\.]/', '-', $filename);
+        $filename = preg_replace('/-+/', '-', $filename);
+        $filename = trim($filename, '-');
+        if (strlen($filename) > 80) {
+            $ext = pathinfo($filename, PATHINFO_EXTENSION);
+            $name = pathinfo($filename, PATHINFO_FILENAME);
+            $filename = substr($name, 0, 80 - strlen($ext) - 1).'.'.$ext;
+        }
+
+        return response($html)
+            ->header('Content-Type', 'application/vnd.ms-excel; charset=UTF-8')
+            ->header('Content-Disposition', 'attachment; filename="'.$filename.'"')
+            ->header('Content-Transfer-Encoding', 'binary')
+            ->header('Content-Description', 'File Transfer')
+            ->header('X-Content-Type-Options', 'nosniff')
+            ->header('X-Download-Options', 'open')
+            ->header('Content-Length', (string) strlen($html))
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0')
+            ->header('Cache-Control', 'must-revalidate, post-check=0, pre-check=0');
     }
 }

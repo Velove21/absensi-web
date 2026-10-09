@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('arsip_presensis', function (Blueprint $table) {
             $table->id();
             $table->foreignId('tahun_ajaran_id')->constrained('tahun_ajarans')->cascadeOnDelete();
-            $table->foreignId('siswa_id')->constrained('siswas')->cascadeOnDelete();
+            $table->foreignId('siswa_id')->nullable()->constrained('siswas')->nullOnDelete();
             $table->foreignId('kelas_id')->nullable()->constrained('kelas')->nullOnDelete();
             $table->foreignId('guru_id')->nullable()->constrained('gurus')->nullOnDelete();
             $table->foreignId('mapel_id')->nullable()->constrained('mata_pelajarans')->nullOnDelete();

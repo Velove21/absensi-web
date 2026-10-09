@@ -12,6 +12,8 @@ use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class TahunAjaranController extends Controller
@@ -95,13 +97,47 @@ class TahunAjaranController extends Controller
             ]);
         }
 
-        // Arsip rekap harian validasi guru terakhir per siswa per tanggal
-        $raw = Absensi::with(['siswa.kelas'])
+        // Arsip rekap — samakan persis merging guru/DataAbsensi: berhalangan seharian prioritas, preserve bukti/keterangan
+        $rawAll = Absensi::with(['siswa.kelas', 'siswa.foto'])
             ->orderBy('updated_at', 'desc')
-            ->get()
-            ->groupBy(fn ($a) => $a->siswa_id.'|'.$a->tanggal)
-            ->map(fn ($g) => $g->sortByDesc('updated_at')->first())
-            ->values();
+            ->orderBy('id', 'desc')
+            ->get();
+
+        $groupedRaw = $rawAll->groupBy(fn ($a) => $a->siswa_id.'|'.(is_string($a->tanggal) ? $a->tanggal : $a->tanggal?->format('Y-m-d') ?? $a->tanggal));
+
+        $merged = $groupedRaw->map(function ($group) {
+            $sorted = $group->sort(function ($a, $b) {
+                $ta = $a->updated_at ? $a->updated_at->getTimestamp() : 0;
+                $tb = $b->updated_at ? $b->updated_at->getTimestamp() : 0;
+                if ($ta === $tb) {
+                    return $b->id <=> $a->id;
+                }
+
+                return $tb <=> $ta;
+            })->values();
+
+            $berhalangan = $sorted->first(fn ($it) => in_array($it->status, ['sakit', 'izin', 'dispensasi', 'alpha'], true));
+            $primary = $berhalangan ?? $sorted->first();
+            if (! $primary) {
+                return null;
+            }
+            if (empty($primary->bukti)) {
+                $latestBukti = $sorted->first(fn ($it) => ! empty($it->bukti));
+                if ($latestBukti) {
+                    $primary->setAttribute('bukti', $latestBukti->bukti);
+                }
+            }
+            if ($primary->status === 'alpha' && empty(trim((string) $primary->keterangan))) {
+                $withKet = $sorted->first(fn ($it) => $it->status === 'alpha' && ! empty(trim((string) $it->keterangan)));
+                if ($withKet) {
+                    $primary->setAttribute('keterangan', $withKet->keterangan);
+                }
+            }
+
+            return $primary;
+        })->filter()->values();
+
+        $raw = $merged;
 
         foreach ($raw as $a) {
             $fotoUrl = $a->siswa?->foto_url;
@@ -117,44 +153,64 @@ class TahunAjaranController extends Controller
             $nextJenjangMap[$jenjangs[$i]->id] = $jenjangs[$i + 1]->id;
         }
 
-        $kelasList = Kelas::with('siswas')->get();
+        // SNAPSHOT siswa aktif per kelas SEBELUM ada yang dipindah.
+        // Tanpa ini, $kelas->siswas() membaca ulang DB setiap giliran kelas sehingga
+        // siswa yang baru dipindah ikut diproses lagi (X -> XI -> XII -> alumni dalam sekali klik).
+        // Alumni (is_alumni) juga dikecualikan agar tidak diproses ulang.
+        $siswaPerKelas = Siswa::where('is_alumni', false)
+            ->select('id', 'kelas_id')
+            ->get()
+            ->groupBy('kelas_id');
+
+        $kelasList = Kelas::with(['jenjangKelas', 'jurusan'])->get();
+        $jenjangNameById = $jenjangs->pluck('nama_jenjang', 'id');
 
         $movedCount = 0;
         $graduatedCount = 0;
+        $movedPerJenjang = [];
+        $graduatedKelasNames = [];
 
-        foreach ($kelasList as $kelas) {
-            $nextJenjangId = $nextJenjangMap[$kelas->jenjang_kelas_id] ?? null;
+        DB::transaction(function () use ($active, $nextJenjangMap, $jenjangNameById, $siswaPerKelas, $kelasList, &$movedCount, &$graduatedCount, &$movedPerJenjang, &$graduatedKelasNames) {
+            foreach ($kelasList as $kelas) {
+                /** @var Collection<int, int> $ids */
+                $ids = $siswaPerKelas->get($kelas->id, collect())->pluck('id')->values();
 
-            if ($nextJenjangId === null) {
-                $ids = $kelas->siswas()->pluck('id');
-                if ($ids->isNotEmpty()) {
-                    // Tandai alumni di arsip + flag is_alumni saja, JANGAN hapus siswa/user (mencegah data hilang)
+                if ($ids->isEmpty()) {
+                    continue;
+                }
+
+                $nextJenjangId = $nextJenjangMap[$kelas->jenjang_kelas_id] ?? null;
+
+                $nextKelas = null;
+
+                if ($nextJenjangId !== null) {
+                    $nextKelas = Kelas::where('jurusan_id', $kelas->jurusan_id)
+                        ->where('jenjang_kelas_id', $nextJenjangId)
+                        ->where('nama_kelas', $kelas->nama_kelas)
+                        ->first();
+                }
+
+                if ($nextKelas === null) {
+                    // Jenjang tertinggi (atau pasangan kelas tidak ada): tandai lulus.
+                    // Flag is_alumni saja, JANGAN hapus siswa/user (mencegah data hilang).
                     ArsipPresensi::whereIn('siswa_id', $ids)->where('tahun_ajaran_id', $active->id)->update(['is_alumni' => true]);
                     Siswa::whereIn('id', $ids)->update(['is_alumni' => true]);
+                    $graduatedCount += $ids->count();
+                    $graduatedKelasNames[] = $this->kelasLabel($kelas, $jenjangNameById);
+
+                    continue;
                 }
-                $graduatedCount += $ids->count();
 
-                continue;
+                // Naik tepat 1 jenjang.
+                Siswa::whereIn('id', $ids)->update(['kelas_id' => $nextKelas->id]);
+                $movedCount += $ids->count();
+
+                $from = $jenjangNameById->get($kelas->jenjang_kelas_id, '?');
+                $to = $jenjangNameById->get($nextJenjangId, '?');
+                $key = "{$from}→{$to}";
+                $movedPerJenjang[$key] = ($movedPerJenjang[$key] ?? 0) + $ids->count();
             }
-
-            $nextKelas = Kelas::where('jurusan_id', $kelas->jurusan_id)
-                ->where('jenjang_kelas_id', $nextJenjangId)
-                ->where('nama_kelas', $kelas->nama_kelas)
-                ->first();
-
-            if (! $nextKelas) {
-                $ids = $kelas->siswas()->pluck('id');
-                if ($ids->isNotEmpty()) {
-                    ArsipPresensi::whereIn('siswa_id', $ids)->where('tahun_ajaran_id', $active->id)->update(['is_alumni' => true]);
-                    Siswa::whereIn('id', $ids)->update(['is_alumni' => true]);
-                }
-                $graduatedCount += $ids->count();
-
-                continue;
-            }
-
-            $movedCount += $kelas->siswas()->update(['kelas_id' => $nextKelas->id]);
-        }
+        });
 
         // Bersihkan absensi aktif agar isolasi pertahun: tahun B tidak lihat data tahun A (pengecualian arsip)
         $absensiIds = $raw->pluck('id')->filter()->values();
@@ -183,11 +239,23 @@ class TahunAjaranController extends Controller
         }
 
         $message = "Naik kelas berhasil: {$movedCount} siswa dipindahkan.";
+        if (! empty($movedPerJenjang)) {
+            $rincian = collect($movedPerJenjang)->map(fn ($jumlah, $arus) => "{$arus}: {$jumlah}")->join(', ');
+            $message .= " ({$rincian}).";
+        }
         if ($graduatedCount > 0) {
-            $message .= " {$graduatedCount} siswa lulus (Alumni).";
+            $message .= ' '.$graduatedCount.' siswa lulus (Alumni) dari '.implode(', ', array_unique($graduatedKelasNames)).'.';
         }
         $message .= " Arsip tersimpan di {$oldYearLabel} (non-aktif). Aktif: {$nextTahun->tahun_awal}/{$nextTahun->tahun_akhir}.";
 
         return redirect()->back()->with('success', $message);
+    }
+
+    /**
+     * Label kelas untuk pesan ringkasan, mis. "XII PPLG A".
+     */
+    private function kelasLabel(Kelas $kelas, $jenjangNameById): string
+    {
+        return trim($jenjangNameById->get($kelas->jenjang_kelas_id, '').' '.($kelas->jurusan?->singkatan ?? '').' '.$kelas->nama_kelas);
     }
 }

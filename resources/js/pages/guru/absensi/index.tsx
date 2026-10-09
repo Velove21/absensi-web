@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { CheckCircle, XCircle, Clock, FileWarning, Trash2, UserCircle, BookOpen, Clock3, Calendar, Award, ImageUp, Loader2, RefreshCw } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, FileWarning, Trash2, UserCircle, BookOpen, Clock3, Calendar, Award, ImageUp, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import SearchableSelect from '@/components/ui/searchable-select';
-import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 import absensi from '@/routes/guru/absensi';
 
 interface Jurusan {
@@ -111,7 +110,6 @@ export default function GuruAbsensiIndex({
         getInitialKeterangans(siswas)
     );
     const [savingIds, setSavingIds] = useState<Set<number>>(new Set());
-    const [isPolling, setIsPolling] = useState(false);
     const [buktiFiles, setBuktiFiles] = useState<Record<number, File>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [hasDirty, setHasDirty] = useState(false);
@@ -190,25 +188,8 @@ export default function GuruAbsensiIndex({
     const waktuMulaiInput = startSchedule?.waktu_mulai || filters.waktu_mulai || '';
     const waktuSelesaiInput = endSchedule?.waktu_selesai || filters.waktu_selesai || '';
 
-    // Pause auto-refresh saat ada draft yang belum di-submit agar tidak overwrite validasi lokal
-    const canPoll = Boolean(filters.kelas_id && filters.mapel_id && filters.jam_ke) && !hasDirty && !isSubmitting;
-    useAutoRefresh(canPoll, 5000, ['siswas', 'meta']);
-
-    // Indikator polling aktif via router events
-    useEffect(() => {
-        const offStart = router.on('start', () => {
-            // hanya anggap polling jika tidak ada savingIds yang aktif (mutasi manual)
-            if (canPoll && savingIds.size === 0 && !buktiLoading) {
-                setIsPolling(true);
-            }
-        });
-        const offFinish = router.on('finish', () => setIsPolling(false));
-        return () => {
-            if (typeof offStart === 'function') (offStart as unknown as () => void)();
-            if (typeof offFinish === 'function') (offFinish as unknown as () => void)();
-        };
-    }, [canPoll, savingIds.size, buktiLoading]);
-
+    // Catatan: halaman input ini SENGAJA tanpa auto-refresh. Data tabel dibiarkan diam
+    // selama guru menginput dan baru diperbarui saat ganti filter atau pencet Kirim/Perbarui.
     // Langsung buka file chooser saat modal bukti muncul (tanpa perlu klik lagi di dalam modal)
     useEffect(() => {
         if (showBuktiModal && buktiInputRef.current && !previewUrl && !buktiFile) {
@@ -682,12 +663,6 @@ export default function GuruAbsensiIndex({
                             pilih kelas, mata pelajaran, dan jam pembelajaran untuk merekam kehadiran siswa
                         </p>
                     </div>
-                    {canPoll && (
-                        <div className="hidden md:flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/40 px-3 py-1.5 rounded-full border">
-                            <RefreshCw className={`h-3 w-3 ${isPolling ? 'animate-spin' : ''}`} />
-                            Auto-refresh aktif
-                        </div>
-                    )}
                 </div>
 
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-stretch">
@@ -822,7 +797,6 @@ export default function GuruAbsensiIndex({
                                         <div>
                                             <h2 className="text-lg font-semibold flex items-center gap-2">
                                                 Daftar Siswa
-                                                {isPolling && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
                                                 {hasSubmitted && <span className="ml-1 inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 ring-1 ring-emerald-600/20">Tersimpan</span>}
                                             </h2>
                                             <p className="text-xs text-muted-foreground mt-0.5">

@@ -91,7 +91,7 @@ class SiswaController extends Controller
                     }
                 });
             })
-            ->latest()
+            ->orderBy('nis', 'desc')
             ->paginate(10)
             ->withQueryString();
 

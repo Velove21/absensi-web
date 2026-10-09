@@ -1,5 +1,5 @@
 import { Head, useForm, router, usePage } from '@inertiajs/react';
-import { Edit2, Trash2, X, Plus, Save, Shield, KeyRound, Search, Mail, User, Lock } from 'lucide-react';
+import { Edit2, Trash2, Plus, Save, Shield, KeyRound, Search, Mail, User, Lock } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { toast } from 'sonner';
 import Pagination from '@/components/pagination';
@@ -16,6 +16,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import CsvImport from '@/components/csv-import';
 import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 import admin, { dashboard as adminDashboard } from '@/routes/admin';
@@ -45,6 +46,7 @@ export default function TambahAdmin({ admins, totalAdmins }: Props) {
     const { auth } = usePage<SharedData>().props;
     const currentUserId = auth.user.id;
 
+    const [showForm, setShowForm] = useState(false);
     const [editingAdmin, setEditingAdmin] = useState<AdminUser | null>(null);
     const [deletingAdminId, setDeletingAdminId] = useState<number | null>(null);
     const [resettingPasswordAdminId, setResettingPasswordAdminId] = useState<number | null>(null);
@@ -79,6 +81,13 @@ export default function TambahAdmin({ admins, totalAdmins }: Props) {
         }, 400);
     };
 
+    const handleOpenCreate = () => {
+        reset();
+        clearErrors();
+        setEditingAdmin(null);
+        setShowForm(true);
+    };
+
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
         if (editingAdmin) {
@@ -94,7 +103,7 @@ export default function TambahAdmin({ admins, totalAdmins }: Props) {
             post(adminAdmin.store.url(), {
                 preserveScroll: true,
                 onSuccess: () => {
-                    reset();
+                    handleCancel();
                     toast.success('Admin berhasil ditambahkan');
                     router.reload({ only: ['admins'], preserveScroll: true, preserveUrl: true } as unknown as never);
                 },
@@ -103,7 +112,6 @@ export default function TambahAdmin({ admins, totalAdmins }: Props) {
     };
 
     const handleEdit = (admin: AdminUser) => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
         setEditingAdmin(admin);
         clearErrors();
         setData({
@@ -112,12 +120,14 @@ export default function TambahAdmin({ admins, totalAdmins }: Props) {
             password: '',
             password_confirmation: '',
         });
+        setShowForm(true);
     };
 
     const handleCancel = () => {
         setEditingAdmin(null);
         reset();
         clearErrors();
+        setShowForm(false);
     };
 
     const executeDelete = () => {
@@ -159,221 +169,208 @@ export default function TambahAdmin({ admins, totalAdmins }: Props) {
                         <h1 className="text-2xl font-bold tracking-tight">Manajemen Admin</h1>
                         <p className="text-muted-foreground">Kelola akses admin secara terpusat.</p>
                     </div>
-                    <CsvImport entity="admin" title="Impor Admin" description="Header: name, email, password" />
+                    <div className="flex items-center gap-2">
+                        <Button onClick={handleOpenCreate}>
+                            <Plus className="h-4 w-4" /> Tambah
+                        </Button>
+                        <CsvImport entity="admin" title="Impor Admin" description="Header: name, email, password" />
+                    </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-stretch">
-                    {/* Form */}
-                    <div className="col-span-1 flex flex-col gap-6"><div className="sticky top-8 min-h-[260px] flex flex-col rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border">
-                            <div className="mb-4 flex items-center justify-between">
-                                <h2 className="flex items-center gap-2 text-lg font-semibold">
-                                    {editingAdmin ? (
-                                        <>
-                                            <Edit2 className="h-4 w-4 text-primary" /> Edit Admin
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Plus className="h-4 w-4 text-primary" /> Tambah Admin
-                                        </>
-                                    )}
-                                </h2>
-                                {editingAdmin && (
-                                    <Button variant="ghost" size="icon" onClick={handleCancel} className="h-8 w-8 rounded-full">
-                                        <X className="h-4 w-4" />
-                                    </Button>
-                                )}
-                            </div>
-
-                            <form onSubmit={submit} className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="name" className="flex items-center gap-1.5">
-                                        <User className="h-3.5 w-3.5 text-muted-foreground" /> Nama Lengkap <span className="text-destructive">*</span>
-                                    </Label>
-                                    <Input
-                                        id="name"
-                                        value={data.name}
-                                        onChange={(e) => setData('name', e.target.value)}
-                                        placeholder="Contoh: Budi Admin"
-                                        className="bg-muted/30"
-                                        required
-                                    />
-                                    {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="email" className="flex items-center gap-1.5">
-                                        <Mail className="h-3.5 w-3.5 text-muted-foreground" /> Email <span className="text-destructive">*</span>
-                                    </Label>
-                                    <Input
-                                        id="email"
-                                        type="email"
-                                        value={data.email}
-                                        onChange={(e) => setData('email', e.target.value)}
-                                        placeholder="admin@gmail.com"
-                                        className="bg-muted/30"
-                                        required
-                                    />
-                                    {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="password" className="flex items-center gap-1.5">
-                                        <Lock className="h-3.5 w-3.5 text-muted-foreground" /> Kata Sandi
-                                    </Label>
-                                    <Input
-                                        id="password"
-                                        type="password"
-                                        value={data.password}
-                                        onChange={(e) => setData('password', e.target.value)}
-                                        placeholder="Minimal 8 karakter"
-                                        className="bg-muted/30"
-                                    />
-                                    {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="password_confirmation" className="flex items-center gap-1.5">
-                                        <Lock className="h-3.5 w-3.5 text-muted-foreground" /> Konfirmasi Kata Sandi
-                                    </Label>
-                                    <Input
-                                        id="password_confirmation"
-                                        type="password"
-                                        value={data.password_confirmation}
-                                        onChange={(e) => setData('password_confirmation', e.target.value)}
-                                        placeholder="Ulangi kata sandi"
-                                        className="bg-muted/30"
-                                    />
-                                </div>
-
-                                <div className="flex gap-2 pt-4">
-                                    {editingAdmin && (
-                                        <Button type="button" variant="outline" onClick={handleCancel} className="flex-1">
-                                            Batal
-                                        </Button>
-                                    )}
-                                    <Button type="submit" disabled={processing} className="flex-1">
-                                        {processing ? 'Proses...' : editingAdmin ? <><Save className="mr-2 h-4 w-4" /> Update</> : <><Plus className="mr-2 h-4 w-4" /> Simpan</>}
-                                    </Button>
-                                </div>
-                            </form>
-                        </div>
+                <div className="flex flex-col gap-4">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            placeholder="Cari nama atau email..."
+                            value={search}
+                            onChange={(e) => handleSearch(e.target.value)}
+                            className="pl-9 bg-muted/30"
+                        />
                     </div>
 
-                    {/* Data admin */}
-                    <div className="col-span-1 space-y-4 lg:col-span-2">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <div className="overflow-hidden rounded-xl border border-sidebar-border/70 bg-card shadow-sm dark:border-sidebar-border">
+                        <div className="p-3 border-b bg-muted/20">
+                            <h3 className="text-sm font-semibold flex items-center gap-2">
+                                <Shield className="h-4 w-4 text-primary" /> Data Admin
+                            </h3>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-xs">
+                                <thead className="bg-muted/50 text-[11px] font-medium tracking-wider text-muted-foreground uppercase">
+                                    <tr>
+                                        <th className="px-3 py-2.5">Nama</th>
+                                        <th className="px-3 py-2.5">Email</th>
+                                        <th className="px-3 py-2.5">Status Kata Sandi</th>
+                                        <th className="px-3 py-2.5 text-right">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-sidebar-border/70 dark:divide-sidebar-border">
+                                    {admins.data.map((admin) => (
+                                        <tr
+                                            key={admin.id}
+                                            className={`group transition-colors hover:bg-muted/30 ${editingAdmin?.id === admin.id ? 'bg-primary/5' : ''} ${admin.id === currentUserId ? 'bg-blue-50/50 dark:bg-blue-950/10' : ''}`}
+                                        >
+                                            <td className="px-3 py-2.5">
+                                                <div className="flex items-center gap-2.5">
+                                                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary">
+                                                        {admin.name.slice(0, 2).toUpperCase()}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs font-medium text-foreground">
+                                                            {admin.name}{' '}
+                                                            {admin.id === currentUserId && (
+                                                                <span className="ml-1 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                                                                    Anda
+                                                                </span>
+                                                            )}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-3 py-2.5">
+                                                <p className="text-xs font-medium">{admin.email}</p>
+                                            </td>
+                                            <td className="px-3 py-2.5">
+                                                {admin.password_default ? (
+                                                    <span className="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
+                                                        Default
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+                                                        Sudah Diubah
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="px-3 py-2.5 text-right">
+                                                <div className="flex justify-end gap-1.5">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => setResettingPasswordAdminId(admin.id)}
+                                                        title="Reset Kata Sandi"
+                                                        className="h-7 w-7 text-muted-foreground hover:text-yellow-600"
+                                                    >
+                                                        <KeyRound className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => handleEdit(admin)}
+                                                        className="h-7 w-7 text-muted-foreground hover:text-primary"
+                                                    >
+                                                        <Edit2 className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => setDeletingAdminId(admin.id)}
+                                                        disabled={admin.id === currentUserId || admins.data.length <= 1}
+                                                        className="h-7 w-7 text-muted-foreground hover:text-destructive disabled:opacity-30"
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {admins.data.length === 0 && (
+                                        <tr>
+                                            <td colSpan={4} className="px-3 py-10 text-center text-muted-foreground">
+                                                <div className="flex flex-col items-center gap-2">
+                                                    <Shield className="h-7 w-7 opacity-20" />
+                                                    <p className="text-xs">Belum ada data admin.</p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <Pagination links={admins.links} />
+                </div>
+            </div>
+
+            <Dialog open={showForm} onOpenChange={setShowForm}>
+                <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>{editingAdmin ? 'Edit Admin' : 'Tambah Admin'}</DialogTitle>
+                        <DialogDescription>
+                            {editingAdmin ? 'Perbarui data admin yang dipilih.' : 'Tambahkan admin baru ke sistem.'}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={submit} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="name" className="flex items-center gap-1.5">
+                                <User className="h-3.5 w-3.5 text-muted-foreground" /> Nama Lengkap <span className="text-destructive">*</span>
+                            </Label>
                             <Input
-                                placeholder="Cari nama atau email..."
-                                value={search}
-                                onChange={(e) => handleSearch(e.target.value)}
-                                className="pl-9 bg-muted/30"
+                                id="name"
+                                value={data.name}
+                                onChange={(e) => setData('name', e.target.value)}
+                                placeholder="Contoh: Budi Admin"
+                                className="bg-muted/30"
+                                required
+                            />
+                            {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="email" className="flex items-center gap-1.5">
+                                <Mail className="h-3.5 w-3.5 text-muted-foreground" /> Email <span className="text-destructive">*</span>
+                            </Label>
+                            <Input
+                                id="email"
+                                type="email"
+                                value={data.email}
+                                onChange={(e) => setData('email', e.target.value)}
+                                placeholder="admin@gmail.com"
+                                className="bg-muted/30"
+                                required
+                            />
+                            {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="password" className="flex items-center gap-1.5">
+                                <Lock className="h-3.5 w-3.5 text-muted-foreground" /> Kata Sandi
+                            </Label>
+                            <Input
+                                id="password"
+                                type="password"
+                                value={data.password}
+                                onChange={(e) => setData('password', e.target.value)}
+                                placeholder="Minimal 8 karakter"
+                                className="bg-muted/30"
+                            />
+                            {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="password_confirmation" className="flex items-center gap-1.5">
+                                <Lock className="h-3.5 w-3.5 text-muted-foreground" /> Konfirmasi Kata Sandi
+                            </Label>
+                            <Input
+                                id="password_confirmation"
+                                type="password"
+                                value={data.password_confirmation}
+                                onChange={(e) => setData('password_confirmation', e.target.value)}
+                                placeholder="Ulangi kata sandi"
+                                className="bg-muted/30"
                             />
                         </div>
 
-                        <div className="overflow-hidden rounded-xl border border-sidebar-border/70 bg-card shadow-sm dark:border-sidebar-border">
-                            <div className="p-4 border-b bg-muted/20">
-                                    <h3 className="text-sm font-semibold flex items-center gap-2">
-                                    <Shield className="h-4 w-4 text-primary" /> Data Admin
-                                </h3>
-                            </div>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm">
-                                    <thead className="bg-muted/50 text-xs font-medium tracking-wider text-muted-foreground uppercase">
-                                        <tr>
-                                            <th className="px-6 py-4">Nama</th>
-                                            <th className="px-6 py-4">Email</th>
-                                            <th className="px-6 py-4">Status Kata Sandi</th>
-                                            <th className="px-6 py-4 text-right">Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-sidebar-border/70 dark:divide-sidebar-border">
-                                        {admins.data.map((admin) => (
-                                            <tr
-                                                key={admin.id}
-                                                className={`group transition-colors hover:bg-muted/30 ${editingAdmin?.id === admin.id ? 'bg-primary/5' : ''} ${admin.id === currentUserId ? 'bg-blue-50/50 dark:bg-blue-950/10' : ''}`}
-                                            >
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                                                            {admin.name.slice(0, 2).toUpperCase()}
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-medium text-foreground">
-                                                                {admin.name}{' '}
-                                                                {admin.id === currentUserId && (
-                                                                    <span className="ml-1 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                                                                        Anda
-                                                                    </span>
-                                                                )}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <p className="text-sm font-medium">{admin.email}</p>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    {admin.password_default ? (
-                                                        <span className="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
-                                                            Default
-                                                        </span>
-                                                    ) : (
-                                                        <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
-                                                            Sudah Diubah
-                                                        </span>
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <div className="flex justify-end gap-2">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() => setResettingPasswordAdminId(admin.id)}
-                                                            title="Reset Kata Sandi"
-                                                            className="h-8 w-8 text-muted-foreground hover:text-yellow-600"
-                                                        >
-                                                            <KeyRound className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() => handleEdit(admin)}
-                                                            className="h-8 w-8 text-muted-foreground hover:text-primary"
-                                                        >
-                                                            <Edit2 className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() => setDeletingAdminId(admin.id)}
-                                                            disabled={admin.id === currentUserId || admins.data.length <= 1}
-                                                            className="h-8 w-8 text-muted-foreground hover:text-destructive disabled:opacity-30"
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        {admins.data.length === 0 && (
-                                            <tr>
-                                                <td colSpan={4} className="px-6 py-12 text-center text-muted-foreground">
-                                                    <div className="flex flex-col items-center gap-2">
-                                                        <Shield className="h-8 w-8 opacity-20" />
-                                                        <p>Belum ada data admin.</p>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
+                        <div className="flex gap-2 pt-2">
+                            <Button type="button" variant="outline" onClick={handleCancel} className="flex-1">
+                                Batal
+                            </Button>
+                            <Button type="submit" disabled={processing} className="flex-1">
+                                {processing ? 'Proses...' : editingAdmin ? <><Save className="mr-2 h-4 w-4" /> Update</> : <><Plus className="mr-2 h-4 w-4" /> Simpan</>}
+                            </Button>
                         </div>
-                        <Pagination links={admins.links} />
-                    </div>
-                </div>
-            </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
 
             <AlertDialog open={deletingAdminId !== null} onOpenChange={(open) => !open && setDeletingAdminId(null)}>
                 <AlertDialogContent>

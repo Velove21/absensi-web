@@ -9,6 +9,7 @@ use App\Models\Jurusan;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
 use App\Models\Siswa;
+use App\Models\TahunAjaran;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -20,43 +21,61 @@ class DashboardController extends Controller
     public function __invoke(Request $request)
     {
         $tanggal = $request->query('tanggal', Carbon::today()->format('Y-m-d'));
+        $active = TahunAjaran::where('is_active', true)->first();
+        $activeYear = null;
+        $isOutOfYear = false;
+        if ($active) {
+            try {
+                $s = Carbon::create((int) $active->tahun_awal, 7, 1)->format('Y-m-d');
+                $e = Carbon::create((int) $active->tahun_akhir, 6, 30)->format('Y-m-d');
+                $activeYear = ['tahun_awal' => $active->tahun_awal, 'tahun_akhir' => $active->tahun_akhir, 'start' => $s, 'end' => $e];
+                $isOutOfYear = ! TahunAjaran::isDateInActiveYear($tanggal);
+            } catch (\Throwable $ex) {
+            }
+        }
 
         // Attendance stats for the selected date - hitung berdasarkan data terbaru per siswa dengan merge surat seharian (berhalangan mengalahkan Hadir)
-        $rawForDate = Absensi::where('tanggal', $tanggal)
-            ->orderBy('updated_at', 'desc')
-            ->orderBy('id', 'desc')
-            ->get();
-        $latestForDate = $rawForDate->groupBy('siswa_id')->map(function ($group) {
-            $sorted = $group->sort(function ($a, $b) {
-                $ta = $a->updated_at ? $a->updated_at->getTimestamp() : 0;
-                $tb = $b->updated_at ? $b->updated_at->getTimestamp() : 0;
-                if ($ta === $tb) {
-                    return $b->id <=> $a->id;
-                }
+        // Jika tanggal di luar tahun aktif, kosongkan (sudah diarsip)
+        if ($isOutOfYear) {
+            $attendanceStats = ['hadir' => 0, 'sakit' => 0, 'izin' => 0, 'alpha' => 0, 'dispensasi' => 0];
+            $kelasSudahAbsen = 0;
+        } else {
+            $rawForDate = Absensi::where('tanggal', $tanggal)
+                ->orderBy('updated_at', 'desc')
+                ->orderBy('id', 'desc')
+                ->get();
+            $latestForDate = $rawForDate->groupBy('siswa_id')->map(function ($group) {
+                $sorted = $group->sort(function ($a, $b) {
+                    $ta = $a->updated_at ? $a->updated_at->getTimestamp() : 0;
+                    $tb = $b->updated_at ? $b->updated_at->getTimestamp() : 0;
+                    if ($ta === $tb) {
+                        return $b->id <=> $a->id;
+                    }
 
-                return $tb <=> $ta;
-            })->values();
-            $berhalangan = $sorted->first(function ($it) {
-                return in_array($it->status, ['sakit', 'izin', 'dispensasi', 'alpha'], true);
-            });
+                    return $tb <=> $ta;
+                })->values();
+                $berhalangan = $sorted->first(function ($it) {
+                    return in_array($it->status, ['sakit', 'izin', 'dispensasi', 'alpha'], true);
+                });
 
-            return $berhalangan ?? $sorted->first();
-        })->filter()->values();
-        $grouped = $latestForDate->groupBy('status')->map->count()->toArray();
-        $attendanceStats = [
-            'hadir' => $grouped['hadir'] ?? 0,
-            'sakit' => $grouped['sakit'] ?? 0,
-            'izin' => $grouped['izin'] ?? 0,
-            'alpha' => $grouped['alpha'] ?? 0,
-            'dispensasi' => $grouped['dispensasi'] ?? 0,
-        ];
+                return $berhalangan ?? $sorted->first();
+            })->filter()->values();
+            $grouped = $latestForDate->groupBy('status')->map->count()->toArray();
+            $attendanceStats = [
+                'hadir' => $grouped['hadir'] ?? 0,
+                'sakit' => $grouped['sakit'] ?? 0,
+                'izin' => $grouped['izin'] ?? 0,
+                'alpha' => $grouped['alpha'] ?? 0,
+                'dispensasi' => $grouped['dispensasi'] ?? 0,
+            ];
 
-        // Kelas sudah diabsen: distinct kelas_id yang memiliki absensi di tanggal tersebut
-        $kelasSudahAbsen = DB::table('absensis')
-            ->join('siswas', 'absensis.siswa_id', '=', 'siswas.id')
-            ->where('absensis.tanggal', $tanggal)
-            ->distinct()
-            ->count(DB::raw('siswas.kelas_id'));
+            // Kelas sudah diabsen: distinct kelas_id yang memiliki absensi di tanggal tersebut
+            $kelasSudahAbsen = DB::table('absensis')
+                ->join('siswas', 'absensis.siswa_id', '=', 'siswas.id')
+                ->where('absensis.tanggal', $tanggal)
+                ->distinct()
+                ->count(DB::raw('siswas.kelas_id'));
+        }
 
         // Students per Jurusan — hanya siswa aktif (kecualikan alumni, selaras dengan halaman data siswa)
         $studentsPerJurusan = DB::table('siswas')
@@ -67,11 +86,11 @@ class DashboardController extends Controller
             ->groupBy('jurusans.id', 'jurusans.singkatan')
             ->get();
 
-        // Detailed Attendance Data (for stat detail dialog)
+        // Detailed Attendance Data (for stat detail dialog) - kosong jika tanggal di luar tahun aktif
         $detailStatus = $request->query('status');
 
         $detailedAttendance = [];
-        if ($detailStatus) {
+        if ($detailStatus && ! $isOutOfYear) {
             $query = Absensi::with(['siswa.kelas.jurusan', 'mapel', 'guru'])
                 ->where('tanggal', $tanggal)
                 ->where('status', $detailStatus);
@@ -111,6 +130,8 @@ class DashboardController extends Controller
             'filters' => [
                 'tanggal' => $tanggal,
             ],
+            'activeYear' => $activeYear,
+            'isOutOfYear' => $isOutOfYear,
             'detailedAttendance' => $detailedAttendance,
             'gurus' => Guru::with(['mataPelajarans.kategoriPembelajaran', 'kelas.jurusan', 'kelas.jenjangKelas'])->orderBy('nama')->get()->map(function ($guru) {
                 return [

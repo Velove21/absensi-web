@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Absensi;
 use App\Models\Kelas;
+use App\Models\TahunAjaran;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -28,14 +29,39 @@ class StatistikController extends Controller
             $tanggal = Carbon::today()->format('Y-m-d');
         }
 
-        if ($status === 'kelas') {
-            return $this->kelasDetail($tanggal);
+        $active = TahunAjaran::where('is_active', true)->first();
+        $activeYear = null;
+        $isOutOfYear = false;
+        if ($active) {
+            try {
+                $s = Carbon::create((int) $active->tahun_awal, 7, 1)->format('Y-m-d');
+                $e = Carbon::create((int) $active->tahun_akhir, 6, 30)->format('Y-m-d');
+                $activeYear = ['tahun_awal' => $active->tahun_awal, 'tahun_akhir' => $active->tahun_akhir, 'start' => $s, 'end' => $e];
+                $isOutOfYear = ! TahunAjaran::isDateInActiveYear($tanggal);
+            } catch (\Throwable $ex) {
+            }
+        }
+        if ($isOutOfYear) {
+            return Inertia::render('admin/statistik/index', [
+                'tanggal' => $tanggal,
+                'status' => $status,
+                'records' => [],
+                'total' => 0,
+                'kelasSudahAbsen' => 0,
+                'isKelas' => $status === 'kelas',
+                'activeYear' => $activeYear,
+                'isOutOfYear' => true,
+            ]);
         }
 
-        return $this->statusDetail($tanggal, $status);
+        if ($status === 'kelas') {
+            return $this->kelasDetail($tanggal, $activeYear, $isOutOfYear);
+        }
+
+        return $this->statusDetail($tanggal, $status, $activeYear, $isOutOfYear);
     }
 
-    private function statusDetail(string $tanggal, string $status)
+    private function statusDetail(string $tanggal, string $status, ?array $activeYear = null, bool $isOutOfYear = false)
     {
         // Ambil data paling terbaru saja per siswa dengan merge surat seharian - jangan double, berhalangan mengalahkan Hadir
         $rawAll = Absensi::with(['siswa.kelas.jurusan', 'siswa.kelas.jenjangKelas', 'siswa.foto', 'mapel', 'guru'])
@@ -128,10 +154,12 @@ class StatistikController extends Controller
             'total' => $total,
             'kelasSudahAbsen' => $kelasSudahAbsen,
             'isKelas' => false,
+            'activeYear' => $activeYear,
+            'isOutOfYear' => $isOutOfYear,
         ]);
     }
 
-    private function kelasDetail(string $tanggal)
+    private function kelasDetail(string $tanggal, ?array $activeYear = null, bool $isOutOfYear = false)
     {
         // Ambil distinct kelas yang sudah diabsen di tanggal tersebut, dengan ringkasan per status
         $kelasIds = DB::table('absensis')
@@ -199,6 +227,8 @@ class StatistikController extends Controller
             'totalKelas' => $totalKelas,
             'kelasSudahAbsen' => $kelasSudahAbsen,
             'isKelas' => true,
+            'activeYear' => $activeYear,
+            'isOutOfYear' => $isOutOfYear,
         ]);
     }
 }

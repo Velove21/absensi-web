@@ -9,53 +9,71 @@ import { useEffect, useRef } from 'react';
  */
 export function useAutoRefresh(enabled: boolean, intervalMs = 5000, only?: string[]): void {
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const inFlightRef = useRef(false);
 
     useEffect(() => {
         if (!enabled) {
             return;
         }
 
+        const isUserTyping = (): boolean => {
+            const el = document.activeElement as HTMLElement | null;
+            if (!el) {
+                return false;
+            }
+            const tag = el.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+                return true;
+            }
+            if (el.isContentEditable) {
+                return true;
+            }
+            // Dialog / modal terbuka (mis. upload bukti) -> jangan ganggu
+            if (document.querySelector('[role="dialog"]')) {
+                return true;
+            }
+            return false;
+        };
+
         const doReload = (): void => {
             if (document.visibilityState !== 'visible') {
                 return;
             }
+            if (inFlightRef.current) {
+                return;
+            }
+            // Jangan refresh saat user sedang mengetik / modal terbuka:
+            // ini penyebab "input belum selesai tiba-tiba refresh"
+            if (isUserTyping()) {
+                return;
+            }
+            inFlightRef.current = true;
             const opts: Record<string, unknown> = {
                 preserveScroll: true,
+                preserveState: true,
                 preserveUrl: true,
                 async: true,
+                onFinish: () => {
+                    inFlightRef.current = false;
+                },
             };
             if (only && only.length) {
                 opts.only = only;
             }
             (router.reload as unknown as (opts: Record<string, unknown>) => void)(opts);
+            // Safety: anggap selesai max 10 detik agar tidak macet selamanya
+            setTimeout(() => {
+                inFlightRef.current = false;
+            }, 10000);
         };
 
-        // Immediate refresh on mount (fix deployed manual refresh needed)
-        const t0 = setTimeout(doReload, 350);
         intervalRef.current = setInterval(doReload, intervalMs);
 
-        const onVisibility = (): void => {
-            if (document.visibilityState === 'visible') {
-                doReload();
-            }
-        };
-
-        const onSuccess = () => {
-            setTimeout(doReload, 400);
-        };
-
-        document.addEventListener('visibilitychange', onVisibility);
-        const offSuccess = router.on('success', onSuccess);
-
         return () => {
-            clearTimeout(t0);
             if (intervalRef.current) {
                 clearInterval(intervalRef.current);
             }
-            document.removeEventListener('visibilitychange', onVisibility);
-            if (typeof offSuccess === 'function') {
-                (offSuccess as unknown as () => void)();
-            }
+            inFlightRef.current = false;
         };
     }, [enabled, intervalMs, only === undefined ? undefined : only.join(',')]);
 }

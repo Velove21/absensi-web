@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import SearchableSelect from '@/components/ui/searchable-select';
+import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 import absensi from '@/routes/guru/absensi';
 
 interface Jurusan {
@@ -188,8 +189,11 @@ export default function GuruAbsensiIndex({
     const waktuMulaiInput = startSchedule?.waktu_mulai || filters.waktu_mulai || '';
     const waktuSelesaiInput = endSchedule?.waktu_selesai || filters.waktu_selesai || '';
 
-    // Catatan: halaman input ini SENGAJA tanpa auto-refresh. Data tabel dibiarkan diam
-    // selama guru menginput dan baru diperbarui saat ganti filter atau pencet Kirim/Perbarui.
+    // Live-sync: guru 2 langsung lihat hasil guru 1, dan setelah Kirim/Update tetap tampil terbaru.
+    // Pause hanya saat draft mengambang / modal bukti / sedang submit agar tidak overwrite input.
+    const canPoll = !hasDirty && !isSubmitting && !showBuktiModal && savingIds.size === 0 && Boolean(filters.kelas_id && filters.mapel_id && filters.jam_ke);
+    useAutoRefresh(canPoll, 5000, ['siswas', 'meta', 'schedules']);
+
     // Langsung buka file chooser saat modal bukti muncul (tanpa perlu klik lagi di dalam modal)
     useEffect(() => {
         if (showBuktiModal && buktiInputRef.current && !previewUrl && !buktiFile) {

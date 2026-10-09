@@ -213,13 +213,24 @@ class TahunAjaranController extends Controller
         });
 
         // Bersihkan absensi aktif agar isolasi pertahun: tahun B tidak lihat data tahun A (pengecualian arsip)
-        $absensiIds = $raw->pluck('id')->filter()->values();
-        if ($absensiIds->isNotEmpty()) {
-            Absensi::whereIn('id', $absensiIds)->delete();
-            // juga hapus photos jika ada
+        // Pindah bukan salin: semua live absensis dipindah ke arsip lalu dihapus total (tidak disisakan di live)
+        try {
+            // hard delete semua baris live (move, bukan copy)
+            \Illuminate\Support\Facades\DB::table('absensis')->delete();
+        } catch (\Throwable $e) {
+            $absensiIds = $raw->pluck('id')->filter()->values();
+            if ($absensiIds->isNotEmpty()) {
+                Absensi::whereIn('id', $absensiIds)->forceDelete();
+            } else {
+                Absensi::query()->forceDelete();
+            }
+        }
+        try {
+            \Illuminate\Support\Facades\DB::table('absensi_photos')->delete();
+        } catch (\Throwable $e) {
             try {
-                AbsensiPhoto::whereIn('absensi_id', $absensiIds)->delete();
-            } catch (\Throwable $e) {
+                AbsensiPhoto::query()->delete();
+            } catch (\Throwable $e2) {
             }
         }
 

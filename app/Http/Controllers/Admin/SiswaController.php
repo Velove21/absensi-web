@@ -120,11 +120,11 @@ class SiswaController extends Controller
             'nis' => ['required', 'string', 'max:20', 'unique:siswas,nis', 'regex:/^[0-9]{2}\.[0-9]{6}$/'],
             'nama' => 'required|string|max:255',
             'jenis_kelamin' => 'nullable|in:laki-laki,perempuan',
-            'foto' => 'nullable|file|mimes:png|max:5120',
+            'foto' => 'nullable|file|mimes:jpg,jpeg,png|max:5120',
             'kelas_id' => 'required|exists:kelas,id',
         ], [
             'nis.regex' => 'Format NIS harus berupa XX.XXXXXX (misal: 24.012505).',
-            'foto.mimes' => 'Foto harus format PNG.',
+            'foto.mimes' => 'Foto harus format JPG, JPEG, atau PNG.',
             'foto.max' => 'Ukuran foto maksimal 5 MB.',
         ]);
 
@@ -162,11 +162,11 @@ class SiswaController extends Controller
             'jenis_kelamin' => 'nullable|in:laki-laki,perempuan',
             'kelas_id' => 'required|exists:kelas,id',
             'password' => 'nullable|string|min:8',
-            'foto' => 'nullable|file|mimes:png|max:5120',
+            'foto' => 'nullable|file|mimes:jpg,jpeg,png|max:5120',
             'remove_foto' => 'nullable|boolean',
         ], [
             'nis.regex' => 'Format NIS harus berupa XX.XXXXXX (misal: 24.012505).',
-            'foto.mimes' => 'Foto harus format PNG.',
+            'foto.mimes' => 'Foto harus format JPG, JPEG, atau PNG.',
             'foto.max' => 'Ukuran foto maksimal 5 MB.',
         ]);
 

@@ -79,13 +79,13 @@ class GuruController extends Controller
             'nip' => 'required|digits:18|unique:gurus,nip',
             'nama' => 'required|string|max:255',
             'jenis_kelamin' => 'nullable|in:laki-laki,perempuan',
-            'foto' => 'nullable|file|mimes:png|max:5120',
+            'foto' => 'nullable|file|mimes:jpg,jpeg,png|max:5120',
             'kelas_ids' => 'nullable|array',
             'kelas_ids.*' => 'exists:kelas,id',
             'mata_pelajaran_ids' => 'nullable|array',
             'mata_pelajaran_ids.*' => 'exists:mata_pelajarans,id',
         ], [
-            'foto.mimes' => 'Foto harus format PNG.',
+            'foto.mimes' => 'Foto harus format JPG, JPEG, atau PNG.',
             'foto.max' => 'Ukuran foto maksimal 5 MB.',
         ]);
 
@@ -131,14 +131,14 @@ class GuruController extends Controller
             'nama' => 'required|string|max:255',
             'jenis_kelamin' => 'nullable|in:laki-laki,perempuan',
             'password' => 'nullable|string|min:8',
-            'foto' => 'nullable|file|mimes:png|max:5120',
+            'foto' => 'nullable|file|mimes:jpg,jpeg,png|max:5120',
             'remove_foto' => 'nullable|boolean',
             'kelas_ids' => 'nullable|array',
             'kelas_ids.*' => 'exists:kelas,id',
             'mata_pelajaran_ids' => 'nullable|array',
             'mata_pelajaran_ids.*' => 'exists:mata_pelajarans,id',
         ], [
-            'foto.mimes' => 'Foto harus format PNG.',
+            'foto.mimes' => 'Foto harus format JPG, JPEG, atau PNG.',
             'foto.max' => 'Ukuran foto maksimal 5 MB.',
         ]);
 

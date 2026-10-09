@@ -44,9 +44,9 @@ export function AppSidebar() {
               : null;
 
     let mainNavItems: NavItem[] = [];
-    let platformLabel = 'Platform';
+    let platformLabel = 'Fitur';
     if (userRole === 'admin') {
-        platformLabel = 'Platform';
+        platformLabel = 'Fitur';
     } else if (userRole === 'guru') {
         platformLabel = 'Guru';
     } else if (userRole === 'siswa') {

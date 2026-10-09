@@ -25,9 +25,10 @@ interface MataPelajaran {
 interface Props {
     kelasList: Kelas[];
     mataPelajarans: MataPelajaran[];
+    activeYear?: { tahun_awal: string; tahun_akhir: string; start: string; end: string } | null;
 }
 
-export default function GuruExportAbsensi({ kelasList, mataPelajarans }: Props) {
+export default function GuruExportAbsensi({ kelasList, mataPelajarans, activeYear }: Props) {
     const [mapelIds, setMapelIds] = useState<string[]>([]);
     const [kelasIds, setKelasIds] = useState<string[]>([]);
     const [startDate, setStartDate] = useState('');
@@ -99,6 +100,10 @@ export default function GuruExportAbsensi({ kelasList, mataPelajarans }: Props) 
     const handleExport = async () => {
         if (kelasIds.length === 0) {
             toast.error('Silakan pilih Kelas untuk ekspor.');
+            return;
+        }
+        if (activeYear && ((startDate && (startDate < activeYear.start || startDate > activeYear.end)) || (endDate && (endDate < activeYear.start || endDate > activeYear.end)))) {
+            toast.error(`Rentang ekspor harus dalam tahun ajaran aktif ${activeYear.tahun_awal}/${activeYear.tahun_akhir} (${activeYear.start} s/d ${activeYear.end}).`);
             return;
         }
         // Mapel opsional untuk format bersih No|NIS|Nama|Kelas|Keterangan
@@ -334,6 +339,8 @@ export default function GuruExportAbsensi({ kelasList, mataPelajarans }: Props) 
                                 value={startDate}
                                 onChange={e => setStartDate(e.target.value)}
                                 className="w-[170px] bg-muted/30 h-9"
+                                min={activeYear?.start}
+                                max={activeYear?.end}
                             />
                         </div>
 
@@ -345,6 +352,8 @@ export default function GuruExportAbsensi({ kelasList, mataPelajarans }: Props) 
                                 value={endDate}
                                 onChange={e => setEndDate(e.target.value)}
                                 className="w-[170px] bg-muted/30 h-9"
+                                min={activeYear?.start}
+                                max={activeYear?.end}
                             />
                         </div>
 
@@ -356,6 +365,9 @@ export default function GuruExportAbsensi({ kelasList, mataPelajarans }: Props) 
                             )}
                         </Button>
                     </div>
+                    {activeYear && (
+                        <p className="text-xs text-muted-foreground mt-2">Rentang ekspor terbatas pada tahun ajaran aktif {activeYear.tahun_awal}/{activeYear.tahun_akhir} ({activeYear.start} s/d {activeYear.end}). Data sebelumnya lihat Arsip.</p>
+                    )}
                 </div>
             </div>
         </>

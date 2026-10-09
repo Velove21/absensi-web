@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 import { dashboard as adminDashboard, statistik } from '@/routes/admin';
+import { toast } from 'sonner';
 
 interface RecordItem {
     id: number;
@@ -48,15 +49,27 @@ interface Props {
     totalKelas?: number;
     kelasSudahAbsen: number;
     isKelas: boolean;
+    activeYear?: { tahun_awal: string; tahun_akhir: string; start: string; end: string } | null;
+    isOutOfYear?: boolean;
 }
 
-export default function StatistikIndex({ tanggal, status, records, total, totalKelas, kelasSudahAbsen, isKelas }: Props) {
+export default function StatistikIndex({ 
+    tanggal, 
+    status, 
+    records, 
+    total, 
+    totalKelas, 
+    kelasSudahAbsen, 
+    isKelas,
+    activeYear = null,
+    isOutOfYear = false
+}: Props) {
     const [previewBukti, setPreviewBukti] = useState<{ url: string; id: number; nama?: string; status?: string; tanggal?: string; kelasNama?: string } | null>(null);
     const [filterTanggal, setFilterTanggal] = useState(tanggal);
     const [searchQuery, setSearchQuery] = useState('');
 
     // Auto-refresh tiap 5 detik agar jam update & data terbaru sinkron dengan guru
-    useAutoRefresh(true, 5000, ['records', 'total', 'kelasSudahAbsen']);
+    useAutoRefresh(!isOutOfYear, 5000, ['records', 'total', 'kelasSudahAbsen']);
 
     const getStatusBadge = (s: string) => {
         switch (s) {
@@ -78,6 +91,10 @@ export default function StatistikIndex({ tanggal, status, records, total, totalK
     };
 
     const handleTanggalChange = (newDate: string) => {
+        if (activeYear && (newDate < activeYear.start || newDate > activeYear.end)) {
+            toast.error('Tanggal di luar tahun ajaran aktif — hanya tersedia di Arsip');
+            return;
+        }
         setFilterTanggal(newDate);
         router.get(
             statistik.url({ status }, { query: { tanggal: newDate } }),
@@ -227,6 +244,11 @@ export default function StatistikIndex({ tanggal, status, records, total, totalK
                             </h1>
                         </div>
                     </div>
+                    {isOutOfYear && (
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                            Tanggal di luar tahun ajaran aktif {activeYear?.tahun_awal}/{activeYear?.tahun_akhir} — data telah diarsipkan dan hanya tersedia di menu Arsip. Silakan akses admin/arsip.
+                        </div>
+                    )}
                     <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 shadow-sm">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <Input
@@ -234,6 +256,8 @@ export default function StatistikIndex({ tanggal, status, records, total, totalK
                             value={filterTanggal}
                             onChange={(e) => handleTanggalChange(e.target.value)}
                             className="h-7 w-[160px] border-0 p-0 text-sm focus-visible:ring-0"
+                            min={activeYear?.start}
+                            max={activeYear?.end}
                         />
                     </div>
                 </div>
@@ -301,7 +325,7 @@ export default function StatistikIndex({ tanggal, status, records, total, totalK
                                         {filteredKelasRecords.length === 0 ? (
                                             <TableRow>
                                                 <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
-                                                    {searchQuery ? `Tidak ada kelas yang cocok dengan "${searchQuery}"` : 'Belum ada kelas yang diabsen pada tanggal ini.'}
+                                                    {searchQuery ? `Tidak ada kelas yang cocok dengan "${searchQuery}"` : isOutOfYear ? `Data tanggal ini telah diarsipkan. Lihat menu Arsip untuk tahun ajaran {activeYear?.tahun_awal}/{activeYear?.tahun_akhir}.` : 'Belum ada kelas yang diabsen pada tanggal ini.'}
                                                 </TableCell>
                                             </TableRow>
                                         ) : (
@@ -358,12 +382,12 @@ export default function StatistikIndex({ tanggal, status, records, total, totalK
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {filteredSiswaRecords.length === 0 ? (
-                                            <TableRow>
-                                                <TableCell colSpan={showKeterangan && showBukti ? 12 : showKeterangan || showBukti ? 11 : 10} className="h-24 text-center text-muted-foreground">
-                                                    {searchQuery ? `Tidak ada hasil untuk "${searchQuery}"` : `Belum ada siswa dengan status ${status} pada tanggal ini.`}
-                                                </TableCell>
-                                            </TableRow>
+{filteredSiswaRecords.length === 0 ? (
+                                                <TableRow>
+                                                    <TableCell colSpan={showKeterangan && showBukti ? 12 : showKeterangan || showBukti ? 11 : 10} className="h-24 text-center text-muted-foreground">
+                                                        {searchQuery ? `Tidak ada hasil untuk "${searchQuery}"` : isOutOfYear ? `Data tanggal ini telah diarsipkan. Lihat menu Arsip untuk tahun ajaran {activeYear?.tahun_awal}/{activeYear?.tahun_akhir}.` : `Belum ada siswa dengan status ${status} pada tanggal ini.`}
+                                                    </TableCell>
+                                                </TableRow>
                                         ) : (
                                             filteredSiswaRecords.map((r, idx) => {
                                                 const kelasBadge = getKelasBadgeClass(r.kelas?.id);

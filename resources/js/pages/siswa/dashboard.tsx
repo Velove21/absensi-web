@@ -70,9 +70,10 @@ interface Props {
         dispensasi: number;
     };
     history: Absensi[];
+    activeYear?: { tahun_awal: string; tahun_akhir: string; start: string; end: string } | null;
 }
 
-export default function SiswaDashboard({ siswa, stats, history }: Props) {
+export default function SiswaDashboard({ siswa, stats, history, activeYear = null }: Props) {
     const [previewBukti, setPreviewBukti] = useState<{ url: string; status?: string; tanggal?: string } | null>(null);
     useAutoRefresh(true, 6000, ['stats', 'history']);
     const hasKeterangan = history.some((r) => r.keterangan != null && r.keterangan.toString().trim() !== '');
@@ -193,6 +194,10 @@ export default function SiswaDashboard({ siswa, stats, history }: Props) {
                         </CardContent>
                     </Card>
                 </div>
+
+                {activeYear && (
+                    <p className="text-xs text-muted-foreground">Riwayat menampilkan tahun ajaran aktif {activeYear.tahun_awal}/{activeYear.tahun_akhir} ({activeYear.start} s/d {activeYear.end}). Data tahun sebelumnya tersedia di Arsip admin.</p>
+                )}
 
                 <Card>
                     <CardHeader>

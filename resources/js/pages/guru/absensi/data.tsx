@@ -97,6 +97,8 @@ interface Props {
         waktu: string | null;
         updated_at?: string | null;
     } | null;
+    activeYear?: { tahun_awal: string; tahun_akhir: string; start: string; end: string } | null;
+    isOutOfYear?: boolean;
 }
 
 export default function GuruDataAbsensi({
@@ -106,8 +108,10 @@ export default function GuruDataAbsensi({
     stats = { hadir: 0, sakit: 0, izin: 0, alpha: 0, dispensasi: 0 },
     jamAktif,
     guruAktif,
+    activeYear,
+    isOutOfYear,
 }: Props) {
-    useAutoRefresh(true, 5000, ['absensis', 'stats', 'guruAktif']);
+    useAutoRefresh(!isOutOfYear, 5000, ['absensis', 'stats', 'guruAktif']);
     // Preview: foto klik langsung full halaman, simpan juga konteks surat
     const [previewBukti, setPreviewBukti] = useState<{ url: string; id: number; nama?: string; status?: string; tanggal?: string; kelasNama?: string } | null>(null);
     const [exportStartDate, setExportStartDate] = useState('');
@@ -121,6 +125,10 @@ export default function GuruDataAbsensi({
         }
         if (!exportStartDate || !exportEndDate) {
             toast.error('Pilih Tanggal Mulai dan Tanggal Selesai.');
+            return;
+        }
+        if (activeYear && ((exportStartDate && (exportStartDate < activeYear.start || exportStartDate > activeYear.end)) || (exportEndDate && (exportEndDate < activeYear.start || exportEndDate > activeYear.end)))) {
+            toast.error(`Rentang ekspor harus dalam tahun ajaran aktif ${activeYear.tahun_awal}/${activeYear.tahun_akhir} (${activeYear.start} s/d ${activeYear.end}).`);
             return;
         }
         const params = new URLSearchParams();
@@ -281,6 +289,9 @@ export default function GuruDataAbsensi({
                     <h1 className="text-2xl font-bold tracking-tight">Lihat Presensi</h1>
                     <p className="text-muted-foreground">Menampilkan data presensi terbaru setiap kelas yang dapat diakses oleh semua guru, dengan data presensi kelas yaitu guru terakhir melakukan presensi.</p>
                 </div>
+                {isOutOfYear && (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">Data tanggal ini telah diarsipkan ke Tahun Ajaran {activeYear?.tahun_awal}/{activeYear?.tahun_akhir}. Lihat arsip di menu Arsip admin.</div>
+                )}
 
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-stretch">
                     <div className="col-span-1 flex flex-col gap-4">
@@ -292,7 +303,7 @@ export default function GuruDataAbsensi({
                             <div className="space-y-4">
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Tanggal</label>
-                                    <Input type="date" value={filters.tanggal} className="bg-muted/30" onChange={(e) => handleFilterChange('tanggal', e.target.value)} />
+                                    <Input type="date" value={filters.tanggal} className="bg-muted/30" min={activeYear?.start} max={activeYear?.end} onChange={(e) => handleFilterChange('tanggal', e.target.value)} />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Kelas</label>
@@ -323,11 +334,11 @@ export default function GuruDataAbsensi({
                             <div className="space-y-2">
                                 <div className="space-y-1">
                                     <label className="text-xs font-medium">Tanggal Mulai</label>
-                                    <Input type="date" value={exportStartDate} onChange={e=>setExportStartDate(e.target.value)} className="bg-muted/30 h-9" />
+                                    <Input type="date" value={exportStartDate} onChange={e=>setExportStartDate(e.target.value)} className="bg-muted/30 h-9" min={activeYear?.start} max={activeYear?.end} />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-medium">Tanggal Selesai</label>
-                                    <Input type="date" value={exportEndDate} onChange={e=>setExportEndDate(e.target.value)} className="bg-muted/30 h-9" />
+                                    <Input type="date" value={exportEndDate} onChange={e=>setExportEndDate(e.target.value)} className="bg-muted/30 h-9" min={activeYear?.start} max={activeYear?.end} />
                                 </div>
                                 <div className="pt-0.5">
                                     <Button onClick={handleExport} disabled={exporting || !filters.kelas_id} className="w-full h-9 gap-1.5" title={!filters.kelas_id ? 'Pilih kelas di filter atas' : `Export kelas ${selectedKelas?.full_nama_kelas ?? ''}`}><FileSpreadsheet className="h-4 w-4" /> {exporting ? <><Loader2 className="h-4 w-4 animate-spin" />...</> : 'Ekspor'}</Button>

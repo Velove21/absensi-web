@@ -80,6 +80,8 @@ interface Props {
         is_first_guru: boolean;
         has_submitted: boolean;
     };
+    activeYear?: { tahun_awal: string; tahun_akhir: string; start: string; end: string } | null;
+    isOutOfYear?: boolean;
 }
 
 function getInitialKeterangans(siswasList: Siswa[]): Record<number, string> {
@@ -103,6 +105,8 @@ export default function GuruAbsensiIndex({
     siswas = [],
     schedules = [],
     meta,
+    activeYear,
+    isOutOfYear,
 }: Props) {
     const isFirstGuru = meta?.is_first_guru ?? true;
     const hasSubmitted = meta?.has_submitted ?? false;
@@ -191,7 +195,7 @@ export default function GuruAbsensiIndex({
 
     // Live-sync: guru 2 langsung lihat hasil guru 1, dan setelah Kirim/Update tetap tampil terbaru.
     // Pause hanya saat draft mengambang / modal bukti / sedang submit agar tidak overwrite input.
-    const canPoll = !hasDirty && !isSubmitting && !showBuktiModal && savingIds.size === 0 && Boolean(filters.kelas_id && filters.mapel_id && filters.jam_ke);
+    const canPoll = !isOutOfYear && !hasDirty && !isSubmitting && !showBuktiModal && savingIds.size === 0 && Boolean(filters.kelas_id && filters.mapel_id && filters.jam_ke);
     useAutoRefresh(canPoll, 5000, ['siswas', 'meta', 'schedules']);
 
     // Langsung buka file chooser saat modal bukti muncul (tanpa perlu klik lagi di dalam modal)
@@ -506,6 +510,10 @@ export default function GuruAbsensiIndex({
     };
 
     const handleBulkSubmit = () => {
+        if (isOutOfYear) {
+            toast.error(`Data tanggal ini telah diarsipkan ke Tahun Ajaran ${activeYear?.tahun_awal}/${activeYear?.tahun_akhir}.`);
+            return;
+        }
         if (!filters.kelas_id || !filters.mapel_id || !filters.tanggal || !filters.jam_ke) {
             toast.error('Lengkapi Kelas, Mapel, Tanggal dan Jam terlebih dahulu.');
             return;
@@ -718,6 +726,8 @@ export default function GuruAbsensiIndex({
                                         type="date"
                                         value={filters.tanggal}
                                         className="bg-muted/30"
+                                        min={activeYear?.start}
+                                        max={activeYear?.end}
                                         onChange={(e) =>
                                             handleFilterChange(
                                                 'tanggal',
@@ -795,6 +805,9 @@ export default function GuruAbsensiIndex({
                     <div className="col-span-1 flex flex-col gap-6 lg:col-span-2">
                         {filters.kelas_id && filters.mapel_id && filters.jam_ke ? (
                             <>
+                            {isOutOfYear && (
+                                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">Data tanggal ini telah diarsipkan ke Tahun Ajaran {activeYear?.tahun_awal}/{activeYear?.tahun_akhir}. Lihat arsip di menu Arsip admin.</div>
+                            )}
                             <div className="rounded-xl border border-sidebar-border/70 bg-card shadow-sm dark:border-sidebar-border overflow-hidden flex flex-col animate-in fade-in duration-200">
                                 <div className="p-6 border-b border-sidebar-border/70 dark:border-sidebar-border flex flex-col gap-3">
                                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">

@@ -1,5 +1,5 @@
 import { Head, useForm, router } from '@inertiajs/react';
-import { Edit2, Trash2, X, Plus, Save, BookOpen, Search } from 'lucide-react';
+import { Edit2, Trash2, Plus, Save, BookOpen, Search } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { toast } from 'sonner';
 import Pagination from '@/components/pagination';
@@ -14,6 +14,7 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import CsvImport from '@/components/csv-import';
@@ -44,8 +45,8 @@ interface PaginatedData<T> {
 }
 
 const kategoriColorPalette = [
-    'bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/20', // MPU - hijau
-    'bg-violet-50 text-violet-700 ring-violet-600/20 dark:bg-violet-500/10 dark:text-violet-400 dark:ring-violet-500/20', // KK - ungu
+    'bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/20',
+    'bg-violet-50 text-violet-700 ring-violet-600/20 dark:bg-violet-500/10 dark:text-violet-400 dark:ring-violet-500/20',
     'bg-blue-50 text-blue-700 ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/20',
     'bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-500/20',
     'bg-cyan-50 text-cyan-700 ring-cyan-600/20 dark:bg-cyan-500/10 dark:text-cyan-400 dark:ring-cyan-500/20',
@@ -66,7 +67,6 @@ function getKategoriColor(kode?: string | null, id?: number | null): string {
     for (let i = 0; i < key.length; i++) {
         hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
     }
-    // Hindari tabrakan dengan MPU/KK (index 0,1) untuk kategori lain
     const paletteWithoutReserved = kategoriColorPalette.length - 2;
     const idx = 2 + (hash % paletteWithoutReserved);
     return kategoriColorPalette[idx];
@@ -83,6 +83,7 @@ export default function MataPelajaranIndex({
 }) {
     const [editingMapel, setEditingMapel] = useState<MataPelajaran | null>(null);
     const [deletingMapelId, setDeletingMapelId] = useState<number | null>(null);
+    const [showForm, setShowForm] = useState(false);
     const [search, setSearch] = useState(filters?.search ?? '');
     const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -109,7 +110,7 @@ export default function MataPelajaranIndex({
             post(adminMataPelajaran.store.url(), {
                 preserveScroll: true,
                 onSuccess: () => {
-                    reset();
+                    handleCancel();
                     toast.success('Mata Pelajaran berhasil ditambahkan');
                     router.reload({ only: ['matapelajarans'], preserveScroll: true, preserveUrl: true } as unknown as never);
                 },
@@ -118,19 +119,27 @@ export default function MataPelajaranIndex({
     };
 
     const handleEdit = (m: MataPelajaran) => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
         setEditingMapel(m);
         clearErrors();
         setData({
             nama_mapel: m.nama_mapel,
             kategori_pembelajaran_id: m.kategori_pembelajaran_id.toString(),
         });
+        setShowForm(true);
     };
 
     const handleCancel = () => {
         setEditingMapel(null);
+        setShowForm(false);
         reset();
         clearErrors();
+    };
+
+    const handleOpenCreate = () => {
+        setEditingMapel(null);
+        reset();
+        clearErrors();
+        setShowForm(true);
     };
 
     const handleSearch = (value: string) => {
@@ -147,8 +156,8 @@ export default function MataPelajaranIndex({
 
     const executeDelete = () => {
         if (!deletingMapelId) {
-return;
-}
+            return;
+        }
 
         router.delete(adminMataPelajaran.destroy.url({ matapelajaran: deletingMapelId }), {
             preserveScroll: true,
@@ -167,191 +176,145 @@ return;
             <div className="flex h-full w-full flex-1 flex-col gap-6 p-8">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight">
-                            Manajemen Mata Pelajaran
-                        </h1>
-                        <p className="text-muted-foreground">
-                            Kelola mata pelajaran dan kategori pelajaran.
-                        </p>
+                        <h1 className="text-2xl font-bold tracking-tight">Manajemen Mata Pelajaran</h1>
+                        <p className="text-muted-foreground">Kelola mata pelajaran dan kategori pelajaran.</p>
                     </div>
-                    <CsvImport entity="mata-pelajaran" title="Impor Mapel" description="Header: nama_mapel, kategori_kode" />
+                    <div className="flex items-center gap-2">
+                        <Button onClick={handleOpenCreate}>
+                            <Plus className="mr-2 h-4 w-4" /> Tambah
+                        </Button>
+                        <CsvImport entity="mata-pelajaran" title="Impor Mapel" description="Header: nama_mapel, kategori_kode" />
+                    </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-stretch">
-                    {/* Form Input */}
-                    <div className="col-span-1 flex flex-col gap-6"><div className="sticky top-8 min-h-[260px] flex flex-col rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border">
-                            <div className="mb-4 flex items-center justify-between">
-                                <h2 className="text-lg font-semibold flex items-center gap-2">
-                                    {editingMapel ? (
-                                        <><Edit2 className="h-4 w-4 text-primary" /> Edit Mapel</>
-                                    ) : (
-                                        <><Plus className="h-4 w-4 text-primary" /> Tambah Mapel</>
-                                    )}
-                                </h2>
-                                {editingMapel && (
-                                    <Button 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        onClick={handleCancel}
-                                        className="h-8 w-8 rounded-full"
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                        placeholder="Cari mata pelajaran atau kategori..."
+                        value={search}
+                        onChange={(e) => handleSearch(e.target.value)}
+                        className="pl-9 bg-muted/30"
+                    />
+                </div>
+
+                <div className="overflow-hidden rounded-xl border border-sidebar-border/70 bg-card shadow-sm dark:border-sidebar-border">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-muted/50 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                <tr>
+                                    <th scope="col" className="px-3 py-2">Mata Pelajaran</th>
+                                    <th scope="col" className="px-3 py-2">Kategori</th>
+                                    <th scope="col" className="px-3 py-2 text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-sidebar-border/70 dark:divide-sidebar-border">
+                                {matapelajarans.data.map((m) => (
+                                    <tr
+                                        key={m.id}
+                                        className={`group text-xs transition-colors hover:bg-muted/30 ${editingMapel?.id === m.id ? 'bg-primary/5' : ''}`}
                                     >
-                                        <X className="h-4 w-4" />
-                                    </Button>
-                                )}
-                            </div>
-
-                            <form onSubmit={submit} className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="nama_mapel">Nama Mata Pelajaran</Label>
-                                    <Input
-                                        id="nama_mapel"
-                                        value={data.nama_mapel}
-                                        onChange={(e) =>
-                                            setData('nama_mapel', e.target.value)
-                                        }
-                                        placeholder="Contoh: Matematika, Pemrograman Web"
-                                        className="bg-muted/30"
-                                        required
-                                    />
-                                    {errors.nama_mapel && (
-                                        <p className="text-xs text-destructive">
-                                            {errors.nama_mapel}
-                                        </p>
-                                    )}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="kategori_pembelajaran_id">Kategori</Label>
-                                    <select
-                                        id="kategori_pembelajaran_id"
-                                        className="flex h-9 w-full rounded-md border border-input bg-muted/30 px-3 py-1 text-xs shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none sm:text-sm"
-                                        value={data.kategori_pembelajaran_id}
-                                        onChange={(e) =>
-                                            setData('kategori_pembelajaran_id', e.target.value)
-                                        }
-                                        required
-                                    >
-                                        <option value="">Pilih Kategori</option>
-                                        {kategoriPembelajarans.map((k) => (
-                                            <option key={k.id} value={k.id}>
-                                                {k.nama_kategori} ({k.kode})
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {errors.kategori_pembelajaran_id && (
-                                        <p className="text-xs text-destructive">
-                                            {errors.kategori_pembelajaran_id}
-                                        </p>
-                                    )}
-                                </div>
-
-                                <div className="flex gap-2 pt-2">
-                                    {editingMapel && (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            onClick={handleCancel}
-                                            className="flex-1"
-                                        >
-                                            Batal
-                                        </Button>
-                                    )}
-                                    <Button
-                                        type="submit"
-                                        disabled={processing}
-                                        className="flex-1"
-                                    >
-                                        {processing ? (
-                                            'Proses...'
-                                        ) : editingMapel ? (
-                                            <><Save className="mr-2 h-4 w-4" /> Update</>
-                                        ) : (
-                                            <><Plus className="mr-2 h-4 w-4" /> Simpan</>
-                                        )}
-                                    </Button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-
-                    {/* Data Table */}
-                    <div className="col-span-1 flex flex-col gap-6 lg:col-span-2">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                                placeholder="Cari mata pelajaran atau kategori..."
-                                value={search}
-                                onChange={(e) => handleSearch(e.target.value)}
-                                className="pl-9 bg-muted/30"
-                            />
-                        </div>
-                        <div className="overflow-hidden rounded-xl border border-sidebar-border/70 bg-card shadow-sm dark:border-sidebar-border">
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm">
-                                    <thead className="bg-muted/50 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                        <tr>
-                                            <th scope="col" className="px-6 py-4">Mata Pelajaran</th>
-                                            <th scope="col" className="px-6 py-4">Kategori</th>
-                                            <th scope="col" className="px-6 py-4 text-right">Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-sidebar-border/70 dark:divide-sidebar-border">
-                                        {matapelajarans.data.map((m) => (
-                                            <tr
-                                                key={m.id}
-                                                className={`group transition-colors hover:bg-muted/30 ${editingMapel?.id === m.id ? 'bg-primary/5' : ''}`}
-                                            >
-                                                <td className="px-6 py-4 font-medium text-foreground">
-                                                    {m.nama_mapel}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${getKategoriColor(m.kategori_pembelajaran?.kode, m.kategori_pembelajaran_id)}`}>
-                                                        {m.kategori_pembelajaran?.nama_kategori}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <div className="flex justify-end gap-2">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() => handleEdit(m)}
-                                                            className="h-8 w-8 text-muted-foreground hover:text-primary"
-                                                        >
-                                                            <Edit2 className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() => setDeletingMapelId(m.id)}
-                                                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        {matapelajarans.data.length === 0 && (
-                                            <tr>
-                                                <td
-                                                    colSpan={3}
-                                                    className="px-6 py-12 text-center text-muted-foreground"
+                                        <td className="px-3 py-2.5 font-medium text-foreground">{m.nama_mapel}</td>
+                                        <td className="px-3 py-2.5">
+                                            <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${getKategoriColor(m.kategori_pembelajaran?.kode, m.kategori_pembelajaran_id)}`}>
+                                                {m.kategori_pembelajaran?.nama_kategori}
+                                            </span>
+                                        </td>
+                                        <td className="px-3 py-2.5 text-right">
+                                            <div className="flex justify-end gap-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => handleEdit(m)}
+                                                    className="h-7 w-7 text-muted-foreground hover:text-primary"
                                                 >
-                                                    <div className="flex flex-col items-center gap-2">
-                                                        <BookOpen className="h-8 w-8 opacity-20" />
-                                                        <p>Belum ada data mata pelajaran.</p>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                        <Pagination links={matapelajarans.links} />
+                                                    <Edit2 className="h-3.5 w-3.5" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => setDeletingMapelId(m.id)}
+                                                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </Button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {matapelajarans.data.length === 0 && (
+                                    <tr>
+                                        <td colSpan={3} className="px-3 py-12 text-center text-muted-foreground">
+                                            <div className="flex flex-col items-center gap-2">
+                                                <BookOpen className="h-8 w-8 opacity-20" />
+                                                <p className="text-sm">Belum ada data mata pelajaran.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
+                <Pagination links={matapelajarans.links} />
             </div>
+
+            <Dialog open={showForm} onOpenChange={(open) => !open && handleCancel()}>
+                <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            {editingMapel ? (
+                                <>
+                                    <Edit2 className="h-4 w-4 text-primary" /> Edit Mapel
+                                </>
+                            ) : (
+                                <>
+                                    <Plus className="h-4 w-4 text-primary" /> Tambah Mapel
+                                </>
+                            )}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={submit} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="nama_mapel">Nama Mata Pelajaran</Label>
+                            <Input
+                                id="nama_mapel"
+                                value={data.nama_mapel}
+                                onChange={(e) => setData('nama_mapel', e.target.value)}
+                                placeholder="Contoh: Matematika, Pemrograman Web"
+                                className="bg-muted/30"
+                                required
+                            />
+                            {errors.nama_mapel && <p className="text-xs text-destructive">{errors.nama_mapel}</p>}
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="kategori_pembelajaran_id">Kategori</Label>
+                            <select
+                                id="kategori_pembelajaran_id"
+                                className="flex h-9 w-full rounded-md border border-input bg-muted/30 px-3 py-1 text-xs shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none sm:text-sm"
+                                value={data.kategori_pembelajaran_id}
+                                onChange={(e) => setData('kategori_pembelajaran_id', e.target.value)}
+                                required
+                            >
+                                <option value="">Pilih Kategori</option>
+                                {kategoriPembelajarans.map((k) => (
+                                    <option key={k.id} value={k.id}>
+                                        {k.nama_kategori} ({k.kode})
+                                    </option>
+                                ))}
+                            </select>
+                            {errors.kategori_pembelajaran_id && <p className="text-xs text-destructive">{errors.kategori_pembelajaran_id}</p>}
+                        </div>
+                        <div className="flex gap-2 pt-2">
+                            <Button type="button" variant="outline" onClick={handleCancel} className="flex-1">
+                                Batal
+                            </Button>
+                            <Button type="submit" disabled={processing} className="flex-1">
+                                {processing ? 'Proses...' : editingMapel ? <><Save className="mr-2 h-4 w-4" /> Update</> : <><Plus className="mr-2 h-4 w-4" /> Simpan</>}
+                            </Button>
+                        </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
 
             <AlertDialog open={deletingMapelId !== null} onOpenChange={(open) => !open && setDeletingMapelId(null)}>
                 <AlertDialogContent>

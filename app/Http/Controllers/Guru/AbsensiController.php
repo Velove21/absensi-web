@@ -9,6 +9,7 @@ use App\Models\Kelas;
 use App\Models\Schedule;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -33,8 +34,8 @@ class AbsensiController extends Controller
         $isOutOfYear = false;
         if ($active) {
             try {
-                $s = \Carbon\Carbon::create((int) $active->tahun_awal, 7, 1)->format('Y-m-d');
-                $e = \Carbon\Carbon::create((int) $active->tahun_akhir, 6, 30)->format('Y-m-d');
+                $s = Carbon::create((int) $active->tahun_awal, 7, 1)->format('Y-m-d');
+                $e = Carbon::create((int) $active->tahun_akhir, 6, 30)->format('Y-m-d');
                 $activeYear = ['tahun_awal' => $active->tahun_awal, 'tahun_akhir' => $active->tahun_akhir, 'start' => $s, 'end' => $e];
                 $isOutOfYear = ! TahunAjaran::isDateInActiveYear($tanggal);
             } catch (\Throwable $ex) {
@@ -55,6 +56,7 @@ class AbsensiController extends Controller
 
             if ($selectedMapelId && $jamKe && ! $isOutOfYear) {
                 $rawSiswas = Siswa::where('kelas_id', $selectedKelasId)
+                    ->where('is_alumni', false)
                     ->with(['foto', 'absensis' => function ($query) use ($tanggal, $selectedMapelId, $jamKe, $guru) {
                         $query->where('tanggal', $tanggal)
                             ->where('mapel_id', $selectedMapelId)
@@ -259,6 +261,7 @@ class AbsensiController extends Controller
             $prevEffective = $this->effectivePrevStatus((int) $validated['siswa_id'], (string) $validated['tanggal']);
             if (! $this->isTransitionAllowed($prevEffective, $validated['status'], $isFirstGuruForStore)) {
                 $prevLabel = $prevEffective ?? 'kosong';
+
                 return back()->with('error', "Status '{$prevLabel}' tidak dapat diubah menjadi '{$validated['status']}' (sakit/izin/dispensasi terkunci seharian, hadir hanya ke berhalangan, alpha bebas).");
             }
         }

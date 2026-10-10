@@ -8,6 +8,7 @@ use App\Models\DurasiPembelajaran;
 use App\Models\Kelas;
 use App\Models\Schedule;
 use App\Models\TahunAjaran;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -24,8 +25,8 @@ class DataAbsensiController extends Controller
         $isOutOfYear = false;
         if ($active) {
             try {
-                $s = \Carbon\Carbon::create((int) $active->tahun_awal, 7, 1)->format('Y-m-d');
-                $e = \Carbon\Carbon::create((int) $active->tahun_akhir, 6, 30)->format('Y-m-d');
+                $s = Carbon::create((int) $active->tahun_awal, 7, 1)->format('Y-m-d');
+                $e = Carbon::create((int) $active->tahun_akhir, 6, 30)->format('Y-m-d');
                 $activeYear = ['tahun_awal' => $active->tahun_awal, 'tahun_akhir' => $active->tahun_akhir, 'start' => $s, 'end' => $e];
                 $isOutOfYear = ! TahunAjaran::isDateInActiveYear($tanggal);
             } catch (\Throwable $ex) {
@@ -55,7 +56,8 @@ class DataAbsensiController extends Controller
 
             $query = Absensi::with(['siswa.kelas.jurusan', 'siswa.kelas.jenjangKelas', 'siswa.foto', 'guru', 'mapel.kategoriPembelajaran'])
                 ->whereHas('siswa', function ($q) use ($selectedKelasId) {
-                    $q->where('kelas_id', $selectedKelasId);
+                    $q->where('kelas_id', $selectedKelasId)
+                        ->where('is_alumni', false);
                 })
                 ->where('tanggal', $tanggal)
                 ->orderBy('updated_at', 'desc')

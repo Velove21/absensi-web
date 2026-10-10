@@ -21,14 +21,18 @@ export function useAutoRefresh(enabled: boolean, intervalMs = 5000, only?: strin
             if (!el) {
                 return false;
             }
-            const tag = el.tagName;
-            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+            // Hanya tahan refresh jika sedang fokus di text input atau modal terbuka yang sedang aktif diedit
+            if (tag === 'TEXTAREA') {
                 return true;
             }
-            if (el.isContentEditable) {
-                return true;
+            if (tag === 'INPUT') {
+                const inputType = (el as HTMLInputElement).type;
+                // Jangan block untuk button/checkbox/radio/hidden/file
+                if (['text', 'search', 'email', 'number', 'password'].includes(inputType)) {
+                    return true;
+                }
             }
-            // Dialog / modal terbuka (mis. upload bukti) -> jangan ganggu
+            // Modal terbuka (mis. upload bukti) -> jangan ganggu
             if (document.querySelector('[role="dialog"]')) {
                 return true;
             }

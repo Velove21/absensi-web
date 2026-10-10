@@ -584,7 +584,29 @@ export default function GuruAbsensiIndex({
                     const key = `lastJam:${filters.kelas_id}:${filters.mapel_id}:${filters.tanggal}`;
                     localStorage.setItem(key, filters.jam_ke);
                 } catch {}
-                // Reload untuk dapatkan data persistensi terbaru per guru
+                // Sync local state langsung dengan payload yang baru disimpan agar responsif tanpa nunggu F5
+                setLocalSiswas((prev) =>
+                    prev.map((s) => {
+                        const updated = payload.find((p) => p.siswa_id === s.id);
+                        if (updated) {
+                            return {
+                                ...s,
+                                absensi: {
+                                    id: s.absensi?.id ?? null,
+                                    status: updated.status,
+                                    keterangan: updated.keterangan || null,
+                                    is_copy: false,
+                                    guru_id: s.absensi?.guru_id ?? null,
+                                    guru_name: s.absensi?.guru_name ?? null,
+                                    mapel_id: Number(filters.mapel_id),
+                                    jam_ke: Number(filters.jam_ke),
+                                },
+                            };
+                        }
+                        return s;
+                    })
+                );
+                // Reload untuk dapatkan data persistensi terbaru per guru dari backend
                 (router.reload as unknown as (opts: Record<string, unknown>) => void)({ only: ['siswas', 'meta'], preserveScroll: true });
             },
             onError: (errors) => {

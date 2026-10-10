@@ -24,14 +24,14 @@ export default function Pagination({ links }: Props) {
     };
 
     return (
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-1">
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-1.5" data-slot="pagination">
             {links.map((link, index) => {
                 const html = translateLabel(link.label);
                 if (link.url === null) {
                     return (
                         <div
                             key={index}
-                            className="inline-flex h-9 items-center justify-center rounded-md border bg-white px-3 text-sm font-medium text-[#1E3A8A] opacity-50 cursor-not-allowed"
+                            className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background/50 px-3 text-sm font-medium text-muted-foreground opacity-50 cursor-not-allowed select-none"
                             dangerouslySetInnerHTML={{ __html: html }}
                         />
                     );
@@ -41,10 +41,10 @@ export default function Pagination({ links }: Props) {
                     <Link
                         key={index}
                         href={link.url}
-                        className={`inline-flex h-9 items-center justify-center rounded-md border px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
+                        className={`inline-flex h-9 items-center justify-center rounded-md border px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring select-none ${
                             link.active
-                                ? 'bg-[#1E293B] text-white hover:bg-[#1E293B]/90 hover:text-white border-[#1E293B]'
-                                : 'bg-white text-[#1E3A8A] hover:bg-[#f0f4fa] hover:text-[#1E3A8A] border-input'
+                                ? '!bg-slate-900 !text-white !border-slate-900 shadow-sm dark:!bg-slate-100 dark:!text-slate-900'
+                                : '!bg-white !text-slate-800 hover:!bg-slate-100 hover:!text-slate-900 border-input dark:!bg-card dark:!text-card-foreground dark:hover:!bg-muted'
                         }`}
                         dangerouslySetInnerHTML={{ __html: html }}
                     />

@@ -116,7 +116,9 @@ export default function AppSidebarLayout({
     useEffect(() => {
         latestChildren.current = children;
         latestCrumbs.current = inferred;
-    });
+        // If on same page/url and children props changed (e.g. form post/auto-refresh partial reload), update content immediately
+        setContent(children);
+    }, [children, inferred]);
 
     useEffect(() => {
         if (firstRun.current) {

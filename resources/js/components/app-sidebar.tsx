@@ -8,7 +8,6 @@ import {
     SidebarContent,
     SidebarFooter,
     SidebarHeader,
-    SidebarSeparator,
     useSidebar,
 } from '@/components/ui/sidebar';
 import { useInitials } from '@/hooks/use-initials';
@@ -160,28 +159,29 @@ export function AppSidebar() {
     return (
         <>
             <Sidebar collapsible="icon" variant="inset">
-                <SidebarHeader className="flex h-10 shrink-0 items-center gap-1.5 px-2 border-b border-sidebar-border group-has-data-[collapsible=icon]/sidebar-wrapper:h-10 group-has-data-[collapsible=icon]/sidebar-wrapper:px-2">
-                    <div className="flex items-center gap-2 w-full group-data-[collapsible=icon]:justify-center">
+                <SidebarHeader className="flex h-12 shrink-0 items-center p-2 group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 group-has-data-[collapsible=icon]/sidebar-wrapper:p-2">
+                    {/* Geometri disamakan dengan tombol menu (SidebarGroup p-2 > MenuButton h-8 px-2):
+                        ikon 22px + gap 6px = 28px, sama seperti ikon menu 20px + gap 8px —
+                        jadi ikon sedikit lebih besar tapi teks tetap di x=44px sejajar menu. Tinggi h-12 sejajar header breadcrumb kanan. */}
+                    <div className="flex h-8 w-full items-center gap-1.5 rounded-md px-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
                         <img
                             src="/android-chrome-192x192.png"
                             alt="Klikhadir"
-                            className="size-5 group-data-[collapsible=icon]:hidden"
+                            className="size-[22px] shrink-0 group-data-[collapsible=icon]:hidden"
                         />
-                        <span className="font-bold text-blue-700 truncate group-data-[collapsible=icon]:hidden text-sm" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                        <span className="truncate text-sm font-bold text-blue-700 group-data-[collapsible=icon]:hidden" style={{ fontFamily: "'Poppins', sans-serif" }}>
                             Klikhadir.
                         </span>
                         {/* Collapsed sidebar logo - shows only when sidebar is collapsed, matches nav icon size */}
-                        <div className="hidden group-data-[collapsible=icon]:flex items-center justify-center size-8 mx-auto">
+                        <div className="hidden group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:size-8 items-center justify-center mx-auto">
                             <img
                                 src="/android-chrome-192x192.png"
                                 alt="Klikhadir"
-                                className="size-5"
+                                className="size-[22px]"
                             />
                         </div>
                     </div>
                 </SidebarHeader>
-
-                <SidebarSeparator className="mx-2 my-1" />
 
                 <SidebarContent>
                     <NavMain items={mainNavItems} label={platformLabel} />

@@ -142,7 +142,7 @@ export default function SiswaDashboard({ siswa, stats, history, activeYear = nul
                 <div className="flex items-center gap-4">
                     <Avatar className="size-14 shrink-0 overflow-hidden rounded-full ring-2 ring-sidebar-border/60">
                         <AvatarImage src={siswa.foto_url ?? undefined} alt={siswa.nama} />
-                        <AvatarFallback className="bg-neutral-100 text-lg font-bold text-[#001a4d]">
+                        <AvatarFallback className="bg-white text-lg font-bold text-[#002399] dark:bg-white dark:text-[#002399]">
                             {siswa.nama.slice(0, 2).toUpperCase()}
                         </AvatarFallback>
                     </Avatar>

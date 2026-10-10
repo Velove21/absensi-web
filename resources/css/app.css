@@ -152,7 +152,7 @@
     background-color: #093ff9;
 }
 
-.dashboard-content :where(h1, h2, h3, h4, p, span, label, a, strong, b, em, li, td, th, small):not(:is([data-slot='card'] *, [class*='bg-card'] *, [data-slot='pagination'] *)) {
+.dashboard-content :where(h1, h2, h3, h4, p, span, label, a, strong, b, em, li, td, th, small):not(:is([data-slot='card'] *, [class*='bg-card'] *, [data-slot='pagination'] *, [data-slot='avatar-fallback'], [data-slot='avatar-fallback'] *)) {
     color: #ffffff;
 }
 

@@ -89,7 +89,7 @@ export default function SearchableSelect({
 
             {open && (
                 <div
-                    className="bg-popover text-popover-foreground absolute z-50 mt-1 w-full min-w-[8rem] origin-top overflow-hidden rounded-md border shadow-md animate-in fade-in zoom-in-95"
+                    className="bg-white text-popover-foreground absolute z-[100] mt-1 w-full min-w-[8rem] origin-top overflow-hidden rounded-md border shadow-lg animate-in fade-in zoom-in-95"
                     onKeyDown={handleKeyDown}
                 >
                     <div className="flex items-center gap-2 border-b px-3 py-2">

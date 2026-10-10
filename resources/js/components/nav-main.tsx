@@ -10,7 +10,7 @@ import { useCurrentUrl } from '@/hooks/use-current-url';
 import { cn } from '@/lib/utils';
 import type { NavItem } from '@/types';
 
-export function NavMain({ items = [], label = 'Platform' }: { items: NavItem[]; label?: string }) {
+export function NavMain({ items = [], label = 'Menu' }: { items: NavItem[]; label?: string }) {
     const { isCurrentUrl } = useCurrentUrl();
 
     return (

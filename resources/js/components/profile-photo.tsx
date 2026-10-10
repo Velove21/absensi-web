@@ -16,7 +16,7 @@ export function ProfilePhoto({ src, alt, className }: Props) {
             )}
         >
             <AvatarImage src={src ?? undefined} alt={alt} className="size-full object-cover" />
-            <AvatarFallback className="bg-neutral-100 text-3xl font-semibold text-neutral-500">
+            <AvatarFallback className="bg-neutral-100 text-3xl font-semibold text-[#1E3A8A]">
                 {alt.slice(0, 2).toUpperCase()}
             </AvatarFallback>
         </Avatar>

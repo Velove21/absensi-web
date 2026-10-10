@@ -109,7 +109,7 @@ export default function SecretAdminRegister({ secretKey }: SecretAdminRegisterPr
                                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                         <div className="space-y-1">
                                             <Label htmlFor="password" className="text-xs font-semibold uppercase tracking-wider text-blue-100/90 flex items-center gap-1.5">
-                                                <Lock className="h-3.5 w-3.5 text-[#0ea5e9]" /> Password
+                                                <Lock className="h-3.5 w-3.5 text-[#0ea5e9]" /> Kata Sandi
                                             </Label>
                                             <PasswordInput
                                                 id="password"
@@ -124,14 +124,14 @@ export default function SecretAdminRegister({ secretKey }: SecretAdminRegisterPr
 
                                         <div className="space-y-1">
                                             <Label htmlFor="password_confirmation" className="text-xs font-semibold uppercase tracking-wider text-blue-100/90 flex items-center gap-1.5">
-                                                <Lock className="h-3.5 w-3.5 text-[#0ea5e9]" /> Konfirmasi
+                                                <Lock className="h-3.5 w-3.5 text-[#0ea5e9]" /> Konfirmasi Kata Sandi
                                             </Label>
                                             <PasswordInput
                                                 id="password_confirmation"
                                                 required
                                                 tabIndex={5}
                                                 name="password_confirmation"
-                                                placeholder="Ulangi password"
+                                                placeholder="Ulangi Kata Sandi"
                                                 className="h-10 border-white/20 bg-white/10 text-white placeholder:text-blue-200/40 focus:border-emerald-400 focus:ring-emerald-400/20"
                                             />
                                             <InputError message={errors.password_confirmation} />

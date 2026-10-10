@@ -88,7 +88,7 @@ export default function Security({
                         <>
                             <div className="grid gap-2">
                                 <Label htmlFor="current_password">
-                                    Current password
+                                    Kata Sandi Saat Ini
                                 </Label>
 
                                 <PasswordInput
@@ -97,14 +97,14 @@ export default function Security({
                                     name="current_password"
                                     className="mt-1 block w-full"
                                     autoComplete="current-password"
-                                    placeholder="Current password"
+                                    placeholder="Kata Sandi Saat Ini"
                                 />
 
                                 <InputError message={errors.current_password} />
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="password">New password</Label>
+                                <Label htmlFor="password">Kata Sandi Baru</Label>
 
                                 <PasswordInput
                                     id="password"
@@ -112,7 +112,7 @@ export default function Security({
                                     name="password"
                                     className="mt-1 block w-full"
                                     autoComplete="new-password"
-                                    placeholder="New password"
+                                    placeholder="Kata Sandi Baru"
                                 />
 
                                 <InputError message={errors.password} />
@@ -120,7 +120,7 @@ export default function Security({
 
                             <div className="grid gap-2">
                                 <Label htmlFor="password_confirmation">
-                                    Confirm password
+                                    Konfirmasi Kata Sandi Baru
                                 </Label>
 
                                 <PasswordInput
@@ -128,7 +128,7 @@ export default function Security({
                                     name="password_confirmation"
                                     className="mt-1 block w-full"
                                     autoComplete="new-password"
-                                    placeholder="Confirm password"
+                                    placeholder="Konfirmasi Kata Sandi Baru"
                                 />
 
                                 <InputError

@@ -78,7 +78,7 @@ export default function Welcome() {
 
                                 <div className="grid gap-1.5">
                                     <Label htmlFor="password" className="text-sm font-medium text-[#093ff9]">
-                                        Password
+                                        Kata Sandi
                                     </Label>
                                     <PasswordInput
                                         id="password"
@@ -86,7 +86,7 @@ export default function Welcome() {
                                         required
                                         tabIndex={2}
                                         autoComplete="current-password"
-                                        placeholder="Masukkan password"
+                                        placeholder="Masukkan Kata Sandi"
                                         className="h-11 border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 focus:border-[#093ff9] focus:ring-[#093ff9]/20"
                                     />
                                     <InputError message={errors.password} />

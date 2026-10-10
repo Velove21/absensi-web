@@ -64,7 +64,7 @@ export default function ForceChangePassword() {
                     <form onSubmit={submit} className="grid gap-4">
                         <div className="grid gap-1.5">
                             <Label htmlFor="current_password" className="text-sm font-medium text-[#093ff9]">
-                                Password Lama (Default)
+                                Kata Sandi Lama (Default)
                             </Label>
                             <PasswordInput
                                 id="current_password"
@@ -74,7 +74,7 @@ export default function ForceChangePassword() {
                                 tabIndex={1}
                                 value={data.current_password}
                                 onChange={(e) => setData('current_password', e.target.value)}
-                                placeholder="Masukkan password default saat ini"
+                                placeholder="Masukkan Kata Sandi default saat ini"
                                 className="h-11 border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 focus:border-[#093ff9] focus:ring-[#093ff9]/20"
                             />
                             <InputError message={errors.current_password} />
@@ -82,7 +82,7 @@ export default function ForceChangePassword() {
 
                         <div className="grid gap-1.5">
                             <Label htmlFor="password" className="text-sm font-medium text-[#093ff9]">
-                                Password Baru
+                                Kata Sandi Baru
                             </Label>
                             <PasswordInput
                                 id="password"
@@ -99,7 +99,7 @@ export default function ForceChangePassword() {
 
                         <div className="grid gap-1.5">
                             <Label htmlFor="password_confirmation" className="text-sm font-medium text-[#093ff9]">
-                                Konfirmasi Password Baru
+                                Konfirmasi Kata Sandi Baru
                             </Label>
                             <PasswordInput
                                 id="password_confirmation"
@@ -108,7 +108,7 @@ export default function ForceChangePassword() {
                                 tabIndex={3}
                                 value={data.password_confirmation}
                                 onChange={(e) => setData('password_confirmation', e.target.value)}
-                                placeholder="Ulangi password baru"
+                                placeholder="Ulangi Kata Sandi baru"
                                 className="h-11 border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 focus:border-[#093ff9] focus:ring-[#093ff9]/20"
                             />
                             <InputError message={errors.password_confirmation} />

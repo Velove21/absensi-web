@@ -223,7 +223,7 @@ export default function GuruExportAbsensi({ kelasList, mataPelajarans, activeYea
                                     <ChevronDown className="size-4 shrink-0 opacity-50" />
                                 </button>
                                 {mapelOpen && (
-                                    <div className="bg-popover text-popover-foreground absolute z-50 mt-1 w-full origin-top overflow-hidden rounded-md border shadow-md sm:w-[220px]">
+                                    <div className="bg-popover text-popover-foreground absolute z-[100] mt-1 w-full origin-top overflow-hidden rounded-md border shadow-md sm:w-[220px]">
                                         <div className="flex items-center gap-2 border-b px-3 py-2">
                                             <Search className="size-4 shrink-0 opacity-50" />
                                             <input
@@ -288,7 +288,7 @@ export default function GuruExportAbsensi({ kelasList, mataPelajarans, activeYea
                                     <ChevronDown className="size-4 shrink-0 opacity-50" />
                                 </button>
                                 {kelasOpen && (
-                                    <div className="bg-popover text-popover-foreground absolute z-50 mt-1 w-full origin-top overflow-hidden rounded-md border shadow-md sm:w-[220px]">
+                                    <div className="bg-popover text-popover-foreground absolute z-[100] mt-1 w-full origin-top overflow-hidden rounded-md border shadow-md sm:w-[220px]">
                                         <div className="flex items-center gap-2 border-b px-3 py-2">
                                             <Search className="size-4 shrink-0 opacity-50" />
                                             <input

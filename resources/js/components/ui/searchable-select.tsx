@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { Search, ChevronDown, Check } from 'lucide-react';
 
@@ -44,15 +45,44 @@ export default function SearchableSelect({
         }
     }, [open]);
 
+    const dropdownRef = useRef<HTMLDivElement>(null);
+    const [dropdownPos, setDropdownPos] = useState<{ left: number; top: number; width: number } | null>(null);
+
+    const updateDropdownPos = useCallback(() => {
+        if (containerRef.current) {
+            const rect = containerRef.current.getBoundingClientRect();
+            setDropdownPos({ left: rect.left, top: rect.bottom + 4, width: rect.width });
+        }
+    }, []);
+
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-                setOpen(false);
+            const target = e.target as Node;
+            if (containerRef.current?.contains(target)) {
+                return;
             }
+            if (dropdownRef.current?.contains(target)) {
+                return;
+            }
+            setOpen(false);
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    useEffect(() => {
+        if (!open) {
+            setDropdownPos(null);
+            return;
+        }
+        updateDropdownPos();
+        window.addEventListener('scroll', updateDropdownPos, true);
+        window.addEventListener('resize', updateDropdownPos);
+        return () => {
+            window.removeEventListener('scroll', updateDropdownPos, true);
+            window.removeEventListener('resize', updateDropdownPos);
+        };
+    }, [open, updateDropdownPos]);
 
     const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
         if (e.key === 'ArrowDown') {
@@ -87,11 +117,18 @@ export default function SearchableSelect({
                 <ChevronDown className="size-4 shrink-0 opacity-50" />
             </button>
 
-            {open && (
-                <div
-                    className="bg-white text-popover-foreground absolute z-[100] mt-1 w-full min-w-[8rem] origin-top overflow-hidden rounded-md border shadow-lg animate-in fade-in zoom-in-95"
-                    onKeyDown={handleKeyDown}
-                >
+            {open && dropdownPos &&
+                createPortal(
+                    <div
+                        ref={dropdownRef}
+                        className="bg-white text-popover-foreground fixed z-[9999] min-w-[8rem] origin-top overflow-hidden rounded-md border border-gray-200 shadow-xl animate-in fade-in zoom-in-95"
+                        style={{
+                            left: dropdownPos.left,
+                            top: dropdownPos.top,
+                            width: Math.max(dropdownPos.width, 128),
+                        }}
+                        onKeyDown={handleKeyDown}
+                    >
                     <div className="flex items-center gap-2 border-b px-3 py-2">
                         <Search className="size-4 shrink-0 opacity-50" />
                         <input
@@ -139,8 +176,9 @@ export default function SearchableSelect({
                             ))
                         )}
                     </div>
-                </div>
-            )}
+                    </div>,
+                    document.body,
+                )}
         </div>
     );
 }

@@ -291,7 +291,7 @@ export default function GuruDataAbsensi({
                 </div>
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-stretch">
                     <div className="col-span-1 flex flex-col gap-4">
-                        <div className="rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border lg:sticky lg:top-8 min-h-[260px] flex flex-col">
+                        <div className="relative z-20 rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border lg:sticky lg:top-8 min-h-[260px] flex flex-col">
                             <div className="mb-4">
                                 <h2 className="text-lg font-semibold flex items-center gap-2"><BookOpen className="h-4 w-4 text-primary" /> Filter Data</h2>
                                 <p className="text-xs text-muted-foreground mt-1">Pilih tanggal dan kelas untuk lihat rekap presensi kelas terbaru</p>
@@ -320,7 +320,7 @@ export default function GuruDataAbsensi({
                         </div>
 
                         {/* Ekspor Presensi — di bawah Filter Data, besar kolom sama presisi dengan Filter Data */}
-                        <div className="rounded-xl border border-dashed border-sidebar-border/40 bg-card p-4 shadow-sm w-full flex flex-col">
+                        <div className="relative z-10 rounded-xl border border-dashed border-sidebar-border/40 bg-card p-4 shadow-sm w-full flex flex-col">
                             <div className="flex items-center gap-2 mb-2">
                                 <FileSpreadsheet className="h-5 w-5 text-primary" />
                                 <h2 className="text-lg font-semibold">

@@ -15,10 +15,6 @@ class DatabaseSeeder extends Seeder
             DurasiPembelajaranSeeder::class,
             MataPelajaranSeeder::class,
             GuruSeeder::class,
-            SiswaXPPLGASeeder::class,
-            SiswaXIPPLGASeeder::class,
-            SiswaXIDPIBBSeeder::class,
-            SiswaXITMASeeder::class,
         ]);
     }
 }

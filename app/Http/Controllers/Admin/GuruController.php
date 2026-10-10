@@ -24,14 +24,30 @@ class GuruController extends Controller
 
         $gurus = Guru::with(['user', 'foto', 'kelas.jurusan', 'kelas.jenjangKelas', 'mataPelajarans.kategoriPembelajaran'])
             ->when($search, function ($query, $search) {
-                $query->where('nama', 'like', "%{$search}%")
-                    ->orWhere('nip', 'like', "%{$search}%")
-                    ->orWhereHas('kelas', function ($q) use ($search) {
-                        $q->where('nama_kelas', 'like', "%{$search}%")
-                            ->orWhereHas('jurusan', fn ($j) => $j->where('singkatan', 'like', "%{$search}%"))
-                            ->orWhereHas('jenjangKelas', fn ($j) => $j->where('nama_jenjang', 'like', "%{$search}%"));
+                $searchTrim = trim($search);
+                $aliasMap = ['RPL' => 'PPLG', 'TKJ' => 'TJKT'];
+
+                $query->where('nama', 'like', "%{$searchTrim}%")
+                    ->orWhere('nip', 'like', "%{$searchTrim}%")
+                    ->orWhereHas('kelas', function ($q) use ($searchTrim, $aliasMap) {
+                        // Cocok full_nama_kelas via concat (mis. "XI PPLG A")
+                        $q->whereRaw(
+                            "CONCAT_WS(' ', COALESCE((SELECT nama_jenjang FROM jenjang_kelas WHERE jenjang_kelas.id = kelas.jenjang_kelas_id), ''), COALESCE((SELECT singkatan FROM jurusans WHERE jurusans.id = kelas.jurusan_id), ''), COALESCE(kelas.nama_kelas, '')) LIKE ?",
+                            ["%{$searchTrim}%"]
+                        )
+                        // Fallback: cocok komponen terpisah
+                            ->orWhere('nama_kelas', 'like', "%{$searchTrim}%")
+                            ->orWhereHas('jurusan', fn ($j) => $j->where('singkatan', 'like', "%{$searchTrim}%")->orWhere('nama_jurusan', 'like', "%{$searchTrim}%"))
+                            ->orWhereHas('jenjangKelas', fn ($j) => $j->where('nama_jenjang', 'like', "%{$searchTrim}%"));
+
+                        // Alias: jika user ketik RPL, anggap juga PPLG
+                        $upperSearch = strtoupper($searchTrim);
+                        if (isset($aliasMap[$upperSearch])) {
+                            $alias = $aliasMap[$upperSearch];
+                            $q->orWhereHas('jurusan', fn ($j) => $j->where('singkatan', 'like', "%{$alias}%"));
+                        }
                     })
-                    ->orWhereHas('mataPelajarans', fn ($q) => $q->where('nama_mapel', 'like', "%{$search}%"));
+                    ->orWhereHas('mataPelajarans', fn ($q) => $q->where('nama_mapel', 'like', "%{$searchTrim}%"));
             })
             ->latest()
             ->paginate(11)

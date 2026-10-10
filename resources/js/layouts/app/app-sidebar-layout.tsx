@@ -67,13 +67,13 @@ function inferBreadcrumbs(
         if (path === '/admin/dashboard' || path === '/admin') {
             return [
                 { title: 'Admin', href: '/admin/dashboard' } as BreadcrumbItem,
-                { title: 'Dashboard', href: '/admin/dashboard' } as BreadcrumbItem,
+                { title: 'Dasbor', href: '/admin/dashboard' } as BreadcrumbItem,
             ];
         }
         // Generic admin fallback: Admin > Current
         return [
             { title: 'Admin', href: '/admin/dashboard' } as BreadcrumbItem,
-            { title: 'Dashboard' } as unknown as BreadcrumbItem,
+            { title: 'Dasbor' } as unknown as BreadcrumbItem,
         ];
     }
 

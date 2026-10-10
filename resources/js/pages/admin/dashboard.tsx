@@ -333,14 +333,14 @@ export default function AdminDashboard({
 
     return (
         <>
-            <Head title="Admin Dashboard" />
+            <Head title="Admin Dasbor" />
             <div className="flex h-full w-full flex-1 flex-col gap-6 p-8">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">
                         Pusat Kendali Admin
                     </h1>
                     <p className="text-muted-foreground">
-                        Kelola data master sistem presensi KlikHadir.
+                        Kelola data master sistem presensi Klikhadir.
                     </p>
                 </div>
 
@@ -623,18 +623,18 @@ export default function AdminDashboard({
                                 className="w-[170px] h-8 text-xs"
                             />
                         </CardHeader>
-                        <CardContent className="flex-1 flex flex-col justify-center">
+                        <CardContent className="flex-1 flex flex-col">
                             {attendanceData.reduce((sum, item) => sum + item.count, 0) > 0 ? (
                                 <>
-                                    <ChartContainer config={attendanceConfig} className="mx-auto aspect-square max-h-[300px]">
+                                    <ChartContainer config={attendanceConfig} className="mx-auto aspect-square max-h-[220px] mb-2">
                                         <PieChart>
                                             <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
                                             <Pie
                                                 data={attendanceData}
                                                 dataKey="count"
                                                 nameKey="status"
-                                                innerRadius={60}
-                                                outerRadius={80}
+                                                innerRadius={50}
+                                                outerRadius={70}
                                                 paddingAngle={5}
                                                 strokeWidth={2}
                                             >
@@ -644,17 +644,17 @@ export default function AdminDashboard({
                                             </Pie>
                                         </PieChart>
                                     </ChartContainer>
-                                    <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6 text-center">
+                                    <div className="mt-2 grid grid-cols-3 gap-1.5 text-center">
                                         {gridData.map((item) => (
                                             <button 
                                                 key={item.status} 
-                                                className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors hover:bg-muted/50 hover:ring-1 hover:ring-border cursor-pointer"
+                                                className="flex flex-col items-center gap-0.5 p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all cursor-pointer"
                                                 onClick={() => openStatistik(item.status)}
                                                 title={`Klik buka halaman ${item.status} — terbaru per siswa`}
                                             >
-                                                <div className="flex items-center justify-center gap-1.5">
+                                                <div className="flex items-center justify-center gap-1">
                                                     <div
-                                                        className="h-3 w-3 rounded-full"
+                                                        className="h-2 w-2 rounded-full"
                                                         style={{
                                                             backgroundColor:
                                                                 item.status === 'hadir' ? 'var(--chart-2)' :
@@ -665,11 +665,11 @@ export default function AdminDashboard({
                                                                 'var(--destructive)',
                                                         }}
                                                     />
-                                                    <span className="text-[11px] font-bold uppercase text-muted-foreground tracking-wider">
+                                                    <span className="text-[9px] font-bold uppercase text-muted-foreground tracking-wider">
                                                         {item.status}
                                                     </span>
                                                 </div>
-                                                <span className="text-xl font-bold">{item.count}</span>
+                                                <span className="text-base font-bold">{item.count}</span>
                                             </button>
                                         ))}
                                     </div>
@@ -684,7 +684,7 @@ export default function AdminDashboard({
                     </Card>
 
                     {/* Students per Jurusan Chart */}
-                    <Card className="border-sidebar-border/70 shadow-sm dark:border-sidebar-border">
+                    <Card className="border-sidebar-border/70 shadow-sm dark:border-sidebar-border flex flex-col">
                         <CardHeader className="flex flex-row items-center gap-2 pb-2">
                             <Activity className="h-5 w-5 text-muted-foreground" />
                             <div>
@@ -692,8 +692,8 @@ export default function AdminDashboard({
                                 <CardDescription>Jumlah siswa per jurusan</CardDescription>
                             </div>
                         </CardHeader>
-                        <CardContent>
-                            <ChartContainer config={jurusanConfig} className="mt-4 aspect-auto h-[350px] w-full">
+                        <CardContent className="flex-1">
+                            <ChartContainer config={jurusanConfig} className="h-[240px] w-full mt-2">
                                 <BarChart data={studentsPerJurusan} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                     <CartesianGrid vertical={false} strokeDasharray="3 3" />
                                     <XAxis
@@ -729,7 +729,7 @@ AdminDashboard.layout = {
             href: adminDashboard.url(),
         },
         {
-            title: 'Dashboard',
+            title: 'Dasbor',
             href: adminDashboard.url(),
         },
     ],

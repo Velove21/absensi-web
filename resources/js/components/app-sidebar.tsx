@@ -8,6 +8,7 @@ import {
     SidebarContent,
     SidebarFooter,
     SidebarHeader,
+    SidebarSeparator,
     useSidebar,
 } from '@/components/ui/sidebar';
 import { useInitials } from '@/hooks/use-initials';
@@ -44,19 +45,19 @@ export function AppSidebar() {
               : null;
 
     let mainNavItems: NavItem[] = [];
-    let platformLabel = 'Fitur';
+    let platformLabel = 'Menu';
     if (userRole === 'admin') {
-        platformLabel = 'Fitur';
+        platformLabel = 'Menu';
     } else if (userRole === 'guru') {
-        platformLabel = 'Guru';
+        platformLabel = 'Menu';
     } else if (userRole === 'siswa') {
-        platformLabel = 'Siswa';
+        platformLabel = 'Menu';
     }
 
     if (userRole === 'admin') {
         mainNavItems = [
             {
-                title: 'Dashboard',
+                title: 'Dasbor',
                 href: admin.dashboard.url(),
                 icon: LayoutGrid,
             },
@@ -159,20 +160,28 @@ export function AppSidebar() {
     return (
         <>
             <Sidebar collapsible="icon" variant="inset">
-                <SidebarHeader>
-                    {profileHref ? (
-                        <Link
-                            href={profileHref}
-                            className="flex items-center gap-3 rounded-md px-2 py-2 transition-colors hover:bg-accent group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
-                        >
-                            <ProfileHeaderInfo userRole={userRole} getInitials={getInitials} auth={auth} />
-                        </Link>
-                    ) : (
-                        <div className="flex items-center gap-3 rounded-md px-2 py-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-                            <ProfileHeaderInfo userRole={userRole} getInitials={getInitials} auth={auth} />
+                <SidebarHeader className="flex h-10 shrink-0 items-center gap-1.5 px-2 border-b border-sidebar-border group-has-data-[collapsible=icon]/sidebar-wrapper:h-10 group-has-data-[collapsible=icon]/sidebar-wrapper:px-2">
+                    <div className="flex items-center gap-2 w-full group-data-[collapsible=icon]:justify-center">
+                        <img
+                            src="/android-chrome-192x192.png"
+                            alt="Klikhadir"
+                            className="size-5 group-data-[collapsible=icon]:hidden"
+                        />
+                        <span className="font-bold text-blue-700 truncate group-data-[collapsible=icon]:hidden text-sm" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                            Klikhadir.
+                        </span>
+                        {/* Collapsed sidebar logo - shows only when sidebar is collapsed, matches nav icon size */}
+                        <div className="hidden group-data-[collapsible=icon]:flex items-center justify-center size-8 mx-auto">
+                            <img
+                                src="/android-chrome-192x192.png"
+                                alt="Klikhadir"
+                                className="size-5"
+                            />
                         </div>
-                    )}
+                    </div>
                 </SidebarHeader>
+
+                <SidebarSeparator className="mx-2 my-1" />
 
                 <SidebarContent>
                     <NavMain items={mainNavItems} label={platformLabel} />
@@ -186,7 +195,14 @@ export function AppSidebar() {
 
             {/* Mobile: ketika tertutup, hanya gambar/icon aja yang tampil — tulisannya disembunyikan, semua ditaruh di tengah. */}
             {isMobile && !openMobile && (
-                <div className="fixed inset-y-0 left-0 z-30 flex w-[3rem] flex-col items-center bg-sidebar py-3 md:hidden">
+                <div className="fixed inset-y-0 left-0 z-30 flex w-[3rem] flex-col items-center bg-sidebar pt-6 md:hidden">
+                    <div className="w-full flex items-center justify-center pb-4">
+                        <img
+                            src="/android-chrome-192x192.png"
+                            alt="Klikhadir"
+                            className="w-5 h-5"
+                        />
+                    </div>
                     <Tooltip delayDuration={0}>
                         <TooltipTrigger asChild>
                             <button
@@ -194,12 +210,7 @@ export function AppSidebar() {
                                 className="flex size-9 translate-x-[1px] items-center justify-center rounded-md transition-colors hover:bg-accent"
                                 aria-label="Buka sidebar"
                             >
-                                <Avatar className="size-8 shrink-0 overflow-hidden rounded-full ring-2 ring-white/20">
-                                    <AvatarImage src={auth.user?.avatar} alt={auth.user?.name} />
-                                    <AvatarFallback className="bg-white text-[#002399] dark:bg-white dark:text-[#002399] text-xs font-semibold">
-                                        {getInitials(auth.user?.name ?? '')}
-                                    </AvatarFallback>
-                                </Avatar>
+                                <span className="text-2xl">≡</span>
                             </button>
                         </TooltipTrigger>
                         <TooltipContent side="right" align="center" sideOffset={10} className="bg-card text-card-foreground border border-sidebar-border/70 shadow-xl">
@@ -270,60 +281,6 @@ export function AppSidebar() {
             {isMobile && !openMobile && (
                 <div className="w-[3rem] shrink-0 md:hidden" aria-hidden />
             )}
-        </>
-    );
-}
-
-function ProfileHeaderInfo({
-    userRole,
-    getInitials,
-    auth,
-}: {
-    userRole: 'admin' | 'guru' | 'siswa';
-    getInitials: (name: string) => string;
-    auth: SharedData['auth'];
-}) {
-    return (
-        <>
-            <Avatar className="size-12 shrink-0 overflow-hidden rounded-full ring-2 ring-white/20 group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:translate-x-[1px]">
-                <AvatarImage src={auth.user?.avatar} alt={auth.user?.name} />
-                <AvatarFallback className="bg-white text-[#002399] dark:bg-white dark:text-[#002399] text-xs font-semibold group-data-[collapsible=icon]:text-xs">
-                    {getInitials(auth.user?.name ?? '')}
-                </AvatarFallback>
-            </Avatar>
-            <div className="grid flex-1 text-left leading-tight group-data-[collapsible=icon]:hidden group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0">
-                <span
-                    className="truncate text-sm font-bold capitalize"
-                    style={{ fontFamily: "'Poppins', sans-serif", color: '#002399' }}
-                >
-                    {userRole}
-                </span>
-                {userRole === 'guru' || userRole === 'siswa' ? (
-                    <>
-                        <span
-                            className="truncate text-xs font-normal text-black"
-                            style={{ fontFamily: "'Poppins', sans-serif" }}
-                        >
-                            {auth.user?.name}
-                        </span>
-                        <span
-                            className="truncate text-xs font-normal text-black"
-                            style={{ fontFamily: "'Poppins', sans-serif" }}
-                        >
-                            {userRole === 'guru'
-                                ? `NIP: ${auth.user?.guru?.nip ?? '-'}`
-                                : `NIS: ${auth.user?.siswa?.nis ?? '-'}`}
-                        </span>
-                    </>
-                ) : (
-                    <span
-                        className="truncate text-xs font-normal text-black"
-                        style={{ fontFamily: "'Poppins', sans-serif" }}
-                    >
-                        {auth.user?.email}
-                    </span>
-                )}
-            </div>
         </>
     );
 }

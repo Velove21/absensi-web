@@ -510,10 +510,6 @@ export default function GuruAbsensiIndex({
     };
 
     const handleBulkSubmit = () => {
-        if (isOutOfYear) {
-            toast.error(`Data tanggal ini telah diarsipkan ke Tahun Ajaran ${activeYear?.tahun_awal}/${activeYear?.tahun_akhir}.`);
-            return;
-        }
         if (!filters.kelas_id || !filters.mapel_id || !filters.tanggal || !filters.jam_ke) {
             toast.error('Lengkapi Kelas, Mapel, Tanggal dan Jam terlebih dahulu.');
             return;
@@ -805,9 +801,7 @@ export default function GuruAbsensiIndex({
                     <div className="col-span-1 flex flex-col gap-6 lg:col-span-2">
                         {filters.kelas_id && filters.mapel_id && filters.jam_ke ? (
                             <>
-                            {isOutOfYear && (
-                                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">Data tanggal ini telah diarsipkan ke Tahun Ajaran {activeYear?.tahun_awal}/{activeYear?.tahun_akhir}. Lihat arsip di menu Arsip admin.</div>
-                            )}
+                            
                             <div className="rounded-xl border border-sidebar-border/70 bg-card shadow-sm dark:border-sidebar-border overflow-hidden flex flex-col animate-in fade-in duration-200">
                                 <div className="p-6 border-b border-sidebar-border/70 dark:border-sidebar-border flex flex-col gap-3">
                                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">

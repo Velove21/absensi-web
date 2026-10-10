@@ -365,9 +365,6 @@ export default function GuruExportAbsensi({ kelasList, mataPelajarans, activeYea
                             )}
                         </Button>
                     </div>
-                    {activeYear && (
-                        <p className="text-xs text-muted-foreground mt-2">Rentang ekspor terbatas pada tahun ajaran aktif {activeYear.tahun_awal}/{activeYear.tahun_akhir} ({activeYear.start} s/d {activeYear.end}). Data sebelumnya lihat Arsip.</p>
-                    )}
                 </div>
             </div>
         </>

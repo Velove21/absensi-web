@@ -289,10 +289,6 @@ export default function GuruDataAbsensi({
                     <h1 className="text-2xl font-bold tracking-tight">Lihat Presensi</h1>
                     <p className="text-muted-foreground">Menampilkan data presensi terbaru setiap kelas yang dapat diakses oleh semua guru, dengan data presensi kelas yaitu guru terakhir melakukan presensi.</p>
                 </div>
-                {isOutOfYear && (
-                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">Data tanggal ini telah diarsipkan ke Tahun Ajaran {activeYear?.tahun_awal}/{activeYear?.tahun_akhir}. Lihat arsip di menu Arsip admin.</div>
-                )}
-
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-stretch">
                     <div className="col-span-1 flex flex-col gap-4">
                         <div className="rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border sticky top-8 min-h-[260px] flex flex-col">

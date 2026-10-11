@@ -62,7 +62,9 @@ return new class extends Migration
 
         // Also make siswa_id nullable if not already
         try {
-            DB::statement('ALTER TABLE arsip_presensis MODIFY siswa_id BIGINT UNSIGNED NULL');
+            Schema::table('arsip_presensis', function (Blueprint $table) {
+                $table->foreignId('siswa_id')->nullable()->change();
+            });
         } catch (Throwable $e) {
         }
     }

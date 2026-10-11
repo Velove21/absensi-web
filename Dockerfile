@@ -48,6 +48,10 @@ RUN NODE_OPTIONS="--max-old-space-size=1024" npm run build
 FROM serversideup/php:8.4-fpm-nginx
 WORKDIR /var/www/html
 
+# Install ekstensi PHP GD & Exif untuk manipulasi foto
+USER root
+RUN install-php-extensions gd exif
+USER www-data
 # Salin seluruh kode aplikasi
 COPY --chown=www-data:www-data . .
 

@@ -29,26 +29,26 @@ class SiswaController extends Controller
                 $aliasMap = ['RPL' => 'PPLG', 'TKJ' => 'TJKT'];
 
                 $query->where(function ($q) use ($searchTrim, $aliasMap) {
-                    // Cocok nama/nis langsung
-                    $q->where('nama', 'like', "%{$searchTrim}%")
-                        ->orWhere('nis', 'like', "%{$searchTrim}%")
-                        // Cocok full_nama_kelas via concat (mis. "XII PPLG A") - paling akurat untuk pencarian kelas lengkap
+                    // Cocok nama/nis langsung (case-insensitive)
+                    $q->whereLike('nama', "%{$searchTrim}%")
+                        ->orWhereLike('nis', "%{$searchTrim}%")
+                        // Cocok full_nama_kelas via concat (mis. "XII PPLG A") - case-insensitive di Postgres & MySQL
                         ->orWhereHas('kelas', function ($kq) use ($searchTrim) {
                             $kq->whereRaw(
-                                "CONCAT_WS(' ', COALESCE((SELECT nama_jenjang FROM jenjang_kelas WHERE jenjang_kelas.id = kelas.jenjang_kelas_id), ''), COALESCE((SELECT singkatan FROM jurusans WHERE jurusans.id = kelas.jurusan_id), ''), COALESCE(kelas.nama_kelas, '')) LIKE ?",
-                                ["%{$searchTrim}%"]
+                                "LOWER(CONCAT_WS(' ', COALESCE((SELECT nama_jenjang FROM jenjang_kelas WHERE jenjang_kelas.id = kelas.jenjang_kelas_id), ''), COALESCE((SELECT singkatan FROM jurusans WHERE jurusans.id = kelas.jurusan_id), ''), COALESCE(kelas.nama_kelas, ''))) LIKE ?",
+                                ['%'.strtolower($searchTrim).'%']
                             );
                         })
-                        // Fallback: cocok komponen terpisah (jenjang, jurusan, nama_kelas) untuk pencarian parsial
-                        ->orWhereHas('kelas.jenjangKelas', fn ($jq) => $jq->where('nama_jenjang', 'like', "%{$searchTrim}%"))
-                        ->orWhereHas('kelas.jurusan', fn ($jq) => $jq->where('singkatan', 'like', "%{$searchTrim}%")->orWhere('nama_jurusan', 'like', "%{$searchTrim}%"))
-                        ->orWhereHas('kelas', fn ($kq) => $kq->where('nama_kelas', 'like', "%{$searchTrim}%"));
+                        // Fallback: cocok komponen terpisah (case-insensitive)
+                        ->orWhereHas('kelas.jenjangKelas', fn ($jq) => $jq->whereLike('nama_jenjang', "%{$searchTrim}%"))
+                        ->orWhereHas('kelas.jurusan', fn ($jq) => $jq->whereLike('singkatan', "%{$searchTrim}%")->orWhereLike('nama_jurusan', "%{$searchTrim}%"))
+                        ->orWhereHas('kelas', fn ($kq) => $kq->whereLike('nama_kelas', "%{$searchTrim}%"));
 
                     // Alias: jika user ketik RPL, anggap juga PPLG (untuk pencarian parsial jurusan)
                     $upperSearch = strtoupper($searchTrim);
                     if (isset($aliasMap[$upperSearch])) {
                         $alias = $aliasMap[$upperSearch];
-                        $q->orWhereHas('kelas.jurusan', fn ($jq) => $jq->where('singkatan', 'like', "%{$alias}%"));
+                        $q->orWhereHas('kelas.jurusan', fn ($jq) => $jq->whereLike('singkatan', "%{$alias}%"));
                     }
                 });
             })

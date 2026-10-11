@@ -27,27 +27,27 @@ class GuruController extends Controller
                 $searchTrim = trim($search);
                 $aliasMap = ['RPL' => 'PPLG', 'TKJ' => 'TJKT'];
 
-                $query->where('nama', 'like', "%{$searchTrim}%")
-                    ->orWhere('nip', 'like', "%{$searchTrim}%")
+                $query->whereLike('nama', "%{$searchTrim}%")
+                    ->orWhereLike('nip', "%{$searchTrim}%")
                     ->orWhereHas('kelas', function ($q) use ($searchTrim, $aliasMap) {
-                        // Cocok full_nama_kelas via concat (mis. "XI PPLG A")
+                        // Cocok full_nama_kelas via concat (mis. "XI PPLG A") - case-insensitive di Postgres & MySQL
                         $q->whereRaw(
-                            "CONCAT_WS(' ', COALESCE((SELECT nama_jenjang FROM jenjang_kelas WHERE jenjang_kelas.id = kelas.jenjang_kelas_id), ''), COALESCE((SELECT singkatan FROM jurusans WHERE jurusans.id = kelas.jurusan_id), ''), COALESCE(kelas.nama_kelas, '')) LIKE ?",
-                            ["%{$searchTrim}%"]
+                            "LOWER(CONCAT_WS(' ', COALESCE((SELECT nama_jenjang FROM jenjang_kelas WHERE jenjang_kelas.id = kelas.jenjang_kelas_id), ''), COALESCE((SELECT singkatan FROM jurusans WHERE jurusans.id = kelas.jurusan_id), ''), COALESCE(kelas.nama_kelas, '')) ) LIKE ?",
+                            ['%'.strtolower($searchTrim).'%']
                         )
-                        // Fallback: cocok komponen terpisah
-                            ->orWhere('nama_kelas', 'like', "%{$searchTrim}%")
-                            ->orWhereHas('jurusan', fn ($j) => $j->where('singkatan', 'like', "%{$searchTrim}%")->orWhere('nama_jurusan', 'like', "%{$searchTrim}%"))
-                            ->orWhereHas('jenjangKelas', fn ($j) => $j->where('nama_jenjang', 'like', "%{$searchTrim}%"));
+                        // Fallback: cocok komponen terpisah (case-insensitive)
+                            ->orWhereLike('nama_kelas', "%{$searchTrim}%")
+                            ->orWhereHas('jurusan', fn ($j) => $j->whereLike('singkatan', "%{$searchTrim}%")->orWhereLike('nama_jurusan', "%{$searchTrim}%"))
+                            ->orWhereHas('jenjangKelas', fn ($j) => $j->whereLike('nama_jenjang', "%{$searchTrim}%"));
 
                         // Alias: jika user ketik RPL, anggap juga PPLG
                         $upperSearch = strtoupper($searchTrim);
                         if (isset($aliasMap[$upperSearch])) {
                             $alias = $aliasMap[$upperSearch];
-                            $q->orWhereHas('jurusan', fn ($j) => $j->where('singkatan', 'like', "%{$alias}%"));
+                            $q->orWhereHas('jurusan', fn ($j) => $j->whereLike('singkatan', "%{$alias}%"));
                         }
                     })
-                    ->orWhereHas('mataPelajarans', fn ($q) => $q->where('nama_mapel', 'like', "%{$searchTrim}%"));
+                    ->orWhereHas('mataPelajarans', fn ($q) => $q->whereLike('nama_mapel', "%{$searchTrim}%"));
             })
             ->latest()
             ->paginate(11)

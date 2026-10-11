@@ -533,6 +533,9 @@ class AbsensiController extends Controller
 
     private function recompressExisting(string $filePath, string $extension): void
     {
+        if (! extension_loaded('gd') || ! function_exists('imagecreatefrompng')) {
+            return;
+        }
         $image = match ($extension) {
             'jpg', 'jpeg' => @imagecreatefromjpeg($filePath),
             'png' => @imagecreatefrompng($filePath),

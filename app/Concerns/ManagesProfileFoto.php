@@ -62,6 +62,10 @@ trait ManagesProfileFoto
      */
     protected function cropToSquare($file): ?array
     {
+        if (! extension_loaded('gd') || ! function_exists('imagecreatefrompng')) {
+            return null;
+        }
+
         $mimeType = $file->getMimeType();
 
         $source = match ($mimeType) {

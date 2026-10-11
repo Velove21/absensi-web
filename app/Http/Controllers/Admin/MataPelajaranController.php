@@ -18,8 +18,8 @@ class MataPelajaranController extends Controller
 
         if ($search) {
             $mapelQuery->where(function ($q) use ($search) {
-                $q->where('nama_mapel', 'like', "%{$search}%")
-                    ->orWhereHas('kategoriPembelajaran', fn ($kq) => $kq->where('nama_kategori', 'like', "%{$search}%")->orWhere('kode', 'like', "%{$search}%"));
+                $q->whereLike('nama_mapel', "%{$search}%")
+                    ->orWhereHas('kategoriPembelajaran', fn ($kq) => $kq->whereLike('nama_kategori', "%{$search}%")->orWhereLike('kode', "%{$search}%"));
             });
         }
 

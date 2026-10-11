@@ -197,7 +197,8 @@ class ArsipController extends Controller
         }
 
         // Cek global Keterangan seperti generateLihatAbsensiExcel — hanya tabel pertama yang tampilkan kolom Keterangan jika ada
-        $hasKeteranganGlobal = $arsip->contains(fn ($a) => $a->status === 'alpha' && $a->keterangan !== null && trim((string) $a->keterangan) !== '' && trim((string) $a->keterangan) !== '-');
+        // Cek apakah ada record dengan keterangan valid (termasuk alpha / status lain dengan keterangan)
+        $hasKeteranganGlobal = $arsip->contains(fn ($a) => $a->keterangan !== null && trim((string) $a->keterangan) !== '' && trim((string) $a->keterangan) !== '-');
         $grouped = $arsip->groupBy(fn ($a) => $a->tanggal->format('Y-m-d'))->sortKeys();
         $isFirstTable = true;
 
@@ -205,7 +206,7 @@ class ArsipController extends Controller
             $formattedPeriode = Carbon::parse($tanggal)->format('d-m-Y');
             $hari = Carbon::parse($tanggal)->locale('id')->isoFormat('dddd');
             $sortedDateGroup = $dateGroup->sortBy(fn ($a) => trim((string) ($a->siswa_nis ?? $a->siswa?->nis ?? sprintf('%08d', $a->siswa_id ?? $a->id))), SORT_NATURAL)->values();
-            $showKeteranganThisTable = $hasKeteranganGlobal && $isFirstTable;
+            $showKeteranganThisTable = $hasKeteranganGlobal;
             $colCount = $showKeteranganThisTable ? 7 : 6;
             $html .= '<table border="1" cellspacing="0" cellpadding="10" style="border-collapse:collapse;width:100%;border:1px solid #000;">';
             $html .= '<tr class="title-row"><td colspan="'.$colCount.'" style="font-size:12px">'.e($fullKelas).' &nbsp;&bull;&nbsp; '.e(ucfirst($hari).', '.$formattedPeriode).'</td></tr>';
@@ -224,7 +225,7 @@ class ArsipController extends Controller
                 $html .= '<td style="text-align:center;mso-number-format:\@;white-space:nowrap">'.e($formattedPeriode).'</td>';
                 $html .= '<td style="text-align:center;white-space:nowrap">'.e(ucfirst($a->status ?? '-')).'</td>';
                 if ($showKeteranganThisTable) {
-                    $ket = ($a->status === 'alpha' && $a->keterangan) ? $a->keterangan : '-';
+                    $ket = ($a->keterangan && trim((string) $a->keterangan) !== '') ? $a->keterangan : '-';
                     $html .= '<td style="white-space:normal;word-wrap:break-word">'.e($ket).'</td>';
                 }
                 $html .= '</tr>';

@@ -280,9 +280,9 @@ class AttendanceExportController extends Controller
 
         // Group per tanggal untuk diekspor masing-masing tabel dari a sampai d (meski user lagi lihat tanggal b)
         $grouped = $sorted->groupBy('tanggal');
-        // Cek global apakah ada alpha+keterangan — kalau ada, tampilkan kolom Keterangan hanya di tabel A (pertama)
+        // Cek apakah ada record dengan keterangan valid (termasuk alpha / status lain dengan keterangan)
         $hasKeteranganGlobal = $sorted->contains(function ($a) {
-            return $a->status === 'alpha' && $a->keterangan !== null && trim((string) $a->keterangan) !== '' && trim((string) $a->keterangan) !== '-';
+            return $a->keterangan !== null && trim((string) $a->keterangan) !== '' && trim((string) $a->keterangan) !== '-';
         });
         $isFirstTable = true;
 
@@ -290,7 +290,12 @@ class AttendanceExportController extends Controller
             $formattedPeriode = Carbon::parse($tanggal)->format('d-m-Y');
             // Ambil nama kelas untuk title (karena lihat absensi hanya 1 kelas, pakai yang pertama)
             $kelasNamaTitle = $kelasList->first()?->full_nama_kelas ?? $dateGroup->first()?->siswa?->kelas?->full_nama_kelas ?? '-';
-            $showKeteranganThisTable = $hasKeteranganGlobal && $isFirstTable;
+            // Tampilkan kolom keterangan di setiap tabel/hari jika hari tersebut memiliki keterangan,
+            // atau konsisten tampil jika ada keterangan global agar rapi dan tidak hilang di hari berikutnya
+            $hasKeteranganThisDate = $dateGroup->contains(function ($a) {
+                return $a->keterangan !== null && trim((string) $a->keterangan) !== '' && trim((string) $a->keterangan) !== '-';
+            });
+            $showKeteranganThisTable = $hasKeteranganGlobal;
             $colCount = $showKeteranganThisTable ? 7 : 6;
 
             $html .= '<table border="1" cellspacing="0" cellpadding="10" style="border-collapse:collapse;width:100%;border:1px solid #000;">';
@@ -322,7 +327,7 @@ class AttendanceExportController extends Controller
                 $html .= '<td style="text-align:center;mso-number-format:\@;white-space:nowrap">'.e($tgl).'</td>';
                 $html .= '<td style="text-align:center;white-space:nowrap">'.e($status).'</td>';
                 if ($showKeteranganThisTable) {
-                    $ket = ($abs->status === 'alpha' && $abs->keterangan) ? $abs->keterangan : '-';
+                    $ket = ($abs->keterangan && trim((string) $abs->keterangan) !== '') ? $abs->keterangan : '-';
                     $html .= '<td style="white-space:normal;word-wrap:break-word">'.e($ket).'</td>';
                 }
                 $html .= '</tr>';

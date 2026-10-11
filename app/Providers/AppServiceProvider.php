@@ -37,6 +37,16 @@ class AppServiceProvider extends ServiceProvider
             app()->isProduction(),
         );
 
+        // Auto-drop Postgres enum check constraint if still exists on boot in PostgreSQL
+        if (app()->environment('production')) {
+            try {
+                if (DB::getDriverName() === 'pgsql') {
+                    DB::statement('ALTER TABLE absensis DROP CONSTRAINT IF EXISTS absensis_status_check');
+                }
+            } catch (\Throwable $e) {
+            }
+        }
+
         Password::defaults(fn (): ?Password => app()->isProduction()
             ? Password::min(12)
                 ->mixedCase()

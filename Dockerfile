@@ -61,6 +61,9 @@ COPY --chown=www-data:www-data --from=composer-builder /app/vendor ./vendor
 # Salin hasil kompilasi frontend dari Tahap 2
 COPY --chown=www-data:www-data --from=frontend-builder /app/public/build ./public/build
 
-# Optimalisasi permission untuk storage & cache Laravel
+# Optimalisasi permission untuk storage & cache Laravel, serta auto migrate database
 RUN chmod -R 775 storage bootstrap/cache \
     && php artisan storage:link || true
+
+# Set entrypoint helper via S6 overlay/serversideup command to run migrations on boot
+ENV AUTORUN_LARAVEL_MIGRATION=true

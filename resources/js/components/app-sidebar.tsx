@@ -169,7 +169,7 @@ export function AppSidebar() {
                             alt="Klikhadir"
                             className="size-[22px] shrink-0 group-data-[collapsible=icon]:hidden"
                         />
-                        <span className="truncate text-sm font-bold text-blue-700 group-data-[collapsible=icon]:hidden" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                        <span className="truncate text-sm font-bold text-blue-700 dark:text-blue-400 group-data-[collapsible=icon]:hidden" style={{ fontFamily: "'Poppins', sans-serif" }}>
                             Klikhadir.
                         </span>
                         {/* Collapsed sidebar logo - shows only when sidebar is collapsed, matches nav icon size */}

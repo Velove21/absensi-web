@@ -22,8 +22,8 @@ class TahunAjaranController extends Controller
     {
         return Inertia::render('admin/tahunajaran/index', [
             'tahunAjarans' => TahunAjaran::withCount('arsipPresensis')
-                ->orderByRaw('CAST(tahun_awal AS UNSIGNED) ASC')
-                ->orderByRaw('CAST(tahun_akhir AS UNSIGNED) ASC')
+                ->orderByRaw('CAST(tahun_awal AS INTEGER) ASC')
+                ->orderByRaw('CAST(tahun_akhir AS INTEGER) ASC')
                 ->paginate(10),
             'isNaikKelasAvailable' => Kelas::whereHas('jenjangKelas', fn ($q) => $q->whereNotNull('urutan'))->exists()
                 && JenjangKelas::whereNotNull('urutan')->count() > 1,
@@ -216,7 +216,7 @@ class TahunAjaranController extends Controller
         // Pindah bukan salin: semua live absensis dipindah ke arsip lalu dihapus total (tidak disisakan di live)
         try {
             // hard delete semua baris live (move, bukan copy)
-            \Illuminate\Support\Facades\DB::table('absensis')->delete();
+            DB::table('absensis')->delete();
         } catch (\Throwable $e) {
             $absensiIds = $raw->pluck('id')->filter()->values();
             if ($absensiIds->isNotEmpty()) {
@@ -226,7 +226,7 @@ class TahunAjaranController extends Controller
             }
         }
         try {
-            \Illuminate\Support\Facades\DB::table('absensi_photos')->delete();
+            DB::table('absensi_photos')->delete();
         } catch (\Throwable $e) {
             try {
                 AbsensiPhoto::query()->delete();

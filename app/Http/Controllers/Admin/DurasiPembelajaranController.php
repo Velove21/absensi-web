@@ -21,7 +21,7 @@ class DurasiPembelajaranController extends Controller
         }
 
         // Urut Senin -> Minggu, lalu jam_ke
-        $query->orderByRaw("FIELD(hari, 'Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu')")
+        $query->orderByRaw("CASE hari WHEN 'Senin' THEN 1 WHEN 'Selasa' THEN 2 WHEN 'Rabu' THEN 3 WHEN 'Kamis' THEN 4 WHEN 'Jumat' THEN 5 WHEN 'Sabtu' THEN 6 WHEN 'Minggu' THEN 7 ELSE 8 END ASC")
             ->orderBy('jam_ke');
 
         return Inertia::render('admin/durasipembelajaran/index', [

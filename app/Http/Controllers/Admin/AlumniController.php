@@ -15,7 +15,7 @@ class AlumniController extends Controller
     {
         $tahunList = TahunAjaran::whereHas('arsipPresensis', fn ($q) => $q->where('is_alumni', true))
             ->withCount(['arsipPresensis as alumni_count' => fn ($q) => $q->where('is_alumni', true)])
-            ->orderByRaw('CAST(tahun_awal AS UNSIGNED) DESC')
+            ->orderByRaw('CAST(tahun_awal AS INTEGER) DESC')
             ->get();
 
         return Inertia::render('admin/alumni/tahun', ['tahunList' => $tahunList]);

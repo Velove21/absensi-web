@@ -98,38 +98,39 @@
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
+    /* Dark theme tokens: soft dark surface (#18181b / #121212) instead of pitch black, high contrast muted text */
+    --background: oklch(0.20 0 0); /* #1e1e20 */
     --foreground: oklch(0.985 0 0);
-    --card: oklch(0.145 0 0);
+    --card: oklch(0.24 0 0); /* #27272a */
     --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.145 0 0);
+    --popover: oklch(0.24 0 0);
     --popover-foreground: oklch(0.985 0 0);
     --primary: oklch(0.985 0 0);
     --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
+    --secondary: oklch(0.30 0 0);
     --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
+    --muted: oklch(0.28 0 0);
+    --muted-foreground: oklch(0.78 0 0); /* terang, kontras jelas di dark mode (~75% brightness) */
+    --accent: oklch(0.30 0 0);
     --accent-foreground: oklch(0.985 0 0);
     --destructive: oklch(0.396 0.141 25.723);
     --destructive-foreground: oklch(0.637 0.237 25.331);
-    --border: oklch(0.269 0 0);
-    --input: oklch(0.269 0 0);
-    --ring: oklch(0.439 0 0);
+    --border: oklch(0.32 0 0);
+    --input: oklch(0.32 0 0);
+    --ring: oklch(0.55 0 0);
     --chart-1: oklch(0.488 0.243 264.376);
     --chart-2: oklch(0.696 0.17 162.48);
     --chart-3: oklch(0.769 0.188 70.08);
     --chart-4: oklch(0.627 0.265 303.9);
     --chart-5: oklch(0.645 0.246 16.439);
-    --sidebar: oklch(0.205 0 0);
+    --sidebar: oklch(0.22 0 0);
     --sidebar-foreground: oklch(0.985 0 0);
     --sidebar-primary: oklch(0.985 0 0);
     --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent: oklch(0.28 0 0);
     --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(0.269 0 0);
-    --sidebar-ring: oklch(0.439 0 0);
+    --sidebar-border: oklch(0.32 0 0);
+    --sidebar-ring: oklch(0.55 0 0);
 }
 
 @layer base {
@@ -153,8 +154,12 @@
 
 /* ---- Dashboard surface (#093FF9) with white forms ---- */
 
+.dashboard-content {
+    background-color: #093ff9;
+}
+
 .dark .dashboard-content {
-    background-color: oklch(0.18 0.04 260);
+    background-color: #1a1a1a;
 }
 
 .dashboard-content :where(h1, h2, h3, h4, p, span, label, a, strong, b, em, li, td, th, small):not(:is([data-slot='card'] *, [class*='bg-card'] *, [data-slot='pagination'] *, [data-slot='avatar-fallback'], [data-slot='avatar-fallback'] *)) {
@@ -164,12 +169,22 @@
 .dashboard-content :where(a, button):not(:is([data-slot='card'] *, [class*='bg-card'] *, [data-slot='pagination'] *)):is(:hover, :active, :focus-visible) {
     color: #93c5fd;
 }
+
 .dashboard-content :where(input:not([type='checkbox']):not([type='radio']), textarea, [data-slot='select-trigger']) {
+    background-color: #ffffff;
+    color: #111827;
+}
+
+.dark .dashboard-content :where(input:not([type='checkbox']):not([type='radio']), textarea, [data-slot='select-trigger']) {
     background-color: var(--card);
     color: var(--card-foreground);
 }
 
 .dashboard-content :where(input:not([type='checkbox']):not([type='radio']), textarea)::placeholder {
+    color: #6b7280;
+}
+
+.dark .dashboard-content :where(input:not([type='checkbox']):not([type='radio']), textarea)::placeholder {
     color: var(--muted-foreground);
 }
 

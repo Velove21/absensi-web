@@ -24,6 +24,9 @@ return new class extends Migration
             $table->string('keterangan')->nullable();
             $table->string('bukti')->nullable();
             $table->boolean('is_alumni')->default(false);
+            $table->string('siswa_nis', 20)->nullable();
+            $table->string('siswa_nama')->nullable();
+            $table->string('siswa_foto_url')->nullable();
             $table->timestamps();
             $table->index(['tahun_ajaran_id', 'kelas_id']);
             $table->index('tanggal');

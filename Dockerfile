@@ -62,4 +62,5 @@ COPY --chown=www-data:www-data --from=composer-builder /app/vendor ./vendor
 COPY --chown=www-data:www-data --from=frontend-builder /app/public/build ./public/build
 
 # Optimalisasi permission untuk storage & cache Laravel
-RUN chmod -R 775 storage bootstrap/cache
+RUN chmod -R 775 storage bootstrap/cache \
+    && php artisan storage:link || true

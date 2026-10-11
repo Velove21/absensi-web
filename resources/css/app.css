@@ -152,11 +152,11 @@
     background-color: #093ff9;
 }
 
-.dashboard-content :where(h1, h2, h3, h4, p, span, label, a, strong, b, em, li, td, th, small):not(:is([data-slot='card'] *, [class*='bg-card'] *)) {
+.dashboard-content :where(h1, h2, h3, h4, p, span, label, a, strong, b, em, li, td, th, small):not(:is([data-slot='card'] *, [class*='bg-card'] *, [data-slot='pagination'] *, [data-slot='avatar-fallback'], [data-slot='avatar-fallback'] *)) {
     color: #ffffff;
 }
 
-.dashboard-content :where(a, button):not(:is([data-slot='card'] *, [class*='bg-card'] *)):is(:hover, :active, :focus-visible) {
+.dashboard-content :where(a, button):not(:is([data-slot='card'] *, [class*='bg-card'] *, [data-slot='pagination'] *)):is(:hover, :active, :focus-visible) {
     color: #93c5fd;
 }
 

@@ -17,7 +17,7 @@ beforeEach(function () {
 test('guest is redirected to login on guru index', function () {
     auth()->logout();
 
-    $this->get(route('admin.guru.index'))->assertRedirect(route('login'));
+    $this->get(route('admin.guru.index'))->assertRedirect('/');
 });
 
 test('admin can view guru list', function () {

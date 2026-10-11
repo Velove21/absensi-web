@@ -291,7 +291,7 @@ export default function GuruDataAbsensi({
                 </div>
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-stretch">
                     <div className="col-span-1 flex flex-col gap-4">
-                        <div className="rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border sticky top-8 min-h-[260px] flex flex-col">
+                        <div className="relative z-20 rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border lg:sticky lg:top-8 min-h-[260px] flex flex-col">
                             <div className="mb-4">
                                 <h2 className="text-lg font-semibold flex items-center gap-2"><BookOpen className="h-4 w-4 text-primary" /> Filter Data</h2>
                                 <p className="text-xs text-muted-foreground mt-1">Pilih tanggal dan kelas untuk lihat rekap presensi kelas terbaru</p>
@@ -320,7 +320,7 @@ export default function GuruDataAbsensi({
                         </div>
 
                         {/* Ekspor Presensi — di bawah Filter Data, besar kolom sama presisi dengan Filter Data */}
-                        <div className="rounded-xl border border-dashed border-sidebar-border/40 bg-card p-4 shadow-sm w-full flex flex-col">
+                        <div className="relative z-10 rounded-xl border border-dashed border-sidebar-border/40 bg-card p-4 shadow-sm w-full flex flex-col">
                             <div className="flex items-center gap-2 mb-2">
                                 <FileSpreadsheet className="h-5 w-5 text-primary" />
                                 <h2 className="text-lg font-semibold">
@@ -438,13 +438,15 @@ export default function GuruDataAbsensi({
             <Dialog open={previewBukti !== null} onOpenChange={(o)=>{if(!o) setPreviewBukti(null)}}>
                 <DialogContent className="sm:max-w-[400px] w-auto max-h-[85vh] bg-transparent border-none shadow-none p-1 sm:p-2 [&>button]:hidden">
                     {previewBukti && (
-                        <div className="bg-card rounded-xl px-4 py-4 shadow-2xl flex flex-col gap-4 relative w-auto max-w-[400px] mx-auto aspect-square justify-center">
-                            <button onClick={() => setPreviewBukti(null)} className="absolute left-4 top-4 h-8 w-8 rounded-full bg-muted hover:bg-accent flex items-center justify-center transition-colors" aria-label="Kembali">
-                                <ArrowLeft className="h-4 w-4" />
-                            </button>
-                            <div className="text-center">
-                                <h3 className="text-base font-semibold">Surat {previewBukti.status ? previewBukti.status.charAt(0).toUpperCase()+previewBukti.status.slice(1) : 'Presensi'}</h3>
-                                <p className="text-xs text-muted-foreground mt-0.5 font-mono break-all">{getSuratLabel(previewBukti.status ?? 'surat', previewBukti.nama, previewBukti.kelasNama, previewBukti.tanggal)}.</p>
+                        <div className="bg-card rounded-xl px-4 py-4 shadow-2xl flex flex-col gap-4 relative w-full max-w-[400px] mx-auto justify-center">
+                            <div className="flex items-start gap-3 pr-2">
+                                <button onClick={() => setPreviewBukti(null)} className="shrink-0 mt-0.5 h-8 w-8 rounded-full bg-muted hover:bg-accent flex items-center justify-center transition-colors" aria-label="Kembali">
+                                    <ArrowLeft className="h-4 w-4" />
+                                </button>
+                                <div className="min-w-0 flex-1">
+                                    <h3 className="text-base font-semibold leading-tight">Surat {previewBukti.status ? previewBukti.status.charAt(0).toUpperCase()+previewBukti.status.slice(1) : 'Presensi'}</h3>
+                                    <p className="text-xs text-muted-foreground mt-1 font-mono break-all line-clamp-2">{getSuratLabel(previewBukti.status ?? 'surat', previewBukti.nama, previewBukti.kelasNama, previewBukti.tanggal)}.</p>
+                                </div>
                             </div>
                             <div className="flex justify-center">
                                 <img

@@ -107,7 +107,7 @@ export default function ArsipDetail({ tahunAjaran, kelas, records, stats }: { ta
                   <Input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-full h-9 bg-muted/30" />
                 </div>
                 <Button asChild className="w-full gap-2 h-9"><a href={`/admin/tahun-ajaran/${tahunAjaran.id}/arsip/kelas/${kelas.id}/export`}><FileSpreadsheet className="h-4 w-4" /> Ekspor Arsip</a></Button>
-                <p className="text-xs text-muted-foreground">Data ekspor dalam rentang per hari</p>
+                <p className="text-xs text-muted-foreground">Data ekspor lengkap dalam rentang per tahun ajaran</p>
               </div>
             </div>
           </div>
@@ -189,7 +189,7 @@ export default function ArsipDetail({ tahunAjaran, kelas, records, stats }: { ta
                 </div>
               </div>
             ) : (
-              <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">Pilih tanggal di filter untuk melihat detail presensi (format terbaru: No·NIS·Nama·Status·Keterangan·Bukti).</CardContent></Card>
+              <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">Pilih tanggal terlebih dahulu untuk melihat detail presensi.</CardContent></Card>
             )}
           </div>
         </div>

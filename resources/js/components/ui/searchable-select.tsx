@@ -105,8 +105,10 @@ export default function SearchableSelect({
                         className="bg-white text-popover-foreground w-full min-w-[8rem] origin-top overflow-hidden rounded-md border border-gray-200 shadow-xl animate-in fade-in zoom-in-95"
                         style={{
                             left: `${containerRef.current.getBoundingClientRect().left}px`,
-                            top: `${containerRef.current.getBoundingClientRect().bottom + window.scrollY}px`,
+                            top: `${containerRef.current.getBoundingClientRect().bottom + 4}px`,
+                            width: `${containerRef.current.getBoundingClientRect().width}px`,
                             position: 'fixed',
+                            zIndex: 9999,
                         }}
                         onKeyDown={handleKeyDown}
                     >

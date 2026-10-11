@@ -1,1 +1,0 @@
-import{ft as e}from"./app-DLS8J75I.js";var t=e(`Check`,[[`path`,{d:`M20 6 9 17l-5-5`,key:`1gmf2c`}]]);export{t};

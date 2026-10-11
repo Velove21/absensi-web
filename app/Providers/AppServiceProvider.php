@@ -37,11 +37,14 @@ class AppServiceProvider extends ServiceProvider
             app()->isProduction(),
         );
 
-        // Auto-drop Postgres enum check constraint if still exists on boot in PostgreSQL
+        // Auto-fix schema Postgres if pending (drop status check & ensure arsip_presensis columns)
         if (app()->environment('production')) {
             try {
                 if (DB::getDriverName() === 'pgsql') {
                     DB::statement('ALTER TABLE absensis DROP CONSTRAINT IF EXISTS absensis_status_check');
+                    DB::statement('ALTER TABLE arsip_presensis ADD COLUMN IF NOT EXISTS siswa_nis VARCHAR(20) NULL');
+                    DB::statement('ALTER TABLE arsip_presensis ADD COLUMN IF NOT EXISTS siswa_nama VARCHAR(255) NULL');
+                    DB::statement('ALTER TABLE arsip_presensis ADD COLUMN IF NOT EXISTS siswa_foto_url VARCHAR(255) NULL');
                 }
             } catch (\Throwable $e) {
             }

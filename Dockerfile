@@ -65,5 +65,5 @@ COPY --chown=www-data:www-data --from=frontend-builder /app/public/build ./publi
 RUN chmod -R 775 storage bootstrap/cache \
     && php artisan storage:link || true
 
-# Set entrypoint helper via S6 overlay/serversideup command to run migrations on boot
+# Enable autorun migration via entrypoint S6 serversideup
 ENV AUTORUN_LARAVEL_MIGRATION=true

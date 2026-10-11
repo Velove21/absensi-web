@@ -40,6 +40,7 @@ COPY . .
 COPY --from=composer-builder /app/vendor ./vendor
 
 # Jalankan build frontend
+RUN NODE_OPTIONS="--max-old-space-size=2048" npm run build
 RUN NODE_OPTIONS="--max-old-space-size=1024" npm run build
 
 # ==========================================

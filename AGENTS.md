@@ -192,3 +192,21 @@ Use Wayfinder to generate TypeScript functions for Laravel routes. Import from `
 - Do NOT delete tests without approval.
 
 </laravel-boost-guidelines>
+
+
+<project-gates>
+=== project gates ===
+
+# UI Contrast Gate (WCAG AA, no exceptions)
+
+- Every new or changed text/background color pair (including `hover:`, `focus:`, `active:`, `dark:` states) MUST state its contrast ratio before commit. Normal text >= 4.5:1, large text/UI >= 3:1.
+- Known-good pairs in this project: white on `#002399` (~12:1), white on `#093FF9` (~6:1). Known-bad: `#93c5fd` on white (~2:1) — never use light-blue text on light backgrounds.
+- Never add a global `:hover`/`:focus` color rule targeting `button` or `a` without excluding `[data-slot='button']` and `[class*='bg-']` elements.
+- Prefer reusing existing button styles (`resources/js/components/ui/button.tsx` variants, the `.dashboard-content button.bg-white` hover override in `resources/css/app.css`) over inventing new color combos. New combo = new ratio statement.
+
+# Final Verification Gate (browser, mandatory)
+
+- Any task that changes UI, routes, or controllers is NOT done until verified in a real browser via the `webapp-testing` skill (Playwright): start the local server, open every affected page, screenshot, and check console for errors.
+- `php -l` / `tsc` passing is necessary but NOT sufficient evidence for UI work. No screenshot + no console check = not complete.
+- If the local server/DB cannot run, say so explicitly and mark the task blocked — never silently skip browser verification.
+</project-gates>

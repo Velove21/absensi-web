@@ -32,7 +32,7 @@ class AlumniController extends Controller
                 'jurusan' => $k->jurusan,
                 'jenjangKelas' => $k->jenjangKelas,
                 'alumni_count' => ArsipPresensi::where('tahun_ajaran_id', $tahunAjaran->id)->where('kelas_id', $k->id)->where('is_alumni', true)
-                    ->selectRaw('COUNT(DISTINCT COALESCE(siswa_nis, siswa_id)) as c')->value('c') ?? 0,
+                    ->selectRaw('COUNT(DISTINCT COALESCE(siswa_nis, CAST(siswa_id AS TEXT))) as c')->value('c') ?? 0,
             ]);
 
         return Inertia::render('admin/alumni/kelas', ['tahunAjaran' => $tahunAjaran, 'kelasList' => $kelasList]);

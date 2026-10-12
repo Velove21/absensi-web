@@ -166,8 +166,17 @@
     color: #ffffff;
 }
 
-.dashboard-content :where(a, button):not(:is([data-slot='card'] *, [class*='bg-card'] *, [data-slot='pagination'] *)):is(:hover, :active, :focus-visible) {
-    color: #93c5fd;
+.dashboard-content :where(a):not(:is([data-slot='card'] *, [data-slot='button'] *, [class*='bg-card'] *, [class*='bg-'] *, [data-slot='pagination'] *)):is(:hover, :active, :focus-visible) {
+    color: #ffffff;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+/* White action buttons (Tambah dsb): hover jadi biru brand, teks tetap putih — kontras ~12:1, lolos WCAG AA */
+.dashboard-content :where(button.bg-white, a.bg-white):is(:hover, :active, :focus-visible) {
+    background-color: #002399;
+    color: #ffffff;
+    border-color: #002399;
 }
 
 .dashboard-content :where(input:not([type='checkbox']):not([type='radio']), textarea, [data-slot='select-trigger']) {
